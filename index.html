@@ -167,7 +167,7 @@
 
 <section class="form-section wrap" id="formulario">
   <h2>Me conta sobre seu terreno</h2>
-  <p class="hint">Ao enviar, abre o seu WhatsApp já com a mensagem pronta pra mim.</p>
+  <p class="hint">Preenche aqui que eu mesma leio e te respondo pelo WhatsApp.</p>
 
   <form id="lead-form" novalidate>
     <div class="row">
@@ -209,19 +209,7 @@
 </footer>
 
 <script>
-  // ===== CONFIGURAÇÃO =====
-  // Seu WhatsApp (só números, com 55 e DDD)
-  var WHATSAPP = "5521984052365";
-
-  // Onde a página avisa você no Telegram.
-  // Opção recomendada (Vercel): deixe "/api/lead" e configure o token nas variáveis de ambiente da Vercel.
   var ENDPOINT = "/api/lead";
-
-  // Opção direta (só se NÃO estiver na Vercel): preencha os dois abaixo e deixe ENDPOINT = "".
-  // Atenção: nessa opção o token fica visível no código da página.
-  var TELEGRAM_TOKEN = "";
-  var TELEGRAM_CHAT_ID = "";
-  // ========================
 
   var form = document.getElementById("lead-form");
   var erro = document.getElementById("erro");
@@ -232,7 +220,7 @@
   form.addEventListener("submit", function (e) {
     e.preventDefault();
 
-    if (valor("site")) return; // honeypot: robô preencheu
+    if (valor("site")) return;
 
     var nome = valor("nome"), whatsapp = valor("whatsapp"), cidade = valor("cidade"),
         tamanho = valor("tamanho"), situacao = valor("situacao");
@@ -243,43 +231,26 @@
     }
     erro.classList.remove("show");
     botao.disabled = true;
-    botao.textContent = "Abrindo seu WhatsApp...";
+    botao.textContent = "Enviando...";
 
     if (!/m/i.test(tamanho)) tamanho = tamanho + " m²";
 
-    var msgWhats = "Oi Isabella, tenho um terreno em " + cidade + ", " + tamanho +
-      ". Situação: " + situacao + ". Quero saber se vale construir.";
-
-    var msgTelegram = "Novo terreno (Raio-X)\n\n" +
-      "Nome: " + nome + "\n" +
-      "WhatsApp: " + whatsapp + "\n" +
-      "Cidade: " + cidade + "\n" +
-      "Tamanho: " + tamanho + "\n" +
-      "Situação: " + situacao;
-
-    // 1) Avisa você no Telegram (keepalive: continua mesmo depois que a página abrir o WhatsApp)
-    try {
-      if (ENDPOINT) {
-        fetch(ENDPOINT, {
-          method: "POST",
-          keepalive: true,
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ nome: nome, whatsapp: whatsapp, cidade: cidade, tamanho: tamanho, situacao: situacao })
-        }).catch(function () {});
-      } else if (TELEGRAM_TOKEN && TELEGRAM_CHAT_ID) {
-        fetch("https://api.telegram.org/bot" + TELEGRAM_TOKEN + "/sendMessage", {
-          method: "POST",
-          keepalive: true,
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: msgTelegram })
-        }).catch(function () {});
-      }
-    } catch (err) {}
-
-    // 2) Abre o WhatsApp do lead já falando com você
-    var url = "https://wa.me/" + WHATSAPP + "?text=" + encodeURIComponent(msgWhats);
-    setTimeout(function () { window.location.href = url; }, 250);
+    fetch(ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nome: nome, whatsapp: whatsapp, cidade: cidade, tamanho: tamanho, situacao: situacao })
+    })
+    .then(function () { mostrarConfirmacao(nome); })
+    .catch(function () { mostrarConfirmacao(nome); });
   });
+
+  function mostrarConfirmacao(nome) {
+    var secao = document.getElementById("formulario");
+    secao.innerHTML =
+      '<h2 style="font-family:var(--serif);font-weight:500;font-size:clamp(28px,6vw,36px);margin:0 0 14px;line-height:1.15">Recebi, ' + nome.split(" ")[0] + '.</h2>' +
+      '<p style="max-width:540px;color:rgba(28,26,23,.8);margin:0 0 8px">Vou analisar o que você me contou sobre o terreno e te respondo pessoalmente pelo WhatsApp.</p>' +
+      '<p style="color:var(--muted);font-size:14px;margin:0">Fique de olho no seu WhatsApp nos próximos dias.</p>';
+  }
 </script>
 </body>
 </html>
