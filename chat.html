@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fale com a Isabella · Método Origem</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{--paper:#FAF9F6;--stone:#F0D6AA;--ink:#6A2326;--ink-soft:#73504F;--freijo:#6A2326;--freijo-deep:#6A2326;--moss:#73504F;--line:#D1B0A0}
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--paper);color:var(--ink);font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:16px;line-height:1.5;height:100%}
+  .app{max-width:560px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column}
+  header{display:flex;gap:14px;align-items:center;padding:22px 20px 14px;position:sticky;top:0;background:var(--paper);z-index:2}
+  header img{width:56px;height:56px;border-radius:50%;object-fit:cover;background:var(--stone);flex:none}
+  header .who{font-family:"Fraunces",serif;font-size:21px;color:var(--ink);line-height:1.1}
+  header .sub{font-size:13px;color:var(--ink-soft);margin-top:3px}
+  main{flex:1;padding:20px 16px 16px;display:flex;flex-direction:column;gap:12px}
+  .msg{max-width:88%;padding:12px 15px;border-radius:14px;white-space:pre-line;animation:in .25s ease}
+  .bot{align-self:flex-start;background:#fff;border:1px solid var(--line);border-bottom-left-radius:4px;color:var(--ink-soft)}
+  .bot b{color:var(--ink)}
+  .me{align-self:flex-end;background:var(--stone);color:var(--ink);border-bottom-right-radius:4px}
+  .bot b{font-weight:500}
+  .bot .tag{display:inline-block;font-size:12px;color:var(--freijo-deep);border:1px solid var(--freijo);border-radius:20px;padding:2px 10px;margin-bottom:6px}
+  @keyframes in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .opts{display:flex;flex-wrap:wrap;gap:8px;align-self:flex-start;max-width:92%}
+  .opts button{font:inherit;font-size:15px;padding:10px 16px;border-radius:22px;border:1px solid var(--freijo);background:#fff;color:var(--freijo-deep);cursor:pointer}
+  .opts button:hover{background:var(--stone)}
+  .opts button.primary{background:var(--stone);border-color:var(--stone);color:var(--ink)}
+  .opts button:focus-visible{outline:2px solid var(--freijo);outline-offset:2px}
+  form.in{display:flex;gap:8px;align-self:stretch;margin-top:4px}
+  form.in input,form.in textarea{flex:1;font:inherit;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--ink)}
+  form.in textarea{resize:none;height:80px}
+  form.in input:focus,form.in textarea:focus{outline:2px solid var(--freijo);outline-offset:1px;border-color:var(--freijo)}
+  form.in button{font:inherit;padding:0 18px;border-radius:12px;border:1px solid var(--ink);background:var(--stone);color:var(--ink);cursor:pointer}
+  .lgpd{font-size:12px;color:var(--ink-soft);align-self:stretch;margin-top:-6px}
+  .err{font-size:13px;color:#9C3B2E;align-self:stretch}
+  .typing{align-self:flex-start;color:var(--ink-soft);font-size:13px;padding:0 6px}
+  .bot .tag{color:var(--ink);border-color:var(--stone);background:var(--stone)}
+  footer{padding:10px 16px 18px;font-size:12px;color:var(--ink-soft);text-align:center}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <img id="foto" alt="">
+    <div><div class="who">Isabella Estrela</div><div class="sub">Arquiteta especialista em desenvolvimento de produtos imobiliários</div></div>
+  </header>
+  <main id="chat"></main>
+  <footer>Seus dados ficam comigo e são usados só para te responder.</footer>
+</div>
+
+<script>
+/* =====================================================================
+   CONFIGURAÇÃO — preencha uma vez.
+   ===================================================================== */
+const CONFIG = {
+  supabaseUrl: "https://mooghvkrendiiwhxynkd.supabase.co",
+  supabaseAnonKey: "sb_publishable_eRt9feUOHeFOSZjIbfDrJw_ieFaA6Dx",
+  whatsapp: "5521984052365",
+  fotoUrl: "",              // URL da sua foto (ou deixe vazio)
+  precoRaiox: 3000,
+  capacidade: { raiox: 8, fachada: 4 },   // usado só se a tabela vagas não responder
+  respostaFachadaAte: "hoje até as 18h",   // promessa de prazo para fachada e parceria
+  // Um dado real seu que entra no parecer (deixe vazio para omitir a frase)
+  dadoReal: "",             // ex.: "Nos meus empreendimentos em Nova Iguaçu, o custo de obra que pratico fica em torno de R$ X/m²."
+  custoDoErro: "entre R$ 40 mil e R$ 150 mil",   // faixa citada antes do preço do Raio-X
+  fachada: { base:[{ate:250,valor:2500},{ate:500,valor:3500},{ate:1000,valor:4500}], pavimentos:{0:0,1:1000,2:2000}, faces:{1:0,2:800,4:2000} },
+};
+/* ===================================================================== */
+
+const $chat = document.getElementById('chat');
+const brl = n => n.toLocaleString('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0});
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const mesAtual = new Date().toISOString().slice(0,7);
+const nomeMes = new Date().toLocaleDateString('pt-BR',{month:'long'});
+if (CONFIG.fotoUrl) document.getElementById('foto').src = CONFIG.fotoUrl;
+else { const f = document.getElementById('foto'); const d = document.createElement('div'); d.style.cssText='width:56px;height:56px;border-radius:50%;background:#F0D6AA;color:#6A2326;display:flex;align-items:center;justify-content:center;font-family:Fraunces,serif;font-size:20px;flex:none'; d.textContent='IE'; f.replaceWith(d); }
+
+// ---------- estado ----------
+const S = { sessao: null, leadId: null, origem: new URLSearchParams(location.search).get('o') || null, dados: {} };
+try { S.sessao = localStorage.getItem('mo_sessao'); } catch {}
+if (!S.sessao){ S.sessao = 's' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); try { localStorage.setItem('mo_sessao', S.sessao); } catch {} }
+
+// ---------- banco ----------
+const DB = CONFIG.supabaseUrl && CONFIG.supabaseAnonKey;
+const H = () => ({ 'Content-Type':'application/json', apikey:CONFIG.supabaseAnonKey, Authorization:`Bearer ${CONFIG.supabaseAnonKey}` });
+const COLUNAS = ['intencao','detalhe','nome','whatsapp','email','cidade','terreno_m2','tem_terreno','objetivo','parecer','completou','ultima_etapa','status','consentimento','horario','pontuacao','duvida','quer_raiox'];
+function paraBanco(obj){
+  const row = {}, extras = {};
+  for (const [k,v] of Object.entries(obj)) (COLUNAS.includes(k) ? row : extras)[k] = v;
+  if (Object.keys(extras).length){ S.extras = { ...(S.extras||{}), ...extras }; row.dados = S.extras; }
+  return row;
+}
+async function salvarLead(patch){
+  Object.assign(S.dados, patch);
+  if (!DB) return;
+  try {
+    if (!S.leadId){
+      const r = await fetch(`${CONFIG.supabaseUrl}/rest/v1/leads`, { method:'POST', headers:{...H(), Prefer:'return=representation'}, body: JSON.stringify({ sessao:S.sessao, origem:S.origem, ...paraBanco(S.dados) }) });
+      const j = await r.json(); if (Array.isArray(j) && j[0]) S.leadId = j[0].id;
+    } else {
+      await fetch(`${CONFIG.supabaseUrl}/rest/v1/leads?id=eq.${S.leadId}`, { method:'PATCH', headers:H(), body: JSON.stringify(paraBanco(patch)) });
+    }
+  } catch(e){ console.warn('lead', e); }
+}
+async function salvarResposta(pergunta, resposta){
+  if (!DB) return;
+  try { await fetch(`${CONFIG.supabaseUrl}/rest/v1/respostas`, { method:'POST', headers:H(), body: JSON.stringify({ lead_id:S.leadId, sessao:S.sessao, pergunta, resposta }) }); } catch {}
+}
+async function vagas(){
+  const fallback = { raiox: CONFIG.capacidade.raiox, fachada: CONFIG.capacidade.fachada };
+  if (!DB) return fallback;
+  try {
+    const r = await fetch(`${CONFIG.supabaseUrl}/rest/v1/vagas?mes=eq.${mesAtual}&select=*`, { headers:H() });
+    const j = await r.json(); if (!j[0]) return fallback;
+    return { raiox: Math.max(0, j[0].raiox_max - j[0].raiox_usados), fachada: Math.max(0, j[0].fachada_max - j[0].fachada_usados) };
+  } catch { return fallback; }
+}
+
+// ---------- UI ----------
+async function bot(html, tag){
+  const t = document.createElement('div'); t.className='typing'; t.textContent='Isabella está digitando…'; $chat.appendChild(t); scroll();
+  await sleep(Math.min(1400, 350 + html.length * 6));
+  t.remove();
+  const d = document.createElement('div'); d.className='msg bot'; d.innerHTML = (tag ? `<span class="tag">${tag}</span><br>` : '') + html; $chat.appendChild(d); scroll();
+}
+function me(text){ const d = document.createElement('div'); d.className='msg me'; d.textContent = text; $chat.appendChild(d); scroll(); }
+function scroll(){ window.scrollTo({ top: document.body.scrollHeight, behavior:'smooth' }); }
+
+function ask(pergunta, opcoes, chave){
+  return new Promise(res => {
+    const box = document.createElement('div'); box.className='opts';
+    opcoes.forEach(o => {
+      const b = document.createElement('button'); b.textContent = o.rotulo; if (o.primary) b.className='primary';
+      b.onclick = async () => { box.remove(); me(o.rotulo); await salvarLead({ [chave]: o.valor, ultima_etapa: pergunta }); salvarResposta(pergunta, o.rotulo); res(o.valor); };
+      box.appendChild(b);
+    });
+    $chat.appendChild(box); scroll();
+  });
+}
+function askText(pergunta, chave, opts={}){
+  return new Promise(res => {
+    const f = document.createElement('form'); f.className='in';
+    const inp = document.createElement(opts.area ? 'textarea' : 'input');
+    if (!opts.area){ inp.type = opts.type || 'text'; inp.inputMode = opts.inputMode || 'text'; }
+    inp.placeholder = opts.placeholder || ''; inp.autocomplete = opts.autocomplete || 'off';
+    const b = document.createElement('button'); b.type='submit'; b.textContent='Enviar';
+    f.append(inp, b);
+    let lgpd = null, err = null;
+    if (opts.lgpd){ lgpd = document.createElement('div'); lgpd.className='lgpd'; lgpd.textContent = 'Ao enviar, você autoriza o uso do seu contato para eu te responder sobre este assunto (LGPD).'; }
+    f.onsubmit = async e => {
+      e.preventDefault();
+      const v = inp.value.trim();
+      if (opts.validar && !opts.validar(v)){ if (!err){ err = document.createElement('div'); err.className='err'; f.after(err); } err.textContent = opts.erro || 'Confere esse dado pra mim?'; return; }
+      f.remove(); lgpd && lgpd.remove(); err && err.remove();
+      me(v);
+      const patch = { [chave]: opts.parse ? opts.parse(v) : v, ultima_etapa: pergunta };
+      if (opts.lgpd) patch.consentimento = true;
+      await salvarLead(patch); salvarResposta(pergunta, v); res(v);
+    };
+    $chat.appendChild(f); lgpd && $chat.appendChild(lgpd); inp.focus(); scroll();
+  });
+}
+const telOk = v => v.replace(/\D/g,'').length >= 10;
+const primeiroNome = () => (S.dados.nome || '').split(' ')[0];
+
+// ---------- roteiro ----------
+async function inicio(){
+  if (S.origem && DB){ try { await fetch(`${CONFIG.supabaseUrl}/rest/v1/cliques`, { method:'POST', headers:H(), body: JSON.stringify({ origem:S.origem, sessao:S.sessao, dispositivo: /Mobi/.test(navigator.userAgent)?'mobile':'desktop', referrer: document.referrer||null }) }); } catch {} }
+  await bot('Oi! Que bom que você veio do vídeo. Em poucas perguntas eu entendo seu caso e te devolvo uma primeira leitura. Feita por mim, não por robô.');
+  const intencao = await ask('O que você quer fazer?', [
+    { rotulo:'Construir', valor:'construir' }, { rotulo:'Comprar um imóvel ou terreno', valor:'comprar' },
+    { rotulo:'Remodelar uma fachada', valor:'fachada' }, { rotulo:'Parceria / publicidade', valor:'parceria' }, { rotulo:'Ainda não sei', valor:'indeciso' },
+  ], 'intencao');
+  await bot('Antes de continuar: como você se chama?');
+  await askText('Nome', 'nome', { placeholder:'Seu nome', autocomplete:'name', validar: v => v.length >= 2 });
+  await ({ construir, comprar, fachada, parceria, indeciso })[intencao]();
+}
+
+async function pedirWhats(motivo){
+  await bot(`${primeiroNome()}, ${motivo}. Qual seu WhatsApp?`);
+  await askText('WhatsApp', 'whatsapp', { type:'tel', inputMode:'tel', placeholder:'(12) 9 9999-9999', autocomplete:'tel', lgpd:true, validar: telOk, erro:'Preciso do número com DDD.' });
+}
+async function pedirHorario(){
+  await bot('Pra eu te chamar na hora certa: qual o melhor período pra falar?');
+  await ask('Melhor horário', [ {rotulo:'Manhã',valor:'manha'}, {rotulo:'Tarde',valor:'tarde'}, {rotulo:'Noite',valor:'noite'} ], 'horario');
+}
+
+async function construir(){
+  const detalhe = await (async () => { await bot('Construir o quê?'); return ask('Construir o quê?', [
+    {rotulo:'Minha casa',valor:'minha casa'}, {rotulo:'Um conjunto de casas',valor:'casas'}, {rotulo:'Um prédio',valor:'predio'}, {rotulo:'Comercial',valor:'comercial'} ], 'detalhe'); })();
+  await bot('Você já tem o terreno?');
+  const tem = await ask('Tem terreno?', [ {rotulo:'Sim',valor:true}, {rotulo:'Ainda não',valor:false} ], 'tem_terreno');
+  if (tem){
+    await bot('Em qual cidade, e qual o tamanho aproximado do terreno em m²?');
+    await askText('Cidade e m² do terreno', 'cidade', { placeholder:'ex.: São José dos Campos, 360 m²', parse: v => { const m = v.match(/(\d[\d.]*)\s*m/i); if (m) S.dados.terreno_m2 = +m[1].replace(/\./g,''); return v; } });
+    if (S.dados.terreno_m2) salvarLead({ terreno_m2: S.dados.terreno_m2 });
+  } else {
+    await bot('Em qual cidade ou região você está procurando?');
+    await askText('Cidade onde procura', 'cidade', { placeholder:'ex.: São José dos Campos' });
+  }
+  await pedirWhats('vou te mandar a leitura do seu caso por escrito');
+  await bot('Última pergunta: você quer construir para…');
+  await ask('Objetivo', [ {rotulo:'Morar',valor:'morar'}, {rotulo:'Vender',valor:'vender'}, {rotulo:'Alugar',valor:'alugar'} ], 'objetivo');
+  await parecer('construir');
+}
+
+async function comprar(){
+  await bot('Comprar para quê?');
+  await ask('Comprar para quê?', [ {rotulo:'Construir minha casa',valor:'minha casa'}, {rotulo:'Construir pra vender',valor:'pra vender'}, {rotulo:'Construir pra alugar',valor:'pra alugar'}, {rotulo:'Só investir no terreno',valor:'so investir'} ], 'detalhe');
+  await bot('Onde você está olhando, e em que faixa de valor?');
+  await askText('Onde e faixa de valor', 'cidade', { placeholder:'ex.: Urbanova, até R$ 400 mil' });
+  await pedirWhats('vou te mandar por escrito o que olhar antes de fechar');
+  await bot('Já tem um terreno ou imóvel em vista?');
+  const tem = await ask('Terreno em vista?', [ {rotulo:'Sim, já tenho um em vista',valor:true}, {rotulo:'Ainda procurando',valor:false} ], 'tem_terreno');
+  if (tem){ await bot('Me passa o endereço ou o tamanho dele, o que você souber.'); await askText('Terreno em vista', 'terreno_desc', { placeholder:'ex.: Rua X, 450 m²', parse: v => { const m = v.match(/(\d[\d.]*)\s*m/i); if (m) S.dados.terreno_m2 = +m[1].replace(/\./g,''); return v; } }); }
+  S.dados.objetivo = { 'minha casa':'morar', 'pra vender':'vender', 'pra alugar':'alugar', 'so investir':'investir' }[S.dados.detalhe];
+  salvarLead({ objetivo: S.dados.objetivo });
+  await parecer('comprar');
+}
+
+async function fachada(){
+  await bot('Me conta do imóvel: ele é…');
+  const pav = await ask('Pavimentos', [ {rotulo:'Térrea',valor:0}, {rotulo:'Duplex (sobrado)',valor:1}, {rotulo:'Triplex',valor:2} ], 'pavimentos');
+  await bot('E o tamanho do lote?');
+  const lote = await ask('Tamanho do lote', [ {rotulo:'Até 250 m²',valor:250}, {rotulo:'250 a 500 m²',valor:500}, {rotulo:'500 a 1.000 m²',valor:1000}, {rotulo:'Mais de 1.000 m²',valor:9999} ], 'terreno_m2');
+  await bot('Quais faces você quer trabalhar?');
+  const faces = await ask('Faces', [ {rotulo:'Só a frente',valor:1}, {rotulo:'Frente e lateral',valor:2}, {rotulo:'Todas as faces',valor:4} ], 'faces');
+  await pedirWhats('vou te mandar a estimativa e você pode me mandar fotos por lá');
+  const F = CONFIG.fachada, base = F.base.find(b => lote <= b.ate);
+  const v = vagas();
+  if (!base){ await bot(`${primeiroNome()}, lote acima de 1.000 m² eu orço sob medida. Te respondo ${CONFIG.respostaFachadaAte} pelo WhatsApp.`, 'Estimativa'); }
+  else {
+    const total = base.valor + F.pavimentos[pav] + F.faces[faces];
+    salvarLead({ parecer: `Fachada estimada em ${brl(total)}`, pontuacao: pontuar() });
+    await bot(`<b>Estimativa: ${brl(total)}</b>\nProjeto de fachada assinado: base pelo lote ${brl(base.valor)}${F.pavimentos[pav]?` + pavimentos ${brl(F.pavimentos[pav])}`:''}${F.faces[faces]?` + faces ${brl(F.faces[faces])}`:''}.\n\nFaço 1 fachada por semana, e tenho ${(await v).fachada} vaga${(await v).fachada===1?'':'s'} em ${nomeMes}. Me manda fotos e endereço pelo WhatsApp que eu confirmo o valor ${CONFIG.respostaFachadaAte}.`, 'Estimativa');
+  }
+  await pedirHorario();
+  await finalWhats(`Oi Isabella, sou ${S.dados.nome}. Vim pelo chat sobre fachada (${['térrea','duplex','triplex'][pav]}, lote até ${lote} m²). Vou te mandar as fotos.`);
+}
+
+async function parceria(){
+  await bot('Legal! Qual é a empresa e o segmento?');
+  await askText('Empresa', 'empresa', { placeholder:'ex.: Loja de revestimentos em SJC' });
+  await bot('O que você quer divulgar?');
+  await ask('O que divulgar', [ {rotulo:'Produto',valor:'produto'}, {rotulo:'Serviço',valor:'servico'}, {rotulo:'A marca',valor:'marca'} ], 'detalhe');
+  await bot('Tem uma verba e um prazo em mente?');
+  await askText('Verba e prazo', 'verba', { placeholder:'ex.: R$ 5 mil, campanha em outubro' });
+  await pedirWhats('te respondo pessoalmente com formatos e valores');
+  salvarLead({ completou:true, pontuacao: pontuar() });
+  await bot(`Obrigada, ${primeiroNome()}. Te respondo ${CONFIG.respostaFachadaAte} pelo WhatsApp com os formatos que fazem sentido pro seu segmento.`);
+  await finalWhats(`Oi Isabella, sou ${S.dados.nome} (${S.dados.empresa}). Vim pelo chat sobre parceria.`);
+}
+
+async function indeciso(){
+  await bot('Sem problema, vamos descobrir juntas. Qual seu momento hoje?');
+  const m = await ask('Momento', [ {rotulo:'Tenho um terreno',valor:'tem terreno'}, {rotulo:'Tenho um imóvel pronto',valor:'tem imovel'}, {rotulo:'Não tenho nada ainda',valor:'nada'} ], 'detalhe');
+  await bot('E o que você sonha fazer?');
+  const o = await ask('Sonho', [ {rotulo:'Morar melhor',valor:'morar'}, {rotulo:'Vender e lucrar',valor:'vender'}, {rotulo:'Ter renda de aluguel',valor:'alugar'} ], 'objetivo');
+  if (m === 'tem imovel' && o === 'morar'){ salvarLead({ intencao:'fachada' }); await bot('Então pode ser uma fachada nova que resolve. Vamos por aí:'); return fachada(); }
+  if (m === 'tem terreno'){ salvarLead({ intencao:'construir', tem_terreno:true }); await bot('Então você já está no ponto de decidir o que construir. Vamos por aí:'); return construir(); }
+  salvarLead({ intencao:'comprar' }); await bot('Então o primeiro passo é comprar certo. Vamos por aí:'); return comprar();
+}
+
+// ---------- parecer personalizado ----------
+function pontuar(){
+  const d = S.dados; let p = 0;
+  if (d.whatsapp) p += 2; if (d.tem_terreno) p += 3; if (d.objetivo === 'vender') p += 3; if (d.objetivo === 'alugar') p += 1;
+  if (['casas','predio','comercial','pra vender'].includes(d.detalhe)) p += 3;
+  if (d.terreno_m2 >= 1000) p += 3; else if (d.terreno_m2 >= 500) p += 1;
+  if (d.horario) p += 1; if (d.intencao === 'parceria') p += 1;
+  return p;
+}
+function pontosDe(trilha){
+  const d = S.dados, m2 = d.terreno_m2, obj = d.objetivo, det = d.detalhe, pts = [];
+  if (trilha === 'construir' && d.tem_terreno){
+    pts.push(m2 ? `<b>O que cabe no terreno.</b> ${m2} m² define o volume possível, mas quem manda é o zoneamento: taxa de ocupação, recuos e gabarito. Descobrir isso depois do projeto é o erro mais caro.` : `<b>O que cabe no terreno.</b> Antes de qualquer desenho, o zoneamento (ocupação, recuos, gabarito) diz o que é possível, e é onde a maioria descobre tarde.`);
+    if (['casas','predio','comercial'].includes(det)) pts.push(`<b>Número de unidades e VGV.</b> Em ${det==='casas'?'conjunto de casas':det==='predio'?'prédio':'comercial'}, a conta que decide tudo é quantas unidades cabem e por quanto o bairro paga. Isso vem antes do custo de obra, não depois.`);
+    else pts.push(`<b>Orçamento realista.</b> Casa própria estoura orçamento quando o projeto nasce sem custo definido. O caminho certo é fechar o número e projetar dentro dele.`);
+    if (obj === 'vender') pts.push(`<b>Quem compra, e por quanto.</b> Construir pra vender começa pelo comprador: tipologia, faixa de preço e velocidade de venda da região. O produto certo vende no lançamento; o errado vira estoque.`);
+    else if (obj === 'alugar') pts.push(`<b>Renda x custo.</b> Pra alugar, o que importa é o retorno mensal sobre o total investido, e isso muda a tipologia ideal (mais unidades menores costuma render mais que uma grande).`);
+    else pts.push(`<b>Valor de revenda.</b> Mesmo morando, projete pensando no comprador de amanhã: é o que protege o dinheiro investido.`);
+  } else if (trilha === 'construir'){
+    pts.push(`<b>Comprar o terreno certo.</b> O erro mais comum é comprar por localização e descobrir depois que o zoneamento não permite o que você quer construir.`);
+    pts.push(`<b>Preço do terreno x produto final.</b> Terreno só é barato ou caro em relação ao que cabe nele. Sem essa conta, não dá pra saber se a oferta é boa.`);
+    pts.push(obj === 'vender' ? `<b>Demanda da região.</b> Pra vender, o bairro precisa ter comprador na faixa de preço do seu produto. Isso se verifica antes de comprar o terreno.` : `<b>Orçamento total.</b> Terreno + projeto + obra + aprovações: fechar esse número antes evita comprar um terreno que consome a verba da obra.`);
+  } else {
+    pts.push(det === 'so investir' ? `<b>Valorização real.</b> Terreno vale pelo que pode virar. Antes de investir, o que decide é zoneamento, infraestrutura chegando e liquidez de revenda na região.` : `<b>O que o terreno permite.</b> Zoneamento, recuos e gabarito definem se cabe o que você quer construir. Verifique isso antes de dar o sinal.`);
+    pts.push(`<b>Documentação e restrições.</b> Matrícula, ônus, área real x área declarada, servidões e restrições de condomínio mudam o valor do negócio.`);
+    pts.push(obj === 'vender' ? `<b>Conta de viabilidade.</b> Preço do terreno + obra x preço de venda do bairro: se a margem não fecha no papel, não fecha na obra.` : obj === 'alugar' ? `<b>Retorno do aluguel.</b> Compare o total investido com o aluguel da região. É o que diz se o terreno vale o preço pedido.` : `<b>Orçamento completo.</b> Terreno é a primeira parcela; projeto, obra e aprovações são o resto. Comprar sabendo o total evita obra parada.`);
+  }
+  return pts;
+}
+async function parecer(trilha){
+  salvarLead({ pontuacao: pontuar() });
+  const d = S.dados, v = await vagas();
+  const cabecalho = `${primeiroNome()}, pelo que você me contou${d.cidade?` (${d.cidade})`:''}${d.objetivo?`, com objetivo de ${d.objetivo}`:''}, os três pontos que eu olharia primeiro são:`;
+  const pts = pontosDe(trilha).map((p,i)=>`${i+1}. ${p}`).join('\n\n');
+  const real = CONFIG.dadoReal ? `\n\n${CONFIG.dadoReal}` : '';
+  const texto = `${cabecalho}\n\n${pts}${real}`;
+  salvarLead({ parecer: texto.replace(/<[^>]+>/g,''), completou:true });
+  await bot(texto, 'Raio-X básico');
+  await bot(`Isso é a leitura de superfície. O <b>Raio-X da Decisão</b> é o veredito completo do terreno: público-alvo, quadro de usos da prefeitura e o que fazer (ou não fazer) com ele. Feito por mim, em até 15 dias.\n\nO erro mais comum nesse cenário custa ${CONFIG.custoDoErro}. O Raio-X custa <b>${brl(CONFIG.precoRaiox)}</b> e vira crédito integral se você seguir no Método Origem.\n\nFaço 2 por semana, e tenho <b>${v.raiox} vaga${v.raiox===1?'':'s'} em ${nomeMes}</b>.`);
+  await pedirHorario();
+  const quer = await ask('Decisão', [ {rotulo:'Quero o Raio-X',valor:true,primary:true}, {rotulo:'Ainda tenho dúvidas',valor:false} ], 'quer_raiox');
+  if (!quer){
+    await bot('Me diz o que ficou em aberto. Eu mesma respondo.');
+    await askText('Dúvida', 'duvida', { area:true, placeholder:'Escreve aqui' });
+    salvarLead({ quer_raiox:false, status:'qualificado' });
+    await bot(`Recebi, ${primeiroNome()}. Te respondo no período da ${{manha:'manhã',tarde:'tarde',noite:'noite'}[d.horario]||'tarde'} pelo WhatsApp, junto com esse parecer por escrito.`);
+    await finalWhats(`Oi Isabella, sou ${S.dados.nome}. Vim pelo chat e fiquei com uma dúvida: ${S.dados.duvida}`);
+  } else {
+    salvarLead({ quer_raiox:true, status:'qualificado' });
+    await bot(`Ótimo. Clica abaixo que a mensagem já vai pronta. Eu te confirmo a vaga e o próximo passo.`);
+    await finalWhats(`Oi Isabella, sou ${S.dados.nome}. Vim pelo chat e quero o Raio-X da Decisão${d.cidade?` (${d.cidade})`:''}. Melhor horário: ${d.horario||'qualquer'}.`);
+  }
+}
+
+async function finalWhats(msg){
+  const box = document.createElement('div'); box.className='opts';
+  const b = document.createElement('button'); b.className='primary'; b.textContent='Abrir conversa no WhatsApp';
+  b.onclick = () => { salvarLead({ ultima_etapa:'clicou whatsapp' }); window.open(CONFIG.whatsapp ? `https://wa.me/${CONFIG.whatsapp}?text=${encodeURIComponent(msg)}` : '#', '_blank'); };
+  box.appendChild(b); $chat.appendChild(box); scroll();
+  if (!CONFIG.whatsapp) await bot('<i>(modo demonstração: configure o WhatsApp em CONFIG)</i>');
+}
+
+inicio();
+</script>
+</body>
+</html>

@@ -177,11 +177,10 @@ const CONFIG = {
   tabela: "propostas",
 
   // Condições de pagamento
-  entradaPct: 50,          // 50% na entrada + 50% na entrega
+  entradaPct: 30,          // entrada + saldo por marcos
   pixDescontoPct: 8,       // à vista no PIX
-  multaAtraso: 2,          // multa por atraso (%)
-  jurosMes: 1,             // juros moratórios ao mês (%)
-  correcao: "IGPM/FGV",   // índice de correção
+  parcelasMax: 6,          // parcelado
+  parceladoAcrescimoPct: 5,
   prazoPorEtapa: {
     "1": "até 15 dias contados do aceite",
     "2": "15 dias contados do aceite",
@@ -238,24 +237,37 @@ const entrada = Math.round(T * CONFIG.entradaPct/100);
 const saldo = T - entrada;
 const etapas = P.lines.filter(l => l.n && !isNaN(l.v) && l.v > 0);
 const somaEtapas = etapas.reduce((a,l)=>a+l.v,0) || 1;
+const marcos = etapas.map(l => ({ n:l.n, t:l.t, v: Math.round(saldo * l.v/somaEtapas) }));
 const pix = Math.round(T * (1 - CONFIG.pixDescontoPct/100));
+const parcTotal = Math.round(T * (1 + CONFIG.parceladoAcrescimoPct/100));
+const parcOpts = Array.from({length:CONFIG.parcelasMax}, (_,i)=>i+1).map(n => `<option value="${n}">${n}× de ${brl(Math.round(parcTotal/n))}${n===1?' (sem acréscimo, valor cheio)':''}</option>`).join('');
 
 $('pay').innerHTML = `
-  <label><input type="radio" name="pg" value="parcelado" checked><span>
-    <b>Em 2 vezes</b>
+  <label><input type="radio" name="pg" value="marcos" checked><span>
+    <b>Entrada + saldo por marcos</b>
     <div class="amt">${brl(entrada)} agora</div>
-    <small>${CONFIG.entradaPct}% na assinatura do contrato e ${100-CONFIG.entradaPct}% (${brl(saldo)}) na entrega/liberação do serviço.</small>
+    <small>${CONFIG.entradaPct}% na assinatura; o restante é pago na entrega de cada etapa.</small>
+    <div class="marcos">${marcos.map(m=>`<div><span>${esc(m.n)} · ${esc(m.t)}</span><span>${brl(m.v)}</span></div>`).join('')}</div>
   </span></label>
   <label><input type="radio" name="pg" value="pix"><span>
     <b>À vista no PIX</b>
     <div class="amt">${brl(pix)}</div>
-    <small>${CONFIG.pixDescontoPct}% de desconto sobre ${brl(T)}, pago integralmente na assinatura.</small>
+    <small>${CONFIG.pixDescontoPct}% de desconto sobre ${brl(T)}, pago na assinatura.</small>
+  </span></label>
+  <label><input type="radio" name="pg" value="parcelado"><span>
+    <b>Parcelado</b>
+    <div class="amt">até ${CONFIG.parcelasMax}× no cartão ou boleto</div>
+    <small>Acréscimo de ${CONFIG.parceladoAcrescimoPct}% a partir de 2 parcelas.</small>
+    <select id="parc">${parcOpts}</select>
   </span></label>`;
 
 function pagamentoEscolhido(){
   const v = document.querySelector('input[name=pg]:checked').value;
-  if (v === 'parcelado') return { tipo:'Em 2 vezes (50% + 50%)', valor:T, texto:`Primeira parcela de ${brl(entrada)} (${CONFIG.entradaPct}%) devida na assinatura deste contrato. Segunda parcela de ${brl(saldo)} (${100-CONFIG.entradaPct}%) devida na entrega do serviço contratado. O atraso de qualquer parcela sujeita o CONTRATANTE a multa de ${CONFIG.multaAtraso}% sobre o valor da parcela em atraso, acrescida de juros moratórios de ${CONFIG.jurosMes}% ao mês, pro rata die, e correção monetária pelo ${CONFIG.correcao}.` };
-  if (v === 'pix') return { tipo:'À vista no PIX', valor:pix, texto:`Valor total de ${brl(pix)}, já com desconto de ${CONFIG.pixDescontoPct}%, pago integralmente via PIX na assinatura deste contrato. O não pagamento no prazo sujeita o CONTRATANTE a multa de ${CONFIG.multaAtraso}% sobre o valor devido, acrescida de juros moratórios de ${CONFIG.jurosMes}% ao mês, pro rata die, e correção monetária pelo ${CONFIG.correcao}.` };
+  if (v === 'marcos') return { tipo:'Entrada + saldo por marcos', valor:T, texto:`Entrada de ${brl(entrada)} (${CONFIG.entradaPct}%) no aceite e saldo de ${brl(saldo)} pago por marcos, na entrega de cada etapa: ` + marcos.map(m=>`${m.t} ${brl(m.v)}`).join('; ') + '.' };
+  if (v === 'pix') return { tipo:'À vista no PIX', valor:pix, texto:`Valor total de ${brl(pix)}, já com desconto de ${CONFIG.pixDescontoPct}%, pago integralmente via PIX no aceite.` };
+  const n = +$('parc').value;
+  const tot = n === 1 ? T : parcTotal;
+  return { tipo:`Parcelado em ${n}×`, valor:tot, texto:`Valor total de ${brl(tot)}${n>1?` (com acréscimo de ${CONFIG.parceladoAcrescimoPct}%)`:''} em ${n} parcela${n>1?'s':''} de ${brl(Math.round(tot/n))}, a primeira no aceite.` };
 }
 
 // ---------- 3. Contrato preenchido ao vivo ----------
@@ -303,24 +315,21 @@ function renderContract(){
     <h3>5. Obrigações do contratante</h3>
     <p>Fornecer documentos do imóvel (matrícula, levantamento, restrições), informações verdadeiras e as aprovações dentro dos prazos; efetuar os pagamentos nas datas acordadas.</p>
 
-    <h3>6. Inadimplemento</h3>
-    <p>O atraso no pagamento de qualquer parcela ou valor devido sujeita o CONTRATANTE a multa de ${CONFIG.multaAtraso}% sobre o valor em atraso, acrescida de juros moratórios de ${CONFIG.jurosMes}% ao mês, calculados pro rata die, e correção monetária pelo índice ${CONFIG.correcao}, sem prejuízo da cobrança judicial. O atraso superior a 30 dias autoriza a CONTRATADA a suspender os trabalhos em andamento até a regularização, sem que o prazo contratual seja prorrogado. Persistindo o inadimplemento por mais de 60 dias, fica facultada a rescisão por justa causa pela CONTRATADA, aplicando-se a cláusula 8.</p>
-
-    <h3>7. Direitos autorais e uso</h3>
+    <h3>6. Direitos autorais e uso</h3>
     <p>Os estudos, projetos e materiais são obra intelectual da CONTRATADA (Lei 9.610/98). O CONTRATANTE recebe licença de uso para o imóvel objeto deste contrato, condicionada à quitação. É vedada a reprodução em outro imóvel e a alteração do projeto sem anuência da CONTRATADA. A CONTRATADA poderá divulgar o trabalho em seu portfólio, preservando dados pessoais do CONTRATANTE.</p>
 
-    <h3>8. Rescisão</h3>
-    <p>Qualquer parte pode rescindir mediante aviso escrito. Etapas concluídas são devidas integralmente; etapa em andamento é devida proporcionalmente ao trabalho executado. Valores pagos por etapas não iniciadas serão devolvidos em até 30 dias. Em caso de rescisão por inadimplemento do CONTRATANTE, a multa e os juros previstos na cláusula 6 incidem até a data da quitação efetiva.</p>
+    <h3>7. Rescisão</h3>
+    <p>Qualquer parte pode rescindir mediante aviso escrito. Etapas concluídas são devidas integralmente; etapa em andamento é devida proporcionalmente ao trabalho executado. Valores pagos por etapas não iniciadas serão devolvidos em até 30 dias.</p>
 
-    <h3>9. Aceite eletrônico</h3>
+    <h3>8. Aceite eletrônico</h3>
     <p>As partes reconhecem a validade do aceite eletrônico realizado nesta página, com registro de nome, documento, data, hora e endereço de rede, nos termos do art. 10, §2º, da MP 2.200-2/2001 e do art. 107 do Código Civil.</p>
 
-    <h3>10. Foro</h3>
+    <h3>9. Foro</h3>
     <p>Fica eleito o foro da comarca de ${cf('cidadeForo')} para dirimir quaisquer questões deste contrato.</p>
     <p id="c-sign"></p>`;
 }
-document.querySelectorAll('#f input, input[name=pg]').forEach(el => el.addEventListener('input', renderContract));
-document.addEventListener('change', e => { if (e.target.name === 'pg') renderContract(); });
+document.querySelectorAll('#f input, input[name=pg], #parc').forEach(el => el.addEventListener('input', renderContract));
+document.addEventListener('change', e => { if (e.target.name === 'pg' || e.target.id === 'parc') renderContract(); });
 renderContract();
 
 // ---------- 4. Aceite ----------
@@ -409,9 +418,13 @@ $('go').addEventListener('click', async () => {
               });
             } else if (v === 'pix'){
               pgRows.push({ cliente_id:clienteId, descricao:'PIX à vista', tipo:'pix', valor:pix, vencimento:hoje });
-            } else if (v === 'parcelado'){
-              pgRows.push({ cliente_id:clienteId, descricao:`Entrada ${CONFIG.entradaPct}%`, tipo:'entrada', valor:entrada, vencimento:hoje });
-              pgRows.push({ cliente_id:clienteId, descricao:`Saldo ${100-CONFIG.entradaPct}% na entrega`, tipo:'marco', valor:saldo });
+            } else {
+              const n = +$('parc').value;
+              const tot = n === 1 ? T : parcTotal;
+              for (let i = 0; i < n; i++){
+                const d = new Date(quando); d.setMonth(d.getMonth()+i);
+                pgRows.push({ cliente_id:clienteId, descricao:`Parcela ${i+1}/${n}`, tipo:'parcela', valor:Math.round(tot/n), vencimento:d.toISOString().slice(0,10) });
+              }
             }
             // variável (se houver)
             if (V && V.pct && V.vgv){

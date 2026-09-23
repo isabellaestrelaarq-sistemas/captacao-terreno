@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel — Isabella Estrela</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--vinho:#6A2326;--champagne:#F0D6AA;--off-white:#FAF9F6;--terracota:#D1B0A0;--marrom:#73504F;--green:#2D6A4F;--red:#9C3B2E;--dark:#1A0F10}
+*{box-sizing:border-box;margin:0}body{background:var(--off-white);color:var(--vinho);font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:14px;line-height:1.5}
+a{color:var(--vinho);text-decoration:none;cursor:pointer}
+button{font:inherit;cursor:pointer;border:1px solid var(--terracota);background:#fff;color:var(--vinho);padding:8px 16px;border-radius:6px}
+button:hover{background:var(--champagne)}button.primary{background:var(--vinho);color:#fff;border-color:var(--vinho)}
+input,select,textarea{font:inherit;padding:8px 10px;border:1px solid var(--terracota);border-radius:6px;background:#fff;color:var(--vinho);width:100%}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--champagne);border-color:var(--vinho)}
+textarea{resize:vertical;min-height:60px}
+.serif{font-family:"Fraunces",Georgia,serif}
+
+/* layout */
+nav{background:var(--dark);color:#fff;padding:12px 24px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:10}
+nav .logo{font-family:"Fraunces",serif;font-size:16px;color:var(--champagne)}
+nav .tabs{display:flex;gap:4px}
+nav .tabs a{color:rgba(255,255,255,.5);padding:6px 14px;border-radius:20px;font-size:13px}
+nav .tabs a.active{background:rgba(255,255,255,.12);color:#fff}
+nav .logout{font-size:12px;color:rgba(255,255,255,.4);cursor:pointer}
+.page{display:none;max-width:960px;margin:0 auto;padding:24px 20px 80px}
+.page.active{display:block}
+.card{background:#fff;border:1px solid var(--terracota);border-radius:12px;padding:20px;margin-bottom:16px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+@media(max-width:640px){.row,.row3{grid-template-columns:1fr}}
+.label{font-size:11px;color:var(--marrom);letter-spacing:.05em;text-transform:uppercase;margin-bottom:4px}
+.big{font-family:"Fraunces",serif;font-size:28px;font-weight:300}
+.green{color:var(--green)}.red{color:var(--red)}
+.badge{display:inline-block;font-size:11px;padding:2px 10px;border-radius:20px;background:var(--champagne);color:var(--vinho)}
+.badge.green{background:#D4EDDA;color:#155724}.badge.red{background:#F8D7DA;color:#721C24}
+.badge.blue{background:#D1ECF1;color:#0C5460}
+.divider{border-top:1px solid var(--terracota);margin:16px 0}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:11px;color:var(--marrom);padding:8px 6px;border-bottom:2px solid var(--terracota)}
+td{padding:10px 6px;border-bottom:1px solid var(--terracota);font-size:13px}
+tr:hover{background:rgba(240,214,170,.1)}
+.check-item{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid rgba(209,176,160,.3);align-items:flex-start}
+.check-item input{margin-top:3px;accent-color:var(--green);width:16px;height:16px;flex:none}
+.check-item.done{opacity:.5;text-decoration:line-through}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:12px;color:var(--marrom);margin-bottom:4px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.back{font-size:13px;color:var(--marrom);margin-bottom:16px;display:inline-block}
+
+/* login */
+.login{max-width:360px;margin:120px auto;text-align:center}
+.login h1{font-family:"Fraunces",serif;font-size:28px;font-weight:300;margin-bottom:24px}
+.login .field{text-align:left;margin-bottom:14px}
+.login .err{color:var(--red);font-size:13px;margin-top:8px}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-page">
+  <div class="login">
+    <h1 class="serif">Painel</h1>
+    <div class="field"><label>E-mail</label><input type="email" id="l-email"></div>
+    <div class="field"><label>Senha</label><input type="password" id="l-pass"></div>
+    <button class="primary" style="width:100%;margin-top:8px" id="l-go">Entrar</button>
+    <div class="err" id="l-err"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none">
+<nav>
+  <span class="logo">Isabella Estrela</span>
+  <div class="tabs">
+    <a onclick="showPage('dash')" id="tab-dash" class="active">Caixa</a>
+    <a onclick="showPage('clients')" id="tab-clients">Clientes</a>
+    <a onclick="showPage('novo')" id="tab-novo">+ Novo</a>
+  </div>
+  <span class="logout" onclick="logout()">sair</span>
+</nav>
+
+<!-- DASHBOARD / CAIXA -->
+<div class="page active" id="p-dash">
+  <h2 class="serif" style="font-size:22px;font-weight:300;margin-bottom:16px">Caixa <span id="dash-mes"></span></h2>
+  <div class="row3" id="dash-cards"></div>
+  <div class="card">
+    <div class="label">Próximos recebimentos</div>
+    <table><thead><tr><th>Cliente</th><th>Descrição</th><th>Valor</th><th>Vencimento</th><th></th></tr></thead><tbody id="dash-prox"></tbody></table>
+  </div>
+  <div class="card">
+    <div class="label">Recebidos no mês</div>
+    <table><thead><tr><th>Cliente</th><th>Descrição</th><th>Valor</th><th>Pago em</th></tr></thead><tbody id="dash-recebidos"></tbody></table>
+  </div>
+</div>
+
+<!-- CLIENTES -->
+<div class="page" id="p-clients">
+  <h2 class="serif" style="font-size:22px;font-weight:300;margin-bottom:16px">Clientes</h2>
+  <div id="clients-list"></div>
+</div>
+
+<!-- DETALHE DO CLIENTE -->
+<div class="page" id="p-detail">
+  <a class="back" onclick="showPage('clients')">← voltar</a>
+  <div id="detail-header"></div>
+  <div id="detail-etapas"></div>
+  <div id="detail-pagamentos"></div>
+  <div id="detail-obs"></div>
+</div>
+
+<!-- NOVO CLIENTE -->
+<div class="page" id="p-novo">
+  <h2 class="serif" style="font-size:22px;font-weight:300;margin-bottom:16px">Novo cliente</h2>
+  <div class="card">
+    <div class="row">
+      <div class="field"><label>Nome completo</label><input id="n-nome"></div>
+      <div class="field"><label>CPF ou CNPJ</label><input id="n-doc"></div>
+    </div>
+    <div class="row">
+      <div class="field"><label>WhatsApp</label><input id="n-whats"></div>
+      <div class="field"><label>E-mail</label><input id="n-email"></div>
+    </div>
+    <div class="field"><label>Título do projeto</label><input id="n-titulo" placeholder="ex.: RI 20 casas - Bairro X"></div>
+    <div class="row">
+      <div class="field"><label>Terreno (endereço)</label><input id="n-terreno"></div>
+      <div class="field"><label>Unidades</label><input type="number" id="n-un"></div>
+    </div>
+    <div class="field"><label>Etapas contratadas (uma por linha: número | nome | valor)</label>
+      <textarea id="n-etapas" placeholder="4 | Memoriais | 7000"></textarea>
+    </div>
+    <div class="field"><label>Forma de pagamento</label>
+      <select id="n-pg"><option value="50-50">50% entrada + 50% entrega</option><option value="pix">PIX à vista</option></select>
+    </div>
+    <div class="actions"><button class="primary" onclick="criarCliente()">Criar cliente</button></div>
+    <div id="n-msg" style="margin-top:8px;font-size:13px"></div>
+  </div>
+</div>
+</div>
+
+<script>
+/* =====================================================================
+   CONFIG
+   ===================================================================== */
+const CONFIG = {
+  supabaseUrl: "https://mooghvkrendiiwhxynkd.supabase.co",
+  supabaseAnonKey: "sb_publishable_eRt9feUOHeFOSZjIbfDrJw_ieFaA6Dx",
+  pixDesconto: 8,
+  entradaPct: 50,
+  CHECKLISTS: {
+    '1': ['Levantar zoneamento na prefeitura','Conferir matrícula','Verificar restrições','Mapear público-alvo da região','Levantar preços de venda e aluguel (1 km)','Escrever o veredito'],
+    '2': ['Estudo de volumetria','Número de unidades e tipologias','Quadro de áreas preliminar','Custo de construção estimado','VGV por unidade e total','Cronograma macro','Cenários comparados (mín. 2)','Margem e retorno de cada cenário'],
+    '3': ['Estudo preliminar (plantas, implantação, 3D)','Anteprojeto cotado','Projeto legal (pranchas da prefeitura)','Emitir RRT','Protocolar na prefeitura','Acompanhar exigências até licença'],
+    '4': ['Memorial descritivo','Quadros NBR 12.721','Memorial de incorporação (art. 32)','Minuta de convenção de condomínio','Coordenação com cartório até registro'],
+    '5': ['Imagens realistas (fachada + ambientes)','Plantas humanizadas por tipologia','Book de vendas (PDF)','Textos de venda e redes sociais','Kit do corretor'],
+    '6': ['Reunião de alinhamento','Estratégia: público, canais, verba, meta','Definir corretores e comissão','Stand ou ponto de atendimento','Campanha de pré-lançamento','Tabela de preços aprovada','Contrato-padrão revisado','Evento de lançamento','Relatórios semanais','Apuração mensal da variável'],
+    'fachada': ['Levantamento das faces','Estudo com 2 alternativas (3D)','Alternativa escolhida detalhada','Prancha de materiais','Lista de compras e quantitativo'],
+  },
+  DOCS_CLIENTE: {
+    '1': ['Matrícula do terreno','Fotos do terreno e entorno','Objetivo confirmado','Orçamento aproximado'],
+    '2': ['Levantamento topográfico','Confirmação do objetivo e orçamento'],
+    '3': ['Aprovação escrita do cenário','Topografia definitiva','Sondagem'],
+    '4': ['Certidões do imóvel','Certidões do proprietário','Definição da forma de venda'],
+    '5': ['Nome do empreendimento','Tabela de preços por unidade'],
+    '6': ['Contrato-padrão revisado pelo advogado'],
+    'fachada': ['Fotos de todas as faces','Planta ou medidas','Referências de gosto'],
+  },
+};
+/* ===================================================================== */
+
+const brl = n => (+n).toLocaleString('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0});
+const fmt = d => d ? new Date(d+'T12:00:00').toLocaleDateString('pt-BR') : '';
+const hoje = new Date().toISOString().slice(0,10);
+const mesAtual = hoje.slice(0,7);
+let SB = null, TOKEN = null;
+
+// ---------- AUTH ----------
+const H = () => ({'Content-Type':'application/json', apikey:CONFIG.supabaseAnonKey, Authorization:`Bearer ${TOKEN}`});
+
+document.getElementById('l-go').onclick = async () => {
+  const email = document.getElementById('l-email').value.trim();
+  const pass = document.getElementById('l-pass').value;
+  if (!CONFIG.supabaseUrl){document.getElementById('l-err').textContent='Configure supabaseUrl e supabaseAnonKey no CONFIG.';return;}
+  try {
+    const r = await fetch(`${CONFIG.supabaseUrl}/auth/v1/token?grant_type=password`, {
+      method:'POST', headers:{'Content-Type':'application/json', apikey:CONFIG.supabaseAnonKey},
+      body:JSON.stringify({email,password:pass})
+    });
+    const j = await r.json();
+    if (!j.access_token){document.getElementById('l-err').textContent=j.error_description||'Login falhou';return;}
+    TOKEN = j.access_token;
+    document.getElementById('login-page').style.display='none';
+    document.getElementById('app').style.display='block';
+    loadDash();
+  } catch(e){document.getElementById('l-err').textContent=e.message;}
+};
+function logout(){TOKEN=null;location.reload();}
+
+// ---------- NAV ----------
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tabs a').forEach(a=>a.classList.remove('active'));
+  document.getElementById('p-'+id).classList.add('active');
+  const tab = document.getElementById('tab-'+id); if(tab) tab.classList.add('active');
+  if(id==='dash') loadDash();
+  if(id==='clients') loadClients();
+}
+
+// ---------- API helpers ----------
+async function get(table, query=''){
+  const r = await fetch(`${CONFIG.supabaseUrl}/rest/v1/${table}?${query}`, {headers:H()});
+  return r.json();
+}
+async function patch(table, id, data){
+  await fetch(`${CONFIG.supabaseUrl}/rest/v1/${table}?id=eq.${id}`, {method:'PATCH', headers:H(), body:JSON.stringify(data)});
+}
+async function insert(table, data){
+  const r = await fetch(`${CONFIG.supabaseUrl}/rest/v1/${table}`, {method:'POST', headers:{...H(), Prefer:'return=representation'}, body:JSON.stringify(data)});
+  return r.json();
+}
+
+// ---------- DASHBOARD ----------
+async function loadDash(){
+  document.getElementById('dash-mes').textContent = new Date().toLocaleDateString('pt-BR',{month:'long', year:'numeric'});
+  const pgs = await get('pagamentos','select=*,clientes(nome,titulo)&order=vencimento.asc.nullsfirst');
+  const mesPgs = pgs.filter(p => {
+    const d = p.pago_em || p.vencimento || p.criado_em?.slice(0,10);
+    return d && d.startsWith(mesAtual);
+  });
+  const recebido = mesPgs.filter(p=>p.pago_em).reduce((a,p)=>a+Number(p.valor),0);
+  const pendentes = pgs.filter(p=>!p.pago_em && p.tipo!=='variavel');
+  const aReceber = pendentes.reduce((a,p)=>a+Number(p.valor),0);
+  const atrasado = pendentes.filter(p=>p.vencimento && p.vencimento < hoje).reduce((a,p)=>a+Number(p.valor),0);
+  document.getElementById('dash-cards').innerHTML = `
+    <div class="card"><div class="label">Recebido no mês</div><div class="big green">${brl(recebido)}</div></div>
+    <div class="card"><div class="label">A receber</div><div class="big">${brl(aReceber)}</div></div>
+    <div class="card"><div class="label">Atrasado</div><div class="big ${atrasado?'red':''}">${brl(atrasado)}</div></div>`;
+  // próximos
+  const prox = pendentes.slice(0,10);
+  document.getElementById('dash-prox').innerHTML = prox.length ? prox.map(p => {
+    const atr = p.vencimento && p.vencimento < hoje;
+    return `<tr class="${atr?'red':''}"><td>${p.clientes?.nome||''}</td><td>${p.descricao}</td><td>${brl(p.valor)}</td><td>${p.vencimento?fmt(p.vencimento):'na entrega'}</td><td><button onclick="marcarPago('${p.id}')">Pago</button></td></tr>`;
+  }).join('') : '<tr><td colspan="5" style="color:var(--marrom)">Nenhum pagamento pendente.</td></tr>';
+  // recebidos
+  const recList = mesPgs.filter(p=>p.pago_em);
+  document.getElementById('dash-recebidos').innerHTML = recList.length ? recList.map(p =>
+    `<tr><td>${p.clientes?.nome||''}</td><td>${p.descricao}</td><td>${brl(p.valor)}</td><td>${fmt(p.pago_em)}</td></tr>`
+  ).join('') : '<tr><td colspan="4" style="color:var(--marrom)">Nenhum recebimento no mês.</td></tr>';
+}
+async function marcarPago(id){
+  const forma = prompt('Forma de pagamento (pix, transferencia, boleto):','pix');
+  if(!forma) return;
+  await patch('pagamentos', id, {pago_em:hoje, forma});
+  loadDash();
+}
+
+// ---------- CLIENTES ----------
+async function loadClients(){
+  const cls = await get('clientes','select=*&order=atualizado_em.desc');
+  document.getElementById('clients-list').innerHTML = cls.length ? cls.map(c => `
+    <div class="card" style="cursor:pointer" onclick="openClient('${c.id}')">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div><strong>${c.nome}</strong><br><span style="font-size:12px;color:var(--marrom)">${c.titulo||''}</span></div>
+        <span class="badge ${c.status==='ativo'?'green':''}">${c.status}</span>
+      </div>
+      <div style="font-size:12px;color:var(--marrom);margin-top:6px">${c.whatsapp||''} · ${c.proposta_codigo||'sem proposta'} · etapa atual: ${c.etapa_atual||'?'}</div>
+    </div>`).join('') : '<p style="color:var(--marrom)">Nenhum cliente cadastrado.</p>';
+}
+
+// ---------- DETALHE ----------
+let CUR = {};
+async function openClient(id){
+  showPage('detail');
+  const [c] = await get('clientes',`id=eq.${id}`);
+  CUR.cliente = c;
+  CUR.etapas = await get('etapas_cliente',`cliente_id=eq.${id}&order=ordem.asc`);
+  CUR.pagamentos = await get('pagamentos',`cliente_id=eq.${id}&order=vencimento.asc.nullsfirst`);
+  renderDetail();
+}
+function renderDetail(){
+  const c = CUR.cliente, es = CUR.etapas, ps = CUR.pagamentos;
+  // header
+  document.getElementById('detail-header').innerHTML = `
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+        <div><h2 class="serif" style="font-size:22px;font-weight:300">${c.nome}</h2><div style="font-size:13px;color:var(--marrom)">${c.titulo||''} · ${c.doc||''}</div></div>
+        <select onchange="updateStatus('${c.id}',this.value)" style="width:auto">
+          ${['ativo','pausado','concluido','cancelado'].map(s=>`<option ${s===c.status?'selected':''}>${s}</option>`).join('')}
+        </select>
+      </div>
+      <div class="row" style="font-size:13px;color:var(--marrom)">
+        <div>WhatsApp: ${c.whatsapp||''}<br>E-mail: ${c.email||''}</div>
+        <div>Terreno: ${c.terreno||''}<br>Unidades: ${c.unidades||''} · Proposta: ${c.proposta_codigo||''}</div>
+      </div>
+    </div>`;
+  // etapas
+  let ehtml = '<h3 class="serif" style="font-size:18px;font-weight:300;margin-bottom:12px">Etapas</h3>';
+  es.forEach(e => {
+    const ck = Array.isArray(e.checklist) ? e.checklist : (typeof e.checklist==='string'?JSON.parse(e.checklist):[]);
+    const docs = CONFIG.DOCS_CLIENTE[e.numero] || [];
+    const dados = typeof e.dados_cliente === 'object' ? e.dados_cliente : {};
+    const feitos = ck.filter(i=>i.feito).length;
+    const statusCor = e.status==='aprovada'?'green':e.status==='entregue'?'blue':e.status==='em_andamento'?'':'red';
+    ehtml += `<div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div><strong>${e.numero}. ${e.nome}</strong> <span class="badge ${statusCor}">${e.status}</span></div>
+        <span class="serif" style="font-size:18px">${brl(e.valor)}</span>
+      </div>
+      <div style="font-size:12px;color:var(--marrom);margin-bottom:8px">
+        Prazo: ${e.prazo_evento||'a definir'}
+        ${e.prazo_inicio?' · início: '+fmt(e.prazo_inicio):''}
+        ${e.data_entrega?' · entregue: '+fmt(e.data_entrega):''}
+        ${e.prazo_suspenso?'<span class="badge red" style="margin-left:6px">prazo suspenso: '+(e.motivo_suspensao||'')+'</span>':''}
+      </div>
+      <div style="font-size:12px;margin-bottom:6px">Checklist (${feitos}/${ck.length}):</div>
+      <div>${ck.map((item,i)=>`<div class="check-item ${item.feito?'done':''}"><input type="checkbox" ${item.feito?'checked':''} onchange="toggleCheck('${e.id}',${i},this.checked)"><span>${item.item}</span></div>`).join('')}</div>
+      ${docs.length?`<div class="divider"></div><div style="font-size:12px;margin-bottom:6px">Documentos do cliente:</div>
+      <div>${docs.map((d,i)=>`<div class="check-item"><input type="checkbox" ${dados[d]?'checked':''} onchange="toggleDoc('${e.id}','${d.replace(/'/g,"\\'")}',this.checked)"><span>${d}</span></div>`).join('')}</div>`:''}
+      <div class="actions">
+        <select onchange="updateEtapaStatus('${e.id}',this.value)" style="width:auto">
+          ${['aguardando','em_andamento','entregue','aprovada'].map(s=>`<option ${s===e.status?'selected':''}>${s}</option>`).join('')}
+        </select>
+        <button onclick="iniciarPrazo('${e.id}')">Iniciar prazo</button>
+        <button onclick="marcarEntregue('${e.id}')">Marcar entregue</button>
+        <button onclick="suspenderPrazo('${e.id}')">Suspender/retomar</button>
+      </div>
+    </div>`;
+  });
+  document.getElementById('detail-etapas').innerHTML = ehtml;
+  // pagamentos
+  let phtml = '<h3 class="serif" style="font-size:18px;font-weight:300;margin:16px 0 12px">Pagamentos</h3><div class="card"><table><thead><tr><th>Descrição</th><th>Valor</th><th>Vencimento</th><th>Pago em</th><th></th></tr></thead><tbody>';
+  ps.forEach(p => {
+    const atr = !p.pago_em && p.vencimento && p.vencimento < hoje;
+    phtml += `<tr class="${atr?'red':''}"><td>${p.descricao}</td><td>${brl(p.valor)}</td><td>${p.vencimento?fmt(p.vencimento):'na entrega'}</td><td>${p.pago_em?fmt(p.pago_em):''}</td><td>${p.pago_em?'':'<button onclick="marcarPagoDetalhe(\''+p.id+'\')">Pago</button>'}</td></tr>`;
+  });
+  const totalPago = ps.filter(p=>p.pago_em).reduce((a,p)=>a+Number(p.valor),0);
+  const totalPend = ps.filter(p=>!p.pago_em).reduce((a,p)=>a+Number(p.valor),0);
+  phtml += `</tbody></table><div style="display:flex;justify-content:space-between;margin-top:10px;font-size:13px"><span>Pago: <strong class="green">${brl(totalPago)}</strong></span><span>Pendente: <strong>${brl(totalPend)}</strong></span></div></div>`;
+  document.getElementById('detail-pagamentos').innerHTML = phtml;
+  // obs
+  document.getElementById('detail-obs').innerHTML = `<div class="card"><div class="field"><label>Observações</label><textarea id="obs-txt">${CUR.cliente.observacoes||''}</textarea></div><button onclick="salvarObs('${c.id}')">Salvar observações</button></div>`;
+}
+
+async function updateStatus(id,v){await patch('clientes',id,{status:v});CUR.cliente.status=v;}
+async function updateEtapaStatus(id,v){
+  await patch('etapas_cliente',id,{status:v});
+  const e = CUR.etapas.find(e=>e.id==id); if(e) e.status=v;
+  if(v==='em_andamento') await patch('clientes',CUR.cliente.id,{etapa_atual:e?.numero});
+  renderDetail();
+}
+async function toggleCheck(etapaId,idx,val){
+  const e = CUR.etapas.find(e=>e.id==etapaId); if(!e) return;
+  const ck = Array.isArray(e.checklist)?e.checklist:JSON.parse(e.checklist||'[]');
+  ck[idx].feito = val;
+  await patch('etapas_cliente',etapaId,{checklist:ck});
+  e.checklist = ck;
+  renderDetail();
+}
+async function toggleDoc(etapaId,doc,val){
+  const e = CUR.etapas.find(e=>e.id==etapaId); if(!e) return;
+  const dados = typeof e.dados_cliente === 'object' && e.dados_cliente ? {...e.dados_cliente} : {};
+  dados[doc] = val;
+  await patch('etapas_cliente',etapaId,{dados_cliente:dados});
+  e.dados_cliente = dados;
+  renderDetail();
+}
+async function iniciarPrazo(id){
+  const d = prompt('Data de início do prazo (AAAA-MM-DD):',hoje);
+  if(!d) return;
+  const dias = prompt('Prazo em dias:','30');
+  if(!dias) return;
+  await patch('etapas_cliente',id,{prazo_inicio:d, prazo_dias:+dias, status:'em_andamento'});
+  openClient(CUR.cliente.id);
+}
+async function marcarEntregue(id){
+  await patch('etapas_cliente',id,{data_entrega:hoje, status:'entregue'});
+  openClient(CUR.cliente.id);
+}
+async function suspenderPrazo(id){
+  const e = CUR.etapas.find(e=>e.id==id);
+  if(e?.prazo_suspenso){
+    await patch('etapas_cliente',id,{prazo_suspenso:false, motivo_suspensao:null});
+  } else {
+    const m = prompt('Motivo (ex.: aguardando topografia do cliente):');
+    if(m===null) return;
+    await patch('etapas_cliente',id,{prazo_suspenso:true, motivo_suspensao:m});
+  }
+  openClient(CUR.cliente.id);
+}
+async function marcarPagoDetalhe(id){
+  const forma = prompt('Forma (pix, transferencia, boleto):','pix');
+  if(!forma) return;
+  await patch('pagamentos',id,{pago_em:hoje, forma});
+  openClient(CUR.cliente.id);
+}
+async function salvarObs(id){
+  await patch('clientes',id,{observacoes:document.getElementById('obs-txt').value});
+  alert('Salvo');
+}
+
+// ---------- NOVO CLIENTE MANUAL ----------
+async function criarCliente(){
+  const nome = document.getElementById('n-nome').value.trim();
+  if(!nome){document.getElementById('n-msg').textContent='Preencha o nome.';return;}
+  const titulo = document.getElementById('n-titulo').value.trim();
+  const etapasRaw = document.getElementById('n-etapas').value.trim().split('\n').filter(l=>l.trim());
+  const pg = document.getElementById('n-pg').value;
+  const cli = await insert('clientes', {
+    nome, doc:document.getElementById('n-doc').value.trim(),
+    whatsapp:document.getElementById('n-whats').value.trim(),
+    email:document.getElementById('n-email').value.trim(),
+    titulo, terreno:document.getElementById('n-terreno').value.trim(),
+    unidades:+document.getElementById('n-un').value||null,
+    etapa_atual: etapasRaw[0]?.split('|')[0]?.trim()||'1',
+  });
+  const clienteId = cli[0]?.id;
+  if(!clienteId){document.getElementById('n-msg').textContent='Erro ao criar cliente.';return;}
+  // etapas
+  const etapaRows = etapasRaw.map((l,i)=>{
+    const [num,nomee,val] = l.split('|').map(s=>s.trim());
+    return {
+      cliente_id:clienteId, numero:num, nome:nomee||'Etapa '+num, valor:+val||0,
+      checklist:JSON.stringify((CONFIG.CHECKLISTS[num]||[]).map(item=>({item,feito:false}))),
+      ordem:i+1, status:'aguardando'
+    };
+  });
+  if(etapaRows.length) await insert('etapas_cliente', etapaRows);
+  // pagamentos
+  const total = etapaRows.reduce((a,e)=>a+e.valor,0);
+  const pgRows = [];
+  if(pg==='pix'){
+    pgRows.push({cliente_id:clienteId, descricao:'PIX à vista', tipo:'pix', valor:Math.round(total*(1-CONFIG.pixDesconto/100)), vencimento:hoje});
+  } else {
+    const ent = Math.round(total*CONFIG.entradaPct/100);
+    pgRows.push({cliente_id:clienteId, descricao:`Entrada ${CONFIG.entradaPct}%`, tipo:'entrada', valor:ent, vencimento:hoje});
+    pgRows.push({cliente_id:clienteId, descricao:`Saldo ${100-CONFIG.entradaPct}% na entrega`, tipo:'marco', valor:total-ent});
+  }
+  if(pgRows.length) await insert('pagamentos', pgRows);
+  document.getElementById('n-msg').innerHTML = `<span class="green">Cliente criado.</span>`;
+  showPage('clients');
+}
+</script>
+</body>
+</html>
