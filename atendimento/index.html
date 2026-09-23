@@ -40,7 +40,7 @@
   .hero-banner {
     position: relative;
     width: 100%;
-    min-height: 90vh;
+    min-height: 100vh;
     overflow: hidden;
     display: flex;
     align-items: flex-end;
@@ -49,16 +49,18 @@
     position: absolute; inset: 0;
     width: 100%; height: 100%;
     object-fit: cover;
-    object-position: center 20%;
+    object-position: center top;
   }
   .hero-banner::after {
     content: "";
-    position: absolute; inset: 0;
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 60%;
     background: linear-gradient(
       to top,
-      rgba(28,26,23,.78) 0%,
-      rgba(28,26,23,.45) 40%,
-      rgba(28,26,23,.1) 70%,
+      rgba(28,26,23,.82) 0%,
+      rgba(28,26,23,.6) 35%,
+      rgba(28,26,23,.2) 70%,
       transparent 100%
     );
   }
@@ -80,7 +82,7 @@
   .hero-banner h1 {
     font-family: var(--serif);
     font-weight: 500;
-    font-size: clamp(32px, 6.5vw, 50px);
+    font-size: clamp(28px, 5.5vw, 50px);
     line-height: 1.14;
     margin: 0 0 12px;
     letter-spacing: -.005em;
@@ -95,9 +97,9 @@
     font-weight: 400;
   }
   .hero-banner .lead {
-    font-size: 17px;
-    max-width: 520px;
-    margin: 0 0 28px;
+    font-size: 16px;
+    max-width: 480px;
+    margin: 0 0 24px;
     color: rgba(255,255,255,.82);
     line-height: 1.6;
   }
@@ -115,8 +117,10 @@
   .hero-banner .cta:hover { background: #D4AA7D; color: #fff; }
   .hero-banner .cta:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(255,255,255,.5); }
   @media (max-width: 600px) {
-    .hero-banner { min-height: 80vh; }
-    .hero-banner .hero-inner { padding-bottom: 36px; }
+    .hero-banner { min-height: 92vh; }
+    .hero-banner .hero-inner { padding-bottom: 32px; }
+    .hero-banner h1 { font-size: clamp(24px, 6vw, 34px); }
+    .hero-banner .lead { font-size: 15px; }
   }
 
   /* ── Timeline (Como funciona) ── */
