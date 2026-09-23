@@ -436,9 +436,11 @@
   function mostrarConfirmacao(nome) {
     var secao = document.getElementById("formulario");
     secao.innerHTML =
+      '<div class="wrap">' +
       '<h2 style="font-family:var(--serif);font-weight:500;font-size:clamp(28px,6vw,36px);margin:0 0 14px;line-height:1.15">Recebi, ' + nome.split(" ")[0] + '.</h2>' +
       '<p style="max-width:540px;color:rgba(28,26,23,.8);margin:0 0 8px">Vou analisar o que você me contou sobre o terreno e te respondo pessoalmente pelo WhatsApp.</p>' +
-      '<p style="color:var(--muted);font-size:14px;margin:0">Fique de olho no seu WhatsApp nos próximos dias.</p>';
+      '<p style="color:var(--muted);font-size:14px;margin:0">Fique de olho no seu WhatsApp nos próximos dias.</p>' +
+      '</div>';
   }
 </script>
 </body>
