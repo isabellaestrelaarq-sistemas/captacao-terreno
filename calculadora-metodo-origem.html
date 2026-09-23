@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Método Origem — Calculadora de orçamento</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#FBFAF7;
+    --stone:#EFEBE3;
+    --ink:#2A2925;
+    --ink-soft:#6B675E;
+    --freijo:#B7895B;
+    --freijo-deep:#8F6841;
+    --moss:#5F6B52;
+    --line:#D9D3C7;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--paper);color:var(--ink);font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:15px;line-height:1.5}
+  h1,h2,h3,.serif{font-family:"Fraunces",Georgia,serif;font-weight:500;margin:0}
+  .wrap{max-width:1120px;margin:0 auto;padding:40px 24px 80px}
+  header{margin-bottom:36px;max-width:640px}
+  header h1{font-size:42px;line-height:1.05;letter-spacing:-.01em;font-weight:300}
+  header h1 em{font-style:italic;font-weight:500}
+  header p{color:var(--ink-soft);margin:14px 0 0;max-width:52ch}
+
+  .grid{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:48px;align-items:start}
+  @media (max-width:820px){.grid{grid-template-columns:1fr;gap:32px}header h1{font-size:34px}}
+
+  /* ---- Inputs ---- */
+  fieldset{border:0;padding:0;margin:0 0 28px}
+  legend{font-family:"Fraunces",serif;font-size:19px;margin-bottom:12px;padding:0}
+  .segment{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:#fff}
+  .segment label{flex:1;text-align:center;padding:11px 8px;cursor:pointer;color:var(--ink-soft);border-right:1px solid var(--line)}
+  .segment label:last-child{border-right:0}
+  .segment input{position:absolute;opacity:0;pointer-events:none}
+  .segment input:checked+span{color:var(--ink);font-weight:500}
+  .segment label:has(input:checked){background:var(--stone)}
+  .segment label:has(input:focus-visible){outline:2px solid var(--freijo);outline-offset:-2px}
+
+  .field{margin-top:14px}
+  .field label{display:block;margin-bottom:6px}
+  .field .hint{color:var(--ink-soft);font-size:13px;margin-top:6px}
+  input[type=number],select{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:6px;background:#fff;font:inherit;color:var(--ink)}
+  input[type=number]:focus,select:focus{outline:2px solid var(--freijo);outline-offset:1px;border-color:var(--freijo)}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+  .check{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-top:1px solid var(--line);cursor:pointer}
+  .check:first-of-type{border-top:0}
+  .check input{margin-top:4px;accent-color:var(--moss);width:16px;height:16px;flex:none}
+  .check b{font-weight:500;display:block}
+  .check small{color:var(--ink-soft);display:block}
+  .check.off{opacity:.45;cursor:default}
+  .sub{margin:4px 0 0 28px}
+
+  /* ---- Proposal sheet: the signature element ---- */
+  .sheet{background:#fff;border:1px solid var(--line);border-top:6px solid var(--freijo);padding:28px 28px 24px;position:sticky;top:24px}
+  .sheet h2{font-size:24px;font-weight:300}
+  .sheet .sub-h{color:var(--ink-soft);margin:4px 0 22px;font-size:14px}
+  .lines{border-top:1px solid var(--line)}
+  .line{display:grid;grid-template-columns:auto 1fr auto;gap:14px;padding:12px 0;border-bottom:1px solid var(--line);align-items:baseline}
+  .line .n{font-family:"Fraunces",serif;color:var(--freijo-deep);font-size:17px;min-width:1.3em}
+  .line .t b{font-weight:500}
+  .line .t small{display:block;color:var(--ink-soft);font-size:13px}
+  .line .v{font-family:"Fraunces",serif;font-size:19px;white-space:nowrap;text-align:right}
+  .line.credit .v{color:var(--moss)}
+  .line.tbd .v{color:var(--ink-soft);font-size:15px}
+  .empty{padding:36px 0;color:var(--ink-soft);text-align:center;border-bottom:1px solid var(--line)}
+
+  .totals{margin-top:18px}
+  .tot{display:flex;justify-content:space-between;align-items:baseline;padding:6px 0}
+  .tot .lbl{color:var(--ink-soft)}
+  .tot.grand{border-top:2px solid var(--ink);margin-top:8px;padding-top:14px}
+  .tot.grand .lbl{color:var(--ink);font-family:"Fraunces",serif;font-size:18px}
+  .tot.grand .v{font-family:"Fraunces",serif;font-size:34px;font-weight:300;letter-spacing:-.01em}
+  .tot.var .v{font-family:"Fraunces",serif;font-size:18px;color:var(--moss)}
+  .note{margin-top:14px;font-size:13px;color:var(--ink-soft);line-height:1.55}
+
+  .actions{display:flex;gap:10px;margin-top:22px;flex-wrap:wrap}
+  button{font:inherit;padding:12px 18px;border-radius:6px;border:1px solid var(--ink);background:var(--ink);color:#fff;cursor:pointer}
+  button.ghost{background:transparent;color:var(--ink)}
+  button:focus-visible{outline:2px solid var(--freijo);outline-offset:2px}
+  #copied{font-size:13px;color:var(--moss);align-self:center}
+  @media (prefers-reduced-motion:no-preference){.line .v{transition:color .15s}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Método Origem<br><em>calculadora de orçamento</em></h1>
+    <p>Preencha o que o cliente já sabe. A proposta monta ao lado, etapa por etapa, com o preço de cada uma antes de assinar.</p>
+  </header>
+
+  <div class="grid">
+    <!-- ================= INPUTS ================= -->
+    <div>
+      <fieldset>
+        <legend>O que o cliente quer fazer</legend>
+        <div class="segment" role="radiogroup" aria-label="Tipo de trabalho">
+          <label><input type="radio" name="mode" value="emp" checked><span>Empreendimento</span></label>
+          <label><input type="radio" name="mode" value="casa"><span>Uma casa</span></label>
+          <label><input type="radio" name="mode" value="fachada"><span>Só fachada</span></label>
+        </div>
+      </fieldset>
+
+      <fieldset id="f-terreno">
+        <legend>Terreno</legend>
+        <div class="field">
+          <label for="terreno">Área do terreno (m²)</label>
+          <input type="number" id="terreno" min="0" step="10" placeholder="ex.: 360">
+          <div class="hint" id="terreno-hint"></div>
+        </div>
+      </fieldset>
+
+      <fieldset id="f-unidades">
+        <legend>Unidades</legend>
+        <div class="check">
+          <input type="checkbox" id="unk" checked>
+          <span><b>Ainda não sabemos quantas cabem</b><small>A viabilidade responde isso. A proposta mostra só as etapas 1 e 2.</small></span>
+        </div>
+        <div class="row" id="f-un-num" hidden>
+          <div class="field">
+            <label for="un">Quantidade de unidades</label>
+            <input type="number" id="un" min="2" step="1" placeholder="ex.: 30">
+          </div>
+          <div class="field">
+            <label for="tip">Tipologias diferentes</label>
+            <input type="number" id="tip" min="1" step="1" value="1">
+          </div>
+          <div class="hint" id="un-hint" style="grid-column:1/-1;margin-top:-6px"></div>
+        </div>
+      </fieldset>
+
+      <fieldset id="f-etapas">
+        <legend>Etapas contratadas</legend>
+        <label class="check"><input type="checkbox" id="e1" checked><span><b>1 · Raio-X da Decisão</b><small>Diagnóstico, público-alvo, quadro de usos, veredito</small></span></label>
+        <label class="check emp-only"><input type="checkbox" id="e2" checked><span><b>2 · Viabilidade</b><small>Volumetria, tipologias, custo de construção, VGV</small></span></label>
+        <label class="check needs-un"><input type="checkbox" id="e3" checked><span><b>3 · Projeto assinado</b><small>Projeto arquitetônico completo, CAU</small></span></label>
+        <label class="check needs-un emp-only"><input type="checkbox" id="e4"><span><b>4 · Memoriais (opcional)</b><small>Memorial descritivo, memorial de incorporação e quadros NBR 12.721</small></span></label>
+        <label class="check needs-un"><input type="checkbox" id="e5"><span><b>5 · Material de venda</b><small>Imagens, plantas humanizadas, book</small></span></label>
+        <label class="check needs-un emp-only"><input type="checkbox" id="e6"><span><b>6 · Lançamento e vendas</b><small>Fee mensal + percentual sobre o VGV vendido</small></span></label>
+        <div class="sub" id="f-e6" hidden>
+          <div class="row">
+            <div class="field"><label for="meses">Meses de acompanhamento</label><input type="number" id="meses" min="1" value="9"><div class="hint">3 de preparação + 6 de vendas</div></div>
+            <div class="field"><label for="vgv">VGV estimado (R$)</label><input type="number" id="vgv" min="0" step="100000" placeholder="opcional"></div>
+          </div>
+          <div class="row">
+            <div class="field"><label for="pct">Variável sobre vendas (%)</label><input type="number" id="pct" min="0" step="0.25" value="2"><div class="hint">Combinado caso a caso</div></div>
+            <div class="field"><label for="minimo">Mínimo garantido (R$)</label><input type="number" id="minimo" min="0" step="1000" placeholder="opcional"></div>
+          </div>
+          <div class="field"><label for="curva">Curva de vendas prevista (% por mês, 6 meses)</label><input type="text" id="curva" value="30, 20, 15, 12, 12, 11"><div class="hint" id="curva-hint"></div></div>
+        </div>
+      </fieldset>
+
+      <fieldset id="f-fachada" hidden>
+        <legend>Detalhes da fachada</legend>
+        <div class="row">
+          <div class="field">
+            <label for="pav">Pavimentos</label>
+            <select id="pav">
+              <option value="0">Térrea</option>
+              <option value="1">Duplex (sobrado)</option>
+              <option value="2">Triplex</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="nfach">Fachadas trabalhadas</label>
+            <select id="nfach">
+              <option value="1">Só a frente</option>
+              <option value="2">Frente e lateral (2)</option>
+              <option value="4">Todas as faces (4)</option>
+            </select>
+          </div>
+        </div>
+        <div class="hint">A base é pelo tamanho do terreno, informado acima.</div>
+      </fieldset>
+
+      <fieldset id="f-abate">
+        <legend>Raio-X</legend>
+        <label class="check"><input type="checkbox" id="abate"><span><b>Cliente já pagou o Raio-X e vai avançar</b><small>Abate R$ 3.000 do total (válido por 60 dias)</small></span></label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Ajuste comercial</legend>
+        <div class="field">
+          <label for="override">Valor total combinado com o cliente (R$)</label>
+          <input type="number" id="override" min="0" step="100" placeholder="deixe vazio para usar o valor calculado">
+          <div class="hint">Se preenchido, substitui o total calculado na proposta. O contrato sai com este valor.</div>
+        </div>
+      </fieldset>
+    </div>
+
+    <!-- ================= PROPOSAL ================= -->
+    <aside class="sheet" aria-live="polite">
+      <h2 id="sheet-title">Proposta</h2>
+      <div class="sub-h" id="sheet-sub">—</div>
+      <div class="lines" id="lines"></div>
+      <div class="totals" id="totals"></div>
+      <div class="note" id="note"></div>
+      <div class="actions">
+        <button id="link">Gerar link da proposta</button>
+        <button class="ghost" id="copy">Copiar como texto</button>
+        <button class="ghost" id="reset">Limpar</button>
+        <span id="copied"></span>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script>
+/* =====================================================================
+   TABELA OFICIAL — edite aqui e a calculadora inteira acompanha.
+   ===================================================================== */
+const TABELA = {
+  raiox: 3000,
+
+  // Etapa 2 — por área do terreno (m²); acima da última faixa = sob medida
+  viabilidade: [
+    { ate: 500,   valor: 3000 },
+    { ate: 2000,  valor: 5000 },
+    { ate: 10000, valor: 8000 },
+  ],
+
+  // Etapas 3, 4 e 5 — valor base (feito uma vez) + valor por unidade
+  projeto:   { base: 12000, porUnidade: 400, tipologiaExtra: 4000 },
+  memoriais: { base: 2500,  porUnidade: 150, min: 7000 },
+  material:  { base: 3000,  porUnidade: 60 },
+  maxUnidades: 60, // acima disso = sob medida
+
+  // Etapa 6 — mínimo baixo, ganho na performance
+  lancamentoMes: 1000,
+  lancamentoPct: [2, 2.5],
+
+  // Casa única — projeto por área do terreno
+  casa: [
+    { ate: 250,  valor: 12000 },
+    { ate: 500,  valor: 15000 },
+    { ate: 1000, valor: 19000 },
+  ],
+  casaMaterial: 3000,
+
+  // Fachada avulsa — base pelo terreno + acréscimos
+  fachada: {
+    base: [
+      { ate: 250,  valor: 2500 },
+      { ate: 500,  valor: 3500 },
+      { ate: 1000, valor: 4500 },
+    ],
+    pavimentos: { 0: 0, 1: 1000, 2: 2000 },   // térrea, duplex, triplex
+    faces:      { 1: 0, 2: 800,  4: 2000 },   // fachadas trabalhadas
+  },
+};
+
+/* ===================================================================== */
+const $ = id => document.getElementById(id);
+const brl = n => n.toLocaleString('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0});
+const mode = () => document.querySelector('input[name=mode]:checked').value;
+
+function bandByArea(list, area){
+  for (const b of list) if (area <= b.ate) return b.valor;
+  return null; // sob medida
+}
+
+function build(){
+  const m = mode();
+  const terreno = +$('terreno').value || 0;
+  const unk = $('unk').checked;
+  const un = +$('un').value || 0;
+  const abate = $('abate').checked;
+
+  // show/hide input groups
+  $('f-terreno').hidden = false;
+  $('f-unidades').hidden = m !== 'emp';
+  $('f-etapas').hidden = m === 'fachada';
+  $('f-fachada').hidden = m !== 'fachada';
+  $('f-abate').hidden = m === 'fachada';
+  $('f-un-num').hidden = unk;
+  $('f-e6').hidden = !$('e6').checked || m !== 'emp';
+  document.querySelectorAll('.emp-only').forEach(el => el.hidden = m !== 'emp');
+  const noUn = m === 'emp' && unk;
+  document.querySelectorAll('.needs-un').forEach(el => el.classList.toggle('off', noUn));
+
+  const lines = [];   // {n,t,s,v,kind}
+  let fixo = 0, tbd = false, credit = 0, variavel = null;
+  let title = 'Proposta', sub = '';
+
+  if (m === 'fachada'){
+    title = 'Projeto de fachada';
+    sub = terreno ? `Terreno de ${terreno.toLocaleString('pt-BR')} m²` : 'Informe a área do terreno';
+    const F = TABELA.fachada;
+    const base = terreno ? bandByArea(F.base, terreno) : 0;
+    const pav = $('pav'), nf = $('nfach');
+    if (terreno && base === null){ lines.push({n:'', t:'Fachada', s:'Terreno acima de 1.000 m²', v:null}); tbd = true; }
+    else {
+      lines.push({n:'', t:'Fachada — base', s:'Pelo tamanho do terreno', v:base}); fixo += base;
+      const vp = F.pavimentos[pav.value], vf = F.faces[nf.value];
+      if (vp){ lines.push({n:'', t:pav.selectedOptions[0].text, s:'Acréscimo por pavimentos', v:vp}); fixo += vp; }
+      if (vf){ lines.push({n:'', t:nf.selectedOptions[0].text, s:'Acréscimo por fachadas trabalhadas', v:vf}); fixo += vf; }
+    }
+  }
+
+  if (m === 'casa'){
+    title = 'Uma casa';
+    sub = terreno ? `Terreno de ${terreno.toLocaleString('pt-BR')} m²` : 'Informe a área do terreno';
+    if ($('e1').checked){ lines.push({n:'1', t:'Raio-X da Decisão', s:'Veredito sobre o terreno', v:TABELA.raiox}); fixo += TABELA.raiox; }
+    if ($('e3').checked){
+      const v = terreno ? bandByArea(TABELA.casa, terreno) : 0;
+      if (terreno && v === null){ lines.push({n:'3', t:'Projeto assinado', s:'Terreno acima de 1.000 m²', v:null}); tbd = true; }
+      else { lines.push({n:'3', t:'Projeto assinado', s:'Cobrado pelo tamanho do terreno', v}); fixo += v; }
+    }
+    if ($('e5').checked){ lines.push({n:'5', t:'Material de venda', s:'Se for construir para vender', v:TABELA.casaMaterial}); fixo += TABELA.casaMaterial; }
+  }
+
+  if (m === 'emp'){
+    title = 'Empreendimento';
+    sub = terreno ? `Terreno de ${terreno.toLocaleString('pt-BR')} m²` + (unk ? ' · unidades a definir' : ` · ${un} unidades`) : 'Informe a área do terreno';
+    if ($('e1').checked){ lines.push({n:'1', t:'Raio-X da Decisão', s:'Veredito sobre o terreno', v:TABELA.raiox}); fixo += TABELA.raiox; }
+    if ($('e2').checked){
+      const v = terreno ? bandByArea(TABELA.viabilidade, terreno) : 0;
+      if (terreno && v === null){ lines.push({n:'2', t:'Viabilidade', s:'Terreno acima de 10.000 m²', v:null}); tbd = true; }
+      else { lines.push({n:'2', t:'Viabilidade', s:'Descobre quantas unidades cabem, tipologias e VGV', v}); fixo += v; }
+    }
+    if (!unk && un >= 2){
+      const tip = Math.max(1, +$('tip').value || 1);
+      const per = (n, lbl, sub, t, extra) => {
+        if (un > TABELA.maxUnidades){ lines.push({n, t:lbl, s:`Acima de ${TABELA.maxUnidades} unidades`, v:null}); tbd = true; return; }
+        let v = t.base + t.porUnidade*un + (extra||0);
+        if (t.min && v < t.min) v = t.min;
+        let s = `${sub}${brl(t.base)} + ${un} × ${brl(t.porUnidade)}`;
+        if (t.min && (t.base + t.porUnidade*un + (extra||0)) < t.min) s += ` (mín. ${brl(t.min)})`;
+        if (extra) s += ` + ${tip-1} tipologia${tip>2?'s':''} extra`;
+        lines.push({n, t:lbl, s, v}); fixo += v;
+      };
+      if ($('e3').checked) per('3','Projeto assinado','', TABELA.projeto, (tip-1)*TABELA.projeto.tipologiaExtra);
+      if ($('e4').checked) per('4','Memoriais','Descritivo, incorporação e quadros NBR · ', TABELA.memoriais);
+      if ($('e5').checked) per('5','Material de venda','', TABELA.material);
+    }
+    if ($('e6').checked && !unk && un >= 2){
+      const meses = +$('meses').value || 0;
+      const vgv = +$('vgv').value || 0;
+      const pct = +$('pct').value || 0;
+      const minimo = +$('minimo').value || 0;
+      const curva = ($('curva').value || '').split(/[,;\s]+/).map(Number).filter(n => !isNaN(n) && n > 0);
+      const fee = meses * TABELA.lancamentoMes;
+      lines.push({n:'6', t:'Lançamento e vendas — fee', s:`${meses} meses × ${brl(TABELA.lancamentoMes)}`, v:fee});
+      fixo += fee;
+      let s = `${pct}% do VGV efetivamente vendido`;
+      if (vgv) s = `${pct}% sobre VGV vendido de ${brl(vgv)}`;
+      if (minimo) s += ` · mínimo garantido ${brl(minimo)}`;
+      const est = vgv ? Math.max(vgv*pct/100, minimo) : null;
+      lines.push({n:'', t:'Lançamento e vendas — variável', s, v: est, kind:'var'});
+      variavel = { pct, minimo, vgv, curva, meses };
+    }
+  }
+
+  if (abate && m !== 'fachada' && fixo >= TABELA.raiox && lines.some(l => l.n==='1')){
+    credit = TABELA.raiox;
+    lines.push({n:'', t:'Raio-X já pago', s:'Abatido integralmente ao avançar', v:-credit, kind:'credit'});
+  }
+
+  // ----- render
+  $('sheet-title').textContent = title;
+  $('sheet-sub').textContent = sub;
+  const L = $('lines');
+  if (!lines.length){ L.innerHTML = '<div class="empty">Escolha as etapas para montar a proposta.</div>'; }
+  else L.innerHTML = lines.map(l => {
+    let v;
+    if (l.v === null) v = 'sob medida';
+    else if (Array.isArray(l.v)) v = `${brl(l.v[0])} – ${brl(l.v[1])}`;
+    else v = (l.v < 0 ? '− ' : '') + brl(Math.abs(l.v));
+    return `<div class="line ${l.kind||''} ${l.v===null?'tbd':''}"><span class="n">${l.n}</span><span class="t"><b>${l.t}</b><small>${l.s}</small></span><span class="v">${v}</span></div>`;
+  }).join('');
+
+  const calculado = fixo - credit;
+  const ov = +$('override').value || 0;
+  const total = ov > 0 ? ov : calculado;
+  const temOverride = ov > 0 && ov !== calculado;
+
+  // se tem override, adiciona linha de ajuste pra a conta fechar pro cliente
+  if (temOverride){
+    const diff = ov - calculado;
+    if (diff > 0) lines.push({n:'', t:'Ajuste comercial', s:'', v:diff});
+    else if (diff < 0) lines.push({n:'', t:'Desconto comercial', s:'', v:diff, kind:'credit'});
+  }
+
+  const varLine = lines.find(l => l.kind === 'var');
+  let T = '';
+  if (lines.length){
+    if (credit && !temOverride) T += `<div class="tot"><span class="lbl">Soma das etapas</span><span>${brl(fixo)}</span></div>`;
+    T += `<div class="tot grand"><span class="lbl">Total fixo</span><span class="v">${brl(total)}</span></div>`;
+    if (varLine) T += `<div class="tot var"><span class="lbl">Variável sobre vendas (estimativa)</span><span class="v">${varLine.v!=null?brl(varLine.v):'sobre o VGV vendido'}</span></div>`;
+  }
+  $('totals').innerHTML = T;
+
+  let note = '';
+  if (noUn && $('e1').checked) note = 'Depois da viabilidade, com o número de unidades definido, as etapas 3 a 6 entram com preço por unidade.';
+  else if (tbd) note = 'Itens "sob medida" saem em proposta específica em até 48h.';
+  else if (lines.length) note = 'Pagamento por marcos: cada etapa é paga na entrega correspondente.';
+  $('note').textContent = note;
+
+  // text for copy
+  window.__proposta = [`*Método Origem — ${title}*`, sub, '', ...lines.map(l => {
+    let v = l.v===null ? 'sob medida' : Array.isArray(l.v) ? `${brl(l.v[0])} a ${brl(l.v[1])}` : (l.v<0?'− ':'')+brl(Math.abs(l.v));
+    return `${l.n?l.n+'. ':''}${l.t} — ${v}\n   ${l.s}`;
+  }), '', `*Total fixo: ${brl(total)}*`, varLine ? `Variável: ${varLine.s}` : '', note].filter(x=>x!==undefined).join('\n');
+
+  // object for proposta.html
+  window.__propostaObj = { title, sub, lines, total, variavel, modo:m, terreno, un: (m==='emp' && !unk) ? un : null, data: new Date().toISOString() };
+}
+function linkProposta(){
+  const json = JSON.stringify(window.__propostaObj);
+  const b64 = btoa(unescape(encodeURIComponent(json))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  const base = location.href.replace(/[^/]*$/, '');
+  return `${base}proposta.html#p=${b64}`;
+}
+
+// hints
+function hints(){
+  const t = +$('terreno').value || 0, m = mode();
+  let h = '';
+  if (t && m==='emp'){ const v = bandByArea(TABELA.viabilidade,t); h = v===null ? 'Acima de 10.000 m² — viabilidade sob medida' : `Viabilidade nesta faixa: ${brl(v)}`; }
+  if (t && m==='casa'){ const v = bandByArea(TABELA.casa,t); h = v===null ? 'Acima de 1.000 m² — projeto sob medida' : `Projeto nesta faixa: ${brl(v)}`; }
+  if (t && m==='fachada'){ const v = bandByArea(TABELA.fachada.base,t); h = v===null ? 'Acima de 1.000 m² — fachada sob medida' : `Base da fachada nesta faixa: ${brl(v)}`; }
+  $('terreno-hint').textContent = h;
+  const cv = ($('curva').value||'').split(/[,;\s]+/).map(Number).filter(n=>!isNaN(n)&&n>0), soma = cv.reduce((a,b)=>a+b,0);
+  let acc=0; $('curva-hint').textContent = cv.length ? `Acumulado: ${cv.map(v=>Math.round(acc+=v)+'%').join(' → ')}` + (Math.round(soma)!==100?` · soma ${Math.round(soma)}% (ideal 100%)`:'') : '';
+  const u = +$('un').value || 0, p = TABELA.projeto;
+  $('un-hint').textContent = u>=2 ? (u <= TABELA.maxUnidades ? `Projeto: ${brl(p.base)} pela 1ª tipologia + ${brl(p.porUnidade)} por unidade` : `Acima de ${TABELA.maxUnidades} — sob medida`) : '';
+}
+
+document.querySelectorAll('input,select').forEach(el => el.addEventListener('input', () => { hints(); build(); }));
+$('reset').addEventListener('click', () => {
+  ['terreno','un','vgv','minimo','override'].forEach(id => $(id).value='');
+  $('meses').value = 9; $('pct').value = 2; $('curva').value = '30, 20, 15, 12, 12, 11'; $('tip').value = 1; $('unk').checked = true; $('abate').checked = false;
+  ['e1','e2','e3'].forEach(id => $(id).checked = true); ['e4','e5','e6'].forEach(id => $(id).checked = false);
+  hints(); build();
+});
+$('link').addEventListener('click', async () => {
+  const o = window.__propostaObj;
+  if (!o || !o.lines.length || o.lines.some(l => l.v === null && l.kind !== 'var')){ $('copied').textContent = 'Complete a proposta (sem itens "sob medida") antes de gerar o link.'; setTimeout(() => $('copied').textContent = '', 3500); return; }
+  const url = linkProposta();
+  try { await navigator.clipboard.writeText(url); $('copied').textContent = 'Link copiado — envie ao cliente.'; }
+  catch { prompt('Copie o link da proposta:', url); }
+  setTimeout(() => $('copied').textContent = '', 3000);
+});
+$('copy').addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText(window.__proposta || ''); $('copied').textContent = 'Copiado — cole no WhatsApp.'; }
+  catch { $('copied').textContent = 'Não foi possível copiar; selecione o texto manualmente.'; }
+  setTimeout(() => $('copied').textContent = '', 2500);
+});
+hints(); build();
+</script>
+</body>
+</html>

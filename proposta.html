@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Proposta — Método Origem</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{--paper:#FBFAF7;--stone:#EFEBE3;--ink:#2A2925;--ink-soft:#6B675E;--freijo:#B7895B;--freijo-deep:#8F6841;--moss:#5F6B52;--line:#D9D3C7;--danger:#9C3B2E}
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--paper);color:var(--ink);font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:15px;line-height:1.5}
+  h1,h2,h3{font-family:"Fraunces",Georgia,serif;font-weight:500;margin:0}
+  .wrap{max-width:760px;margin:0 auto;padding:40px 22px 90px}
+  header{border-bottom:1px solid var(--line);padding-bottom:22px;margin-bottom:28px}
+  header .brand{font-family:"Fraunces",serif;font-size:14px;color:var(--freijo-deep);letter-spacing:.02em}
+  header h1{font-size:38px;font-weight:300;line-height:1.05;margin-top:8px}
+  header h1 em{font-style:italic;font-weight:500}
+  header p{color:var(--ink-soft);margin:10px 0 0}
+  section{margin-bottom:40px}
+  section h2{font-size:24px;font-weight:300;margin-bottom:14px}
+  section h2 span{font-family:"Fraunces",serif;color:var(--freijo-deep);margin-right:10px}
+
+  .lines{border-top:1px solid var(--line)}
+  .line{display:grid;grid-template-columns:auto 1fr auto;gap:14px;padding:12px 0;border-bottom:1px solid var(--line);align-items:baseline}
+  .line .n{font-family:"Fraunces",serif;color:var(--freijo-deep);font-size:17px;min-width:1.3em}
+  .line b{font-weight:500}
+  .line small{display:block;color:var(--ink-soft);font-size:13px}
+  .line .v{font-family:"Fraunces",serif;font-size:19px;white-space:nowrap}
+  .line.credit .v{color:var(--moss)}
+  .tot{display:flex;justify-content:space-between;align-items:baseline;border-top:2px solid var(--ink);margin-top:10px;padding-top:14px}
+  .tot .lbl{font-family:"Fraunces",serif;font-size:18px}
+  .tot .v{font-family:"Fraunces",serif;font-size:34px;font-weight:300}
+  .var{color:var(--moss);font-size:14px;margin-top:6px}
+
+  .pay{display:grid;gap:10px}
+  .pay label{display:grid;grid-template-columns:auto 1fr;gap:14px;border:1px solid var(--line);border-radius:8px;padding:16px;background:#fff;cursor:pointer}
+  .pay label:has(input:checked){border-color:var(--freijo);box-shadow:inset 0 0 0 1px var(--freijo);background:#fff}
+  .pay label:has(input:focus-visible){outline:2px solid var(--freijo);outline-offset:2px}
+  .pay input{margin-top:5px;accent-color:var(--freijo-deep)}
+  .pay b{font-weight:500;display:block}
+  .pay .amt{font-family:"Fraunces",serif;font-size:22px;margin:4px 0 2px}
+  .pay small{color:var(--ink-soft);display:block;font-size:13px}
+  .pay select{margin-top:8px;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font:inherit;background:#fff}
+  .marcos{margin-top:12px;font-size:13px;color:var(--ink-soft);border-top:1px dashed var(--line);padding-top:10px}
+  .marcos div{display:flex;justify-content:space-between;padding:3px 0}
+
+  form .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media (max-width:560px){form .row{grid-template-columns:1fr}header h1{font-size:30px}}
+  .field{margin-top:12px}
+  .field label{display:block;margin-bottom:5px}
+  input[type=text],input[type=email],input[type=tel]{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:6px;background:#fff;font:inherit;color:var(--ink)}
+  input:focus{outline:2px solid var(--freijo);outline-offset:1px;border-color:var(--freijo)}
+  input:user-invalid{border-color:var(--danger)}
+
+  details{border:1px solid var(--line);border-radius:8px;background:#fff}
+  summary{padding:16px;cursor:pointer;font-family:"Fraunces",serif;font-size:18px;list-style:none;display:flex;justify-content:space-between}
+  summary::after{content:"abrir";font-family:"IBM Plex Sans",sans-serif;font-size:13px;color:var(--ink-soft)}
+  details[open] summary::after{content:"fechar"}
+  .contract{padding:0 24px 24px;font-size:14px;line-height:1.65}
+  .contract h3{font-size:16px;margin:22px 0 8px}
+  .contract p{margin:0 0 10px}
+  .contract .fill{background:var(--stone);padding:0 4px;border-radius:3px}
+  .contract .empty{color:var(--danger)}
+  .contract ol{padding-left:20px;margin:0 0 10px}
+
+  .accept{border:1px solid var(--line);border-radius:8px;padding:18px;background:#fff}
+  .accept label{display:flex;gap:12px;align-items:flex-start;cursor:pointer}
+  .accept input{margin-top:4px;accent-color:var(--moss);width:16px;height:16px;flex:none}
+  button{font:inherit;padding:14px 20px;border-radius:6px;border:1px solid var(--ink);background:var(--ink);color:#fff;cursor:pointer;width:100%;margin-top:14px;font-size:16px}
+  button.ghost{background:transparent;color:var(--ink)}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  button:focus-visible{outline:2px solid var(--freijo);outline-offset:2px}
+  .msg{margin-top:12px;font-size:14px;color:var(--ink-soft)}
+  .msg.err{color:var(--danger)}
+
+  .done{display:none;border-top:6px solid var(--moss);background:#fff;padding:28px;border:1px solid var(--line)}
+  .done h2{font-size:28px;font-weight:300}
+  .done p{color:var(--ink-soft)}
+  .done .code{font-family:"Fraunces",serif;font-size:22px;margin:10px 0 18px}
+  body.accepted .form-only{display:none}
+  body.accepted .done{display:block}
+
+  @media print{
+    body{background:#fff;font-size:12.5px}
+    .wrap{max-width:none;padding:0}
+    .no-print,header p,.done,.accept,.pay label:not(:has(input:checked)) .amt{display:none!important}
+    details{border:0}details[open] summary{display:none}
+    .contract{padding:0}
+    .print-only{display:block!important}
+  }
+  .print-only{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">Método Origem</div>
+    <h1 id="h-title">Proposta</h1>
+    <p id="h-sub"></p>
+  </header>
+
+  <section>
+    <h2><span>1</span>O que está incluído</h2>
+    <div class="lines" id="lines"></div>
+    <div class="tot"><span class="lbl">Total fixo</span><span class="v" id="total"></span></div>
+    <div class="var" id="var"></div>
+  </section>
+
+  <section class="form-only">
+    <h2><span>2</span>Como você prefere pagar</h2>
+    <div class="pay" id="pay"></div>
+  </section>
+
+  <section class="form-only">
+    <h2><span>3</span>Seus dados</h2>
+    <form id="f" novalidate>
+      <div class="row">
+        <div class="field"><label for="nome">Nome completo</label><input type="text" id="nome" required autocomplete="name"></div>
+        <div class="field"><label for="doc">CPF ou CNPJ</label><input type="text" id="doc" required inputmode="numeric"></div>
+      </div>
+      <div class="row">
+        <div class="field"><label for="email">E-mail</label><input type="email" id="email" required autocomplete="email"></div>
+        <div class="field"><label for="tel">WhatsApp</label><input type="tel" id="tel" required autocomplete="tel" placeholder="(12) 9 9999-9999"></div>
+      </div>
+      <div class="field"><label for="end">Endereço completo</label><input type="text" id="end" required autocomplete="street-address"></div>
+      <div class="field"><label for="endterreno">Endereço ou matrícula do terreno</label><input type="text" id="endterreno" placeholder="opcional, se já tiver"></div>
+    </form>
+  </section>
+
+  <section>
+    <h2><span>4</span>Contrato</h2>
+    <details id="det">
+      <summary>Contrato de prestação de serviços</summary>
+      <div class="contract" id="contract"></div>
+    </details>
+  </section>
+
+  <section class="form-only">
+    <h2><span>5</span>Aceite</h2>
+    <div class="accept">
+      <label><input type="checkbox" id="ok"><span>Li a proposta e o contrato acima, confirmo que meus dados estão corretos e aceito os termos. Entendo que este aceite eletrônico registra data, hora e endereço de rede.</span></label>
+      <button id="go" disabled>Aceitar proposta e assinar</button>
+      <div class="msg" id="msg"></div>
+    </div>
+  </section>
+
+  <div class="done">
+    <h2>Proposta aceita</h2>
+    <p>Registrada em <span id="done-when"></span>. Guarde o código:</p>
+    <div class="code" id="done-code"></div>
+    <p>Próximo passo: baixe o contrato assinado e, se quiser, envie o aceite pelo WhatsApp para confirmarmos a data de início.</p>
+    <button id="pdf">Baixar contrato em PDF</button>
+    <button class="ghost" id="wa">Enviar aceite pelo WhatsApp</button>
+  </div>
+
+  <div class="print-only" id="print-sign"></div>
+</div>
+
+<script>
+/* =====================================================================
+   CONFIGURAÇÃO — preencha uma vez.
+   ===================================================================== */
+const CONFIG = {
+  contratada: {
+    nome: "Isabella Estrela de Hipólito",
+    cpf: "",               // seu CPF
+    endereco: "",
+    cau: "A2264030",
+    cidadeForo: "São José dos Campos – SP",
+  },
+  whatsapp: "5521984052365",
+
+  // Registro no banco (opcional). Vazio = só WhatsApp/PDF.
+  supabaseUrl: "",         // ex.: https://xxxx.supabase.co
+  supabaseAnonKey: "",
+  tabela: "propostas",
+
+  // Condições de pagamento
+  entradaPct: 30,          // entrada + saldo por marcos
+  pixDescontoPct: 8,       // à vista no PIX
+  parcelasMax: 6,          // parcelado
+  parceladoAcrescimoPct: 5,
+  prazoPorEtapa: {
+    "1": "até 15 dias contados do aceite",
+    "2": "15 dias contados do aceite",
+    "3": "30 dias após o aceite do estudo preliminar pelo CONTRATANTE",
+    "4": "30 dias após a emissão da licença de obra pela prefeitura",
+    "5": "30 dias após a emissão da licença de obra pela prefeitura",
+    "6": "conforme a evolução das etapas anteriores; acompanhamento de 9 meses, sendo 3 de preparação e 6 de vendas",
+  },
+};
+/* ===================================================================== */
+
+const $ = id => document.getElementById(id);
+const brl = n => n.toLocaleString('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0});
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+// ---------- 1. Ler proposta do link (ou exemplo, se abrir sem link) ----------
+let P = null, DEMO = false;
+try {
+  const h = new URLSearchParams(location.hash.slice(1)).get('p');
+  if (h) P = JSON.parse(decodeURIComponent(escape(atob(h.replace(/-/g,'+').replace(/_/g,'/')))));
+} catch { P = null; }
+if (!P){
+  DEMO = true;
+  P = { title:'Empreendimento', sub:'Terreno de 3.000 m² · 30 unidades', modo:'emp', terreno:3000, un:30, data:new Date().toISOString(),
+    lines:[
+      {n:'1', t:'Raio-X da Decisão', s:'Veredito sobre o terreno', v:3000},
+      {n:'2', t:'Viabilidade', s:'Descobre quantas unidades cabem, tipologias e VGV', v:8000},
+      {n:'3', t:'Projeto assinado', s:'R$ 12.000 + 30 × R$ 400', v:24000},
+      {n:'4', t:'Memoriais', s:'Descritivo, incorporação e quadros NBR · R$ 2.500 + 30 × R$ 150', v:7000},
+      {n:'5', t:'Material de venda', s:'R$ 3.000 + 30 × R$ 60', v:4800},
+      {n:'6', t:'Lançamento e vendas — fee', s:'9 meses × R$ 1.000', v:9000},
+      {n:'', t:'Lançamento e vendas — variável', s:'2% sobre VGV vendido de R$ 9.000.000 · mínimo garantido R$ 15.000', v:180000, kind:'var'},
+    ], total:55800, variavel:{ pct:2, minimo:15000, vgv:9000000, curva:[30,20,15,12,12,11], meses:9 } };
+  const b = document.createElement('div');
+  b.className = 'no-print';
+  b.style.cssText = 'background:#FFF6E5;border:1px solid #E7C98F;color:#6B4E12;padding:10px 14px;border-radius:6px;font-size:13px;margin-bottom:22px';
+  b.textContent = 'Exemplo de demonstração — abra pelo link gerado na calculadora para ver uma proposta real.';
+  document.querySelector('.wrap').prepend(b);
+}
+
+$('h-title').innerHTML = `Proposta <em>${esc(P.title)}</em>`;
+$('h-sub').textContent = `${P.sub} · emitida em ${new Date(P.data).toLocaleDateString('pt-BR')}`;
+$('lines').innerHTML = P.lines.map(l => {
+  const v = l.v === null ? (l.kind==='var' ? 'sobre vendas' : 'sob medida') : Array.isArray(l.v) ? `${brl(l.v[0])} – ${brl(l.v[1])}` : (l.v<0?'− ':'')+brl(Math.abs(l.v));
+  return `<div class="line ${l.kind||''}"><span class="n">${esc(l.n)}</span><span><b>${esc(l.t)}</b><small>${esc(l.s)}</small></span><span class="v">${v}</span></div>`;
+}).join('');
+$('total').textContent = brl(P.total);
+const varLine = P.lines.find(l => l.kind === 'var');
+$('var').textContent = varLine ? `Variável sobre vendas: ${varLine.s}` + (varLine.v ? ` (estimativa ${brl(varLine.v)})` : '') : '';
+
+// ---------- 2. Formas de pagamento ----------
+const T = P.total;
+const entrada = Math.round(T * CONFIG.entradaPct/100);
+const saldo = T - entrada;
+const etapas = P.lines.filter(l => l.n && !isNaN(l.v) && l.v > 0);
+const somaEtapas = etapas.reduce((a,l)=>a+l.v,0) || 1;
+const marcos = etapas.map(l => ({ n:l.n, t:l.t, v: Math.round(saldo * l.v/somaEtapas) }));
+const pix = Math.round(T * (1 - CONFIG.pixDescontoPct/100));
+const parcTotal = Math.round(T * (1 + CONFIG.parceladoAcrescimoPct/100));
+const parcOpts = Array.from({length:CONFIG.parcelasMax}, (_,i)=>i+1).map(n => `<option value="${n}">${n}× de ${brl(Math.round(parcTotal/n))}${n===1?' (sem acréscimo, valor cheio)':''}</option>`).join('');
+
+$('pay').innerHTML = `
+  <label><input type="radio" name="pg" value="marcos" checked><span>
+    <b>Entrada + saldo por marcos</b>
+    <div class="amt">${brl(entrada)} agora</div>
+    <small>${CONFIG.entradaPct}% na assinatura; o restante é pago na entrega de cada etapa.</small>
+    <div class="marcos">${marcos.map(m=>`<div><span>${esc(m.n)} · ${esc(m.t)}</span><span>${brl(m.v)}</span></div>`).join('')}</div>
+  </span></label>
+  <label><input type="radio" name="pg" value="pix"><span>
+    <b>À vista no PIX</b>
+    <div class="amt">${brl(pix)}</div>
+    <small>${CONFIG.pixDescontoPct}% de desconto sobre ${brl(T)}, pago na assinatura.</small>
+  </span></label>
+  <label><input type="radio" name="pg" value="parcelado"><span>
+    <b>Parcelado</b>
+    <div class="amt">até ${CONFIG.parcelasMax}× no cartão ou boleto</div>
+    <small>Acréscimo de ${CONFIG.parceladoAcrescimoPct}% a partir de 2 parcelas.</small>
+    <select id="parc">${parcOpts}</select>
+  </span></label>`;
+
+function pagamentoEscolhido(){
+  const v = document.querySelector('input[name=pg]:checked').value;
+  if (v === 'marcos') return { tipo:'Entrada + saldo por marcos', valor:T, texto:`Entrada de ${brl(entrada)} (${CONFIG.entradaPct}%) no aceite e saldo de ${brl(saldo)} pago por marcos, na entrega de cada etapa: ` + marcos.map(m=>`${m.t} ${brl(m.v)}`).join('; ') + '.' };
+  if (v === 'pix') return { tipo:'À vista no PIX', valor:pix, texto:`Valor total de ${brl(pix)}, já com desconto de ${CONFIG.pixDescontoPct}%, pago integralmente via PIX no aceite.` };
+  const n = +$('parc').value;
+  const tot = n === 1 ? T : parcTotal;
+  return { tipo:`Parcelado em ${n}×`, valor:tot, texto:`Valor total de ${brl(tot)}${n>1?` (com acréscimo de ${CONFIG.parceladoAcrescimoPct}%)`:''} em ${n} parcela${n>1?'s':''} de ${brl(Math.round(tot/n))}, a primeira no aceite.` };
+}
+
+// ---------- 3. Contrato preenchido ao vivo ----------
+const f = k => { const v = $(k).value.trim(); return v ? `<span class="fill">${esc(v)}</span>` : `<span class="fill empty">[${$(k).previousElementSibling.textContent}]</span>`; };
+const cf = k => CONFIG.contratada[k] ? esc(CONFIG.contratada[k]) : `<span class="fill empty">[dado da contratada]</span>`;
+function prazos(){ return `<ol>${etapas.map(l => `<li>${esc(l.t)}: ${esc(CONFIG.prazoPorEtapa[l.n]||'a combinar')}.</li>`).join('')}</ol>`; }
+const V = P.variavel || null;
+function clausulaVariavel(){
+  if (!varLine) return '';
+  const pct = V && V.pct ? `${V.pct}%` : varLine.s;
+  const minimo = V && V.minimo ? ` Fica garantida à CONTRATADA remuneração mínima de ${brl(V.minimo)} pela etapa de lançamento e vendas, compensável com a remuneração variável apurada.` : '';
+  let curva = '';
+  if (V && V.curva && V.curva.length){
+    let acc = 0;
+    curva = ` As partes adotam como referência a seguinte curva de vendas, em percentual das unidades por mês de campanha: ${V.curva.map((c,i)=>`mês ${i+1}: ${c}%`).join('; ')} (acumulado ${V.curva.map(c=>Math.round(acc+=c)+'%').join(' → ')}). O ritmo de vendas depende de fatores de mercado e a curva não constitui garantia de resultado.`;
+  }
+  return `<p><b>Remuneração variável:</b> ${esc(pct)} sobre o VGV das unidades efetivamente vendidas durante a etapa de lançamento e vendas, apurada mensalmente e devida em até 10 dias após a assinatura de cada contrato de venda ou recebimento do sinal, o que ocorrer primeiro.${minimo}${curva} A etapa compreende ${V && V.meses ? V.meses : 9} meses de acompanhamento — 3 de preparação e 6 de vendas — com a empresa de comunicação parceira, incluindo estratégia, campanha, stand e condução comercial.</p>`;
+}
+
+function renderContract(){
+  const pg = pagamentoEscolhido();
+  $('contract').innerHTML = `
+    <h3>Contrato de prestação de serviços de arquitetura e consultoria — Método Origem</h3>
+    <p><b>CONTRATADA:</b> ${cf('nome')}, arquiteta e urbanista registrada no CAU sob nº ${cf('cau')}, inscrita no CPF sob nº ${cf('cpf')}, com endereço em ${cf('endereco')}.</p>
+    <p><b>CONTRATANTE:</b> ${f('nome')}, CPF/CNPJ ${f('doc')}, e-mail ${f('email')}, telefone ${f('tel')}, residente em ${f('end')}.</p>
+
+    <h3>1. Objeto</h3>
+    <p>Prestação dos serviços do Método Origem relativos ao imóvel ${$('endterreno').value.trim() ? f('endterreno') : 'descrito na proposta'} (${esc(P.sub)}), limitados às etapas contratadas nesta proposta:</p>
+    <ol>${etapas.map(l=>`<li>${esc(l.t)} — ${esc(l.s)}</li>`).join('')}</ol>
+    <p>Etapas não listadas não integram este contrato e poderão ser contratadas em aditivo, com preço da tabela vigente.</p>
+
+    <h3>2. Preço e forma de pagamento</h3>
+    <p>Valor fixo total de ${brl(T)}. Forma escolhida: <b>${esc(pg.tipo)}</b>. ${esc(pg.texto)}</p>
+    ${clausulaVariavel()}
+    <p>Os valores são líquidos de taxas de cartório, prefeitura, concessionárias, RRT e demais custos de terceiros, que correm por conta do CONTRATANTE.</p>
+
+    <h3>3. Prazos</h3>
+    <p>Os prazos de cada etapa são contados a partir do evento indicado, condicionados à confirmação do pagamento correspondente e ao recebimento das informações necessárias:</p>
+    ${prazos()}
+    <p>Os prazos suspendem-se enquanto houver pendência de informação, documento, pagamento ou aprovação a cargo do CONTRATANTE ou de órgão público.</p>
+
+    <h3>4. Entregas e aprovação</h3>
+    <p>Cada etapa é entregue em formato digital e considera-se aprovada se não houver manifestação escrita em 7 dias. Cada etapa inclui uma rodada de ajustes; alterações de escopo ou revisões adicionais serão orçadas à parte.</p>
+
+    <h3>5. Obrigações do contratante</h3>
+    <p>Fornecer documentos do imóvel (matrícula, levantamento, restrições), informações verdadeiras e as aprovações dentro dos prazos; efetuar os pagamentos nas datas acordadas.</p>
+
+    <h3>6. Direitos autorais e uso</h3>
+    <p>Os estudos, projetos e materiais são obra intelectual da CONTRATADA (Lei 9.610/98). O CONTRATANTE recebe licença de uso para o imóvel objeto deste contrato, condicionada à quitação. É vedada a reprodução em outro imóvel e a alteração do projeto sem anuência da CONTRATADA. A CONTRATADA poderá divulgar o trabalho em seu portfólio, preservando dados pessoais do CONTRATANTE.</p>
+
+    <h3>7. Rescisão</h3>
+    <p>Qualquer parte pode rescindir mediante aviso escrito. Etapas concluídas são devidas integralmente; etapa em andamento é devida proporcionalmente ao trabalho executado. Valores pagos por etapas não iniciadas serão devolvidos em até 30 dias.</p>
+
+    <h3>8. Aceite eletrônico</h3>
+    <p>As partes reconhecem a validade do aceite eletrônico realizado nesta página, com registro de nome, documento, data, hora e endereço de rede, nos termos do art. 10, §2º, da MP 2.200-2/2001 e do art. 107 do Código Civil.</p>
+
+    <h3>9. Foro</h3>
+    <p>Fica eleito o foro da comarca de ${cf('cidadeForo')} para dirimir quaisquer questões deste contrato.</p>
+    <p id="c-sign"></p>`;
+}
+document.querySelectorAll('#f input, input[name=pg], #parc').forEach(el => el.addEventListener('input', renderContract));
+document.addEventListener('change', e => { if (e.target.name === 'pg' || e.target.id === 'parc') renderContract(); });
+renderContract();
+
+// ---------- 4. Aceite ----------
+$('ok').addEventListener('change', () => $('go').disabled = !$('ok').checked);
+
+async function getIp(){ try { const r = await fetch('https://api.ipify.org?format=json'); return (await r.json()).ip; } catch { return 'não obtido'; } }
+
+$('go').addEventListener('click', async () => {
+  const form = $('f');
+  if (!form.checkValidity()){ form.reportValidity(); $('msg').textContent = 'Preencha os dados marcados antes de aceitar.'; $('msg').className='msg err'; return; }
+  $('go').disabled = true; $('msg').textContent = 'Registrando…'; $('msg').className='msg';
+
+  const pg = pagamentoEscolhido();
+  const quando = new Date();
+  const ip = await getIp();
+  const codigo = 'MO-' + quando.toISOString().slice(2,10).replace(/-/g,'') + '-' + Math.random().toString(36).slice(2,6).toUpperCase();
+  const registro = {
+    codigo, aceito_em: quando.toISOString(), ip, user_agent: navigator.userAgent,
+    cliente_nome: $('nome').value.trim(), cliente_doc: $('doc').value.trim(), cliente_email: $('email').value.trim(),
+    cliente_whatsapp: $('tel').value.trim(), cliente_endereco: $('end').value.trim(), terreno: $('endterreno').value.trim(),
+    proposta_titulo: P.title, proposta_resumo: P.sub, proposta_modo: P.modo, terreno_m2: P.terreno, unidades: P.un,
+    etapas: etapas.map(l=>({n:l.n,t:l.t,v:l.v})), total_fixo: T, variavel: varLine ? varLine.s : null, variavel_detalhe: V,
+    pagamento_tipo: pg.tipo, pagamento_valor: pg.valor, pagamento_texto: pg.texto,
+    origem: P.origem || null,
+  };
+
+  // Banco (se configurado)
+  let salvoBanco = false, erroBanco = '';
+  if (CONFIG.supabaseUrl && CONFIG.supabaseAnonKey){
+    try {
+      // 1. Gravar proposta
+      const r = await fetch(`${CONFIG.supabaseUrl}/rest/v1/${CONFIG.tabela}`, {
+        method:'POST', headers:{ 'Content-Type':'application/json', apikey:CONFIG.supabaseAnonKey, Authorization:`Bearer ${CONFIG.supabaseAnonKey}`, Prefer:'return=minimal' },
+        body: JSON.stringify(registro)
+      });
+      salvoBanco = r.ok; if (!r.ok) erroBanco = await r.text();
+
+      // 2. Criar cliente
+      if (salvoBanco){
+        const cliRes = await fetch(`${CONFIG.supabaseUrl}/rest/v1/clientes`, {
+          method:'POST', headers:{ 'Content-Type':'application/json', apikey:CONFIG.supabaseAnonKey, Authorization:`Bearer ${CONFIG.supabaseAnonKey}`, Prefer:'return=representation' },
+          body: JSON.stringify({
+            nome: registro.cliente_nome, doc: registro.cliente_doc, email: registro.cliente_email,
+            whatsapp: registro.cliente_whatsapp, endereco: registro.cliente_endereco, terreno: registro.terreno,
+            titulo: P.title + ' — ' + P.sub, modo: P.modo, terreno_m2: P.terreno, unidades: P.un,
+            proposta_codigo: codigo, etapa_atual: etapas[0]?.n || '1',
+          })
+        });
+        const cliArr = await cliRes.json();
+        const clienteId = cliArr?.[0]?.id;
+        if (clienteId){
+          // 3. Criar etapas com checklist padrão
+          const CHECKLISTS = {
+            '1': ['Levantar zoneamento na prefeitura','Conferir matrícula','Verificar restrições','Mapear público-alvo da região','Levantar preços de venda e aluguel (1 km)','Escrever o veredito'],
+            '2': ['Estudo de volumetria','Número de unidades e tipologias','Quadro de áreas preliminar','Custo de construção estimado','VGV por unidade e total','Cronograma macro','Cenários comparados (mín. 2)','Margem e retorno de cada cenário'],
+            '3': ['Estudo preliminar (plantas, implantação, 3D)','Anteprojeto cotado','Projeto legal (pranchas da prefeitura)','Emitir RRT','Protocolar na prefeitura','Acompanhar exigências até licença'],
+            '4': ['Memorial descritivo','Quadros NBR 12.721','Memorial de incorporação (art. 32)','Minuta de convenção de condomínio','Coordenação com cartório até registro'],
+            '5': ['Imagens realistas (fachada + ambientes)','Plantas humanizadas por tipologia','Book de vendas (PDF)','Textos de venda e redes sociais','Kit do corretor'],
+            '6': ['Reunião de alinhamento com comunicação','Estratégia: público, canais, verba, meta','Definir corretores e comissão','Stand ou ponto de atendimento','Campanha de pré-lançamento','Tabela de preços aprovada','Contrato-padrão revisado','Evento de lançamento','Relatórios semanais','Ajuste de campanha e preço','Apuração mensal da variável'],
+            'fachada': ['Levantamento das faces contratadas','Estudo com 2 alternativas (3D)','Alternativa escolhida detalhada','Prancha com especificação de materiais','Lista de compras e quantitativo'],
+          };
+          const PRAZOS = CONFIG.prazoPorEtapa || {};
+          const etapaRows = etapas.filter(l=>l.n && l.v > 0).map((l, i) => ({
+            cliente_id: clienteId, numero: l.n, nome: l.t, valor: l.v,
+            prazo_evento: PRAZOS[l.n] || null,
+            checklist: JSON.stringify((CHECKLISTS[l.n]||[]).map(item => ({item, feito:false}))),
+            status: i === 0 ? 'aguardando' : 'aguardando', ordem: i+1,
+          }));
+          if (etapaRows.length){
+            const eRes = await fetch(`${CONFIG.supabaseUrl}/rest/v1/etapas_cliente`, {
+              method:'POST', headers:{ 'Content-Type':'application/json', apikey:CONFIG.supabaseAnonKey, Authorization:`Bearer ${CONFIG.supabaseAnonKey}`, Prefer:'return=representation' },
+              body: JSON.stringify(etapaRows)
+            });
+            const eArr = await eRes.json();
+
+            // 4. Criar pagamentos conforme a forma escolhida
+            const pgRows = [];
+            const v = document.querySelector('input[name=pg]:checked').value;
+            const hoje = quando.toISOString().slice(0,10);
+            if (v === 'marcos'){
+              pgRows.push({ cliente_id:clienteId, descricao:`Entrada ${CONFIG.entradaPct}%`, tipo:'entrada', valor:entrada, vencimento:hoje });
+              const somaEt = etapaRows.reduce((a,e)=>a+e.valor,0) || 1;
+              etapaRows.forEach((e, i) => {
+                const etapaDb = eArr?.[i];
+                pgRows.push({ cliente_id:clienteId, etapa_id:etapaDb?.id||null, descricao:`Marco: ${e.nome} entregue`, tipo:'marco', valor:Math.round(saldo*e.valor/somaEt) });
+              });
+            } else if (v === 'pix'){
+              pgRows.push({ cliente_id:clienteId, descricao:'PIX à vista', tipo:'pix', valor:pix, vencimento:hoje });
+            } else {
+              const n = +$('parc').value;
+              const tot = n === 1 ? T : parcTotal;
+              for (let i = 0; i < n; i++){
+                const d = new Date(quando); d.setMonth(d.getMonth()+i);
+                pgRows.push({ cliente_id:clienteId, descricao:`Parcela ${i+1}/${n}`, tipo:'parcela', valor:Math.round(tot/n), vencimento:d.toISOString().slice(0,10) });
+              }
+            }
+            // variável (se houver)
+            if (V && V.pct && V.vgv){
+              pgRows.push({ cliente_id:clienteId, descricao:`Variável ${V.pct}% sobre VGV`, tipo:'variavel', valor:Math.max(V.vgv*V.pct/100, V.minimo||0) });
+            }
+            if (pgRows.length){
+              await fetch(`${CONFIG.supabaseUrl}/rest/v1/pagamentos`, {
+                method:'POST', headers:{ 'Content-Type':'application/json', apikey:CONFIG.supabaseAnonKey, Authorization:`Bearer ${CONFIG.supabaseAnonKey}`, Prefer:'return=minimal' },
+                body: JSON.stringify(pgRows)
+              });
+            }
+          }
+        }
+      }
+    } catch(e){ erroBanco = e.message; }
+  }
+
+  // Assinatura no contrato
+  const sign = `Aceito eletronicamente por ${esc(registro.cliente_nome)} (${esc(registro.cliente_doc)}) em ${quando.toLocaleString('pt-BR')} · IP ${esc(ip)} · código ${codigo}`;
+  $('c-sign').innerHTML = `<br><b>${sign}</b>`;
+  $('print-sign').innerHTML = `<p style="margin-top:30px"><b>${sign}</b></p>`;
+  $('det').open = true;
+
+  // Estado final
+  document.body.classList.add('accepted');
+  $('done-when').textContent = quando.toLocaleString('pt-BR');
+  $('done-code').textContent = codigo + (salvoBanco ? ' · registrado' : '');
+  if (erroBanco) $('done-code').textContent += ' · (não gravou no banco — envie pelo WhatsApp)';
+  $('wa').style.display = CONFIG.whatsapp ? '' : 'none';
+  window.scrollTo({top:0, behavior:'smooth'});
+
+  const txt = [`*Aceite de proposta — Método Origem*`, `Código: ${codigo}`, `Data: ${quando.toLocaleString('pt-BR')}`, '',
+    `*Cliente:* ${registro.cliente_nome}`, `Documento: ${registro.cliente_doc}`, `E-mail: ${registro.cliente_email}`, `WhatsApp: ${registro.cliente_whatsapp}`, `Endereço: ${registro.cliente_endereco}`, registro.terreno ? `Terreno: ${registro.terreno}` : '', '',
+    `*Proposta:* ${P.title} — ${P.sub}`, ...etapas.map(l=>`${l.n}. ${l.t} — ${brl(l.v)}`), `Total fixo: ${brl(T)}`, varLine ? `Variável: ${varLine.s}` : '', '',
+    `*Pagamento:* ${pg.tipo}`, pg.texto, '', `IP ${ip}`].filter(x=>x!=='').join('\n');
+  $('wa').onclick = () => window.open(`https://wa.me/${CONFIG.whatsapp}?text=${encodeURIComponent(txt)}`, '_blank');
+  $('pdf').onclick = () => window.print();
+});
+</script>
+</body>
+</html>
