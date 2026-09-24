@@ -154,8 +154,14 @@
         </div>
       </fieldset>
 
-      <fieldset id="f-fachada" hidden>
-        <legend>Detalhes da fachada</legend>
+      <fieldset>
+        <legend>Itens livres (qualquer serviço)</legend>
+        <div class="hint" style="margin-bottom:10px">Pra propostas fora do Método Origem: consultoria, acompanhamento de obra, abertura de empresa, etc. Cada linha vira um item na proposta.</div>
+        <div id="itens-livres"></div>
+        <button type="button" onclick="addItem()" style="margin-top:8px;font-size:13px;padding:6px 14px">+ Adicionar item</button>
+      </fieldset>
+
+      <fieldset id="f-fachada" hidden>        <legend>Detalhes da fachada</legend>
         <div class="row">
           <div class="field">
             <label for="pav">Pavimentos</label>
@@ -370,6 +376,16 @@ function build(){
     }
   }
 
+  // itens livres
+  document.querySelectorAll('.item-livre').forEach(el => {
+    const nome = el.querySelector('.il-nome').value.trim();
+    const valor = +el.querySelector('.il-valor').value || 0;
+    if (nome && valor > 0) {
+      lines.push({n:'', t:nome, s:'', v:valor});
+      fixo += valor;
+    }
+  });
+
   if (abate && m !== 'fachada' && fixo >= TABELA.raiox && lines.some(l => l.n==='1')){
     credit = TABELA.raiox;
     lines.push({n:'', t:'Raio-X já pago', s:'Abatido integralmente ao avançar', v:-credit, kind:'credit'});
@@ -446,6 +462,15 @@ function hints(){
 }
 
 document.querySelectorAll('input,select').forEach(el => el.addEventListener('input', () => { hints(); build(); }));
+
+function addItem(){
+  const div = document.createElement('div');
+  div.className = 'item-livre';
+  div.style.cssText = 'display:grid;grid-template-columns:1fr 120px auto;gap:8px;margin-bottom:8px;align-items:start';
+  div.innerHTML = '<input class="il-nome" placeholder="Nome do serviço" style="font-size:13px"><input class="il-valor" type="number" placeholder="Valor R$" style="font-size:13px"><button type="button" onclick="this.parentElement.remove();build()" style="padding:8px 10px;font-size:12px;color:var(--ink-soft)">✕</button>';
+  div.querySelectorAll('input').forEach(i => i.addEventListener('input', build));
+  $('itens-livres').appendChild(div);
+}
 $('reset').addEventListener('click', () => {
   ['terreno','un','vgv','minimo','override'].forEach(id => $(id).value='');
   $('meses').value = 9; $('pct').value = 2; $('curva').value = '30, 20, 15, 12, 12, 11'; $('tip').value = 1; $('unk').checked = true; $('abate').checked = false;
