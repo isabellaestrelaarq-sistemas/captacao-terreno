@@ -90,49 +90,55 @@
     .print-only{display:block!important}
   }
   .print-only{display:none}
-  .welcome{margin-bottom:32px}
-  .welcome-hero{position:relative;height:45vh;min-height:300px;max-height:480px;overflow:hidden}
-  .welcome-hero img{width:100%;height:100%;object-fit:cover;object-position:center 20%}
-  .welcome-hero .brand-bar{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(to top,rgba(26,15,16,.8),transparent);padding:32px 32px 20px;display:flex;align-items:flex-end;justify-content:space-between}
-  .welcome-hero .brand-bar span{font-size:12px;color:rgba(240,214,170,.7);letter-spacing:.08em}
-  .welcome-hero .brand-bar .cau{font-size:11px;color:rgba(255,255,255,.35)}
-  .welcome-text{background:#FAF9F6;text-align:center;padding:40px 24px 48px}
-  .welcome-text .nome{font-family:"Fraunces",Georgia,serif;font-size:20px;color:#73504F;margin-bottom:6px}
-  .welcome-text h1{font-family:"Fraunces",Georgia,serif;font-size:34px;font-weight:300;color:#6A2326;margin-bottom:12px;line-height:1.1}
-  .welcome-text p{color:#73504F;font-size:15px;max-width:36ch;margin:0 auto 28px;line-height:1.6}
-  .welcome-text .cta-ver{display:inline-block;background:#F0D6AA;color:#6A2326;font-weight:500;padding:15px 36px;border-radius:28px;font-size:15px;cursor:pointer;border:none;transition:transform .2s,opacity .2s}
-  .welcome-text .cta-ver:hover{opacity:.9;transform:translateY(-1px)}
-  .welcome-text .line{width:48px;height:1px;background:#D1B0A0;margin:0 auto 20px}
+  .welcome{margin-bottom:0}
+  .welcome{display:grid;grid-template-columns:55% 45%;min-height:100vh}
+  .welcome-photo{position:relative;overflow:hidden}
+  .welcome-photo img{width:100%;height:100%;object-fit:cover;object-position:center 20%}
+  .welcome-photo::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(26,15,16,.08),rgba(26,15,16,.02))}
+  .welcome-panel{background:#1A0F10;display:flex;flex-direction:column;justify-content:center;padding:60px 48px;position:relative}
+  .welcome-panel::before{content:'';position:absolute;top:0;left:0;bottom:0;width:1px;background:linear-gradient(to bottom,transparent,#F0D6AA33,transparent)}
+  .welcome-panel .brand{font-size:11px;color:rgba(240,214,170,.4);letter-spacing:.12em;margin-bottom:40px}
+  .welcome-panel .nome{font-family:"Fraunces",Georgia,serif;font-size:26px;color:#F0D6AA;margin-bottom:12px;font-weight:300}
+  .welcome-panel .sep{width:40px;height:1px;background:#F0D6AA;opacity:.3;margin:20px 0}
+  .welcome-panel h1{font-family:"Fraunces",Georgia,serif;font-size:36px;font-weight:200;color:#fff;line-height:1.1;margin-bottom:16px}
+  .welcome-panel p{color:rgba(209,176,160,.7);font-size:14px;line-height:1.65;max-width:32ch;margin-bottom:36px}
+  .welcome-panel .cta-ver{display:inline-block;background:#F0D6AA;color:#1A0F10;font-weight:500;padding:16px 36px;border-radius:28px;font-size:15px;cursor:pointer;border:none;transition:transform .2s,box-shadow .2s;align-self:flex-start}
+  .welcome-panel .cta-ver:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(240,214,170,.2)}
+  .welcome-panel .footer{position:absolute;bottom:28px;left:48px;right:48px;display:flex;justify-content:space-between;font-size:11px;color:rgba(240,214,170,.25)}
   .proposta-body{display:none}
   .proposta-body.visible{display:block}
-  @media(min-width:768px){
-    .welcome{display:grid;grid-template-columns:1fr 1fr;min-height:70vh}
-    .welcome-hero{height:auto;max-height:none}
-    .welcome-text{display:flex;flex-direction:column;justify-content:center;padding:48px 40px}
+  @media(max-width:768px){
+    .welcome{grid-template-columns:1fr;min-height:auto}
+    .welcome-photo{height:45vh;min-height:260px}
+    .welcome-panel{padding:36px 24px 48px}
+    .welcome-panel h1{font-size:28px}
+    .welcome-panel .footer{position:static;margin-top:32px}
   }
   @media(max-width:380px){
-    .welcome-hero{height:35vh;min-height:220px}
-    .welcome-text h1{font-size:28px}
-    .welcome-text{padding:28px 18px 36px}
+    .welcome-photo{height:35vh;min-height:200px}
+    .welcome-panel{padding:28px 20px 40px}
+    .welcome-panel h1{font-size:24px}
+    .welcome-panel .nome{font-size:20px}
   }
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="welcome" id="welcome">
-    <div class="welcome-hero">
+    <div class="welcome-photo">
       <img src="hero-isabella.jpg" alt="Isabella Estrela">
-      <div class="brand-bar">
-        <span>ISABELLA ESTRELA · ARQUITETA</span>
-        <span class="cau">CAU A2264030</span>
-      </div>
     </div>
-    <div class="welcome-text">
-      <div class="line"></div>
+    <div class="welcome-panel">
+      <div class="brand">ISABELLA ESTRELA</div>
       <div class="nome" id="w-nome"></div>
+      <div class="sep"></div>
       <h1>Sua proposta<br>está pronta</h1>
       <p>Preparei uma proposta personalizada para o seu projeto. Veja os detalhes, as condições e o contrato.</p>
       <button class="cta-ver" id="w-ver">Ver proposta</button>
+      <div class="footer">
+        <span>Arquiteta e incorporadora</span>
+        <span>CAU A2264030</span>
+      </div>
     </div>
   </div>
   <div class="proposta-body" id="proposta-body">
