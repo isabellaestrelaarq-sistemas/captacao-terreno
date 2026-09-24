@@ -95,16 +95,16 @@
   .welcome-photo{position:relative;overflow:hidden}
   .welcome-photo img{width:100%;height:100%;object-fit:cover;object-position:center 20%}
   .welcome-photo::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(26,15,16,.08),rgba(26,15,16,.02))}
-  .welcome-panel{background:#1A0F10;display:flex;flex-direction:column;justify-content:center;padding:60px 48px;position:relative}
-  .welcome-panel::before{content:'';position:absolute;top:0;left:0;bottom:0;width:1px;background:linear-gradient(to bottom,transparent,#F0D6AA33,transparent)}
-  .welcome-panel .brand{font-size:11px;color:rgba(240,214,170,.4);letter-spacing:.12em;margin-bottom:40px}
+  .welcome-panel{background:linear-gradient(160deg,#6A2326 0%,#7B2D30 50%,#6A2326 100%);display:flex;flex-direction:column;justify-content:center;padding:60px 48px;position:relative}
+  .welcome-panel::before{content:'';position:absolute;top:0;left:0;bottom:0;width:1px;background:linear-gradient(to bottom,transparent,rgba(240,214,170,.2),transparent)}
+  .welcome-panel .brand{font-size:11px;color:rgba(240,214,170,.5);letter-spacing:.12em;margin-bottom:40px}
   .welcome-panel .nome{font-family:"Fraunces",Georgia,serif;font-size:26px;color:#F0D6AA;margin-bottom:12px;font-weight:300}
   .welcome-panel .sep{width:40px;height:1px;background:#F0D6AA;opacity:.3;margin:20px 0}
   .welcome-panel h1{font-family:"Fraunces",Georgia,serif;font-size:36px;font-weight:200;color:#fff;line-height:1.1;margin-bottom:16px}
-  .welcome-panel p{color:rgba(209,176,160,.7);font-size:14px;line-height:1.65;max-width:32ch;margin-bottom:36px}
-  .welcome-panel .cta-ver{display:inline-block;background:#F0D6AA;color:#1A0F10;font-weight:500;padding:16px 36px;border-radius:28px;font-size:15px;cursor:pointer;border:none;transition:transform .2s,box-shadow .2s;align-self:flex-start}
-  .welcome-panel .cta-ver:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(240,214,170,.2)}
-  .welcome-panel .footer{position:absolute;bottom:28px;left:48px;right:48px;display:flex;justify-content:space-between;font-size:11px;color:rgba(240,214,170,.25)}
+  .welcome-panel p{color:rgba(240,214,170,.65);font-size:14px;line-height:1.65;max-width:32ch;margin-bottom:36px}
+  .welcome-panel .cta-ver{display:inline-block;background:#F0D6AA;color:#6A2326;font-weight:500;padding:16px 36px;border-radius:28px;font-size:15px;cursor:pointer;border:none;transition:transform .2s,box-shadow .2s;align-self:flex-start}
+  .welcome-panel .cta-ver:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(240,214,170,.25)}
+  .welcome-panel .footer{position:absolute;bottom:28px;left:48px;right:48px;display:flex;justify-content:space-between;font-size:11px;color:rgba(240,214,170,.3)}
   .proposta-body{display:none}
   .proposta-body.visible{display:block}
   @media(max-width:768px){
