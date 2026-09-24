@@ -161,10 +161,21 @@ const CONFIG = {
     '1': ['Matrícula do terreno','Fotos do terreno e entorno','Objetivo confirmado','Orçamento aproximado'],
     '2': ['Levantamento topográfico','Confirmação do objetivo e orçamento'],
     '3': ['Aprovação escrita do cenário','Topografia definitiva','Sondagem'],
-    '4': ['Certidões do imóvel','Certidões do proprietário','Definição da forma de venda'],
+    '4': ['CNPJ da SPE e da empresa dona','Dados de sócios e administrador','Registro do terreno atualizado','Certidão de ônus atualizada','Planta de arquitetura','Licença de construção','RRT/ARTs','Nome da SPE (se houver)','Informações sobre acabamentos específicos','Código de condomínio específico','Quadro de áreas com frações ideais','Valor previsto em vendas'],
     '5': ['Nome do empreendimento','Tabela de preços por unidade'],
     '6': ['Contrato-padrão revisado pelo advogado'],
     'fachada': ['Fotos de todas as faces','Planta ou medidas','Referências de gosto'],
+  },
+  PIPELINE: ['conversa_inicial','alinhado','aceito_entrada_paga','aguardando_docs','em_execucao','entregue','aprovado','concluido'],
+  PIPELINE_LABELS: {
+    'conversa_inicial':'Conversa inicial',
+    'alinhado':'Alinhado',
+    'aceito_entrada_paga':'Aceito / entrada paga',
+    'aguardando_docs':'Aguardando documentação',
+    'em_execucao':'Em execução',
+    'entregue':'Entregue',
+    'aprovado':'Aprovado',
+    'concluido':'Concluído',
   },
 };
 /* ===================================================================== */
@@ -286,7 +297,7 @@ function renderDetail(){
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
         <div><h2 class="serif" style="font-size:22px;font-weight:300">${c.nome}</h2><div style="font-size:13px;color:var(--marrom)">${c.titulo||''} · ${c.doc||''}</div></div>
         <select onchange="updateStatus('${c.id}',this.value)" style="width:auto">
-          ${['ativo','pausado','concluido','cancelado'].map(s=>`<option ${s===c.status?'selected':''}>${s}</option>`).join('')}
+          ${CONFIG.PIPELINE.map(s=>`<option value="${s}" ${s===c.status?'selected':''}>${CONFIG.PIPELINE_LABELS[s]||s}</option>`).join('')}
         </select>
       </div>
       <div class="row" style="font-size:13px;color:var(--marrom)">
