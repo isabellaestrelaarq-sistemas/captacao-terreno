@@ -5,476 +5,276 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Painel — Isabella Estrela</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
 <style>
-:root{--vinho:#6A2326;--champagne:#F0D6AA;--off-white:#FAF9F6;--terracota:#D1B0A0;--marrom:#73504F;--green:#2D6A4F;--red:#9C3B2E;--dark:#1A0F10}
-*{box-sizing:border-box;margin:0}body{background:var(--off-white);color:var(--vinho);font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:14px;line-height:1.5}
-a{color:var(--vinho);text-decoration:none;cursor:pointer}
-button{font:inherit;cursor:pointer;border:1px solid var(--terracota);background:#fff;color:var(--vinho);padding:8px 16px;border-radius:6px}
-button:hover{background:var(--champagne)}button.primary{background:var(--vinho);color:#fff;border-color:var(--vinho)}
-input,select,textarea{font:inherit;padding:8px 10px;border:1px solid var(--terracota);border-radius:6px;background:#fff;color:var(--vinho);width:100%}
-input:focus,select:focus,textarea:focus{outline:2px solid var(--champagne);border-color:var(--vinho)}
-textarea{resize:vertical;min-height:60px}
+:root{--v:#6A2326;--ch:#F0D6AA;--ow:#FAF9F6;--tc:#D1B0A0;--mv:#73504F;--ok:#2D6A4F;--err:#9C3B2E;--dk:#1A0F10}
+*{box-sizing:border-box;margin:0}
+body{background:var(--ow);color:var(--v);font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:14px;line-height:1.5}
+a{color:var(--v);text-decoration:none;cursor:pointer}
 .serif{font-family:"Fraunces",Georgia,serif}
+button{font:inherit;cursor:pointer;border:1px solid var(--tc);background:#fff;color:var(--v);padding:8px 16px;border-radius:8px;font-size:13px}
+button:hover{background:var(--ch)}
+button.pri{background:var(--v);color:var(--ch);border-color:var(--v)}
+button.pri:hover{background:#7B2D30}
+input,select,textarea{font:inherit;padding:9px 12px;border:1px solid var(--tc);border-radius:8px;background:#fff;color:var(--v);width:100%}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--ch);border-color:var(--v)}
+textarea{resize:vertical;min-height:60px}
 
-/* layout */
-nav{background:var(--dark);color:#fff;padding:12px 24px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:10}
-nav .logo{font-family:"Fraunces",serif;font-size:16px;color:var(--champagne)}
+nav{background:var(--dk);padding:14px 28px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:10}
+nav .logo{font-family:"Fraunces",serif;font-size:17px;color:var(--ch)}
 nav .tabs{display:flex;gap:4px}
-nav .tabs a{color:rgba(255,255,255,.5);padding:6px 14px;border-radius:20px;font-size:13px}
-nav .tabs a.active{background:rgba(255,255,255,.12);color:#fff}
-nav .logout{font-size:12px;color:rgba(255,255,255,.4);cursor:pointer}
-.page{display:none;max-width:960px;margin:0 auto;padding:24px 20px 80px}
-.page.active{display:block}
-.card{background:#fff;border:1px solid var(--terracota);border-radius:12px;padding:20px;margin-bottom:16px}
+nav .tabs a{color:rgba(255,255,255,.45);padding:7px 16px;border-radius:20px;font-size:13px;cursor:pointer}
+nav .tabs a.on{background:rgba(255,255,255,.1);color:#fff}
+nav .out{font-size:12px;color:rgba(255,255,255,.3);cursor:pointer}
+
+.page{display:none;max-width:960px;margin:0 auto;padding:28px 20px 80px}
+.page.on{display:block}
+.stitle{font-size:11px;color:var(--mv);letter-spacing:.08em;margin:24px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--tc)}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
 @media(max-width:640px){.row,.row3{grid-template-columns:1fr}}
-.label{font-size:11px;color:var(--marrom);letter-spacing:.05em;text-transform:uppercase;margin-bottom:4px}
-.big{font-family:"Fraunces",serif;font-size:28px;font-weight:300}
-.green{color:var(--green)}.red{color:var(--red)}
-.badge{display:inline-block;font-size:11px;padding:2px 10px;border-radius:20px;background:var(--champagne);color:var(--vinho)}
-.badge.green{background:#D4EDDA;color:#155724}.badge.red{background:#F8D7DA;color:#721C24}
-.badge.blue{background:#D1ECF1;color:#0C5460}
-.divider{border-top:1px solid var(--terracota);margin:16px 0}
-table{width:100%;border-collapse:collapse}
-th{text-align:left;font-size:11px;color:var(--marrom);padding:8px 6px;border-bottom:2px solid var(--terracota)}
-td{padding:10px 6px;border-bottom:1px solid var(--terracota);font-size:13px}
-tr:hover{background:rgba(240,214,170,.1)}
-.check-item{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid rgba(209,176,160,.3);align-items:flex-start}
-.check-item input{margin-top:3px;accent-color:var(--green);width:16px;height:16px;flex:none}
-.check-item.done{opacity:.5;text-decoration:line-through}
 .field{margin-bottom:12px}
-.field label{display:block;font-size:12px;color:var(--marrom);margin-bottom:4px}
-.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
-.back{font-size:13px;color:var(--marrom);margin-bottom:16px;display:inline-block}
+.field label{display:block;font-size:12px;color:var(--mv);margin-bottom:4px}
 
-/* login */
-.login{max-width:360px;margin:120px auto;text-align:center}
-.login h1{font-family:"Fraunces",serif;font-size:28px;font-weight:300;margin-bottom:24px}
-.login .field{text-align:left;margin-bottom:14px}
-.login .err{color:var(--red);font-size:13px;margin-top:8px}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:24px}
+@media(max-width:640px){.kpis{grid-template-columns:1fr 1fr}}
+.kpi{background:var(--ow);border:0.5px solid var(--tc);border-radius:12px;padding:16px 18px}
+.kpi .lb{font-size:11px;color:var(--mv);letter-spacing:.03em;margin-bottom:5px}
+.kpi .vl{font-family:"Fraunces",serif;font-size:26px;font-weight:400}
+
+.alert{display:flex;gap:10px;align-items:flex-start;padding:12px 16px;border-radius:10px;margin-bottom:8px;font-size:13px;line-height:1.5}
+.alert.urg{background:var(--v);color:var(--ch)}
+.alert.wrn{background:var(--ch);color:var(--v)}
+.alert b{font-weight:500}
+
+.ag{display:grid;grid-template-columns:52px 1fr;margin-bottom:14px}
+.ag .dia{text-align:center;padding-top:8px}
+.ag .dia .n{font-family:"Fraunces",serif;font-size:22px}
+.ag .dia .s{font-size:10px;color:var(--mv)}
+.ag .slots{border-left:2px solid var(--v)}
+.ag .slot{padding:10px 16px;border-bottom:0.5px solid var(--tc)}
+.ag .slot:last-child{border-bottom:none}
+.ag .hora{font-family:"Fraunces",serif;font-size:13px}
+.ag .cli{font-weight:500;font-size:13px;margin-top:1px}
+.ag .pauta{font-size:12px;color:var(--mv);margin-top:2px;line-height:1.5}
+.ag .st{display:inline-block;font-size:10px;padding:2px 8px;border-radius:10px;margin-top:3px}
+.ag .st.ok{background:var(--v);color:var(--ch)}
+.ag .st.pend{background:var(--ch);color:var(--v)}
+
+.reu{background:var(--ow);border:0.5px solid var(--tc);border-radius:10px;padding:12px 16px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:flex-start}
+.reu .cli{font-weight:500;font-size:13px}
+.reu .dt{font-size:12px;color:var(--mv);margin-top:2px}
+.reu .tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}
+.reu .tags span{font-size:10px;padding:2px 8px;border-radius:10px;background:var(--ch);color:var(--v)}
+
+.card{background:#fff;border:0.5px solid var(--tc);border-radius:12px;padding:18px 20px;margin-bottom:12px;border-left:4px solid var(--tc);cursor:pointer;transition:box-shadow .15s}
+.card:hover{box-shadow:0 4px 16px rgba(106,35,38,.06)}
+.card.exec{border-left-color:var(--v)}
+.card.docs{border-left-color:var(--ch)}
+.card.init{border-left-color:var(--tc)}
+.card.done{border-left-color:var(--mv);opacity:.5}
+.card .ch{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.card .nm{font-weight:500;font-size:15px}
+.card .pj{font-size:12px;color:var(--mv);margin-top:1px}
+.pip{display:inline-block;font-size:10px;padding:3px 10px;border-radius:12px;font-weight:500}
+.pip.p1{background:var(--ow);color:var(--mv);border:0.5px solid var(--tc)}
+.pip.p2{background:var(--v);color:var(--ch)}
+.pip.p3{background:var(--ch);color:var(--v)}
+.pip.p4{background:var(--mv);color:var(--ow)}
+.card .info{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-size:12px;color:var(--mv);margin:8px 0}
+.card .info b{color:var(--v);font-weight:500}
+.bar{height:5px;background:var(--ow);border-radius:3px;overflow:hidden;margin:6px 0}
+.bar div{height:100%;border-radius:3px}
+.bar .f-ok{background:var(--ok)}.bar .f-wrn{background:var(--ch)}.bar .f-err{background:var(--err)}
+.docs-row{display:flex;gap:4px;flex-wrap:wrap;margin:6px 0}
+.doc{font-size:10px;padding:2px 7px;border-radius:10px}
+.doc.y{background:var(--ow);color:var(--ok);border:0.5px solid var(--ok)}
+.doc.n{background:var(--ow);color:var(--err);border:0.5px solid var(--err)}
+.fin{display:flex;justify-content:space-between;font-size:12px;margin-top:8px;padding-top:8px;border-top:0.5px solid var(--tc)}
+.tl{display:flex;gap:3px;align-items:center;margin:6px 0}
+.tl .d{width:7px;height:7px;border-radius:50%;flex:none}
+.tl .d.ok{background:var(--ok)}.tl .d.now{background:var(--v);outline:2px solid var(--ch)}.tl .d.nx{background:var(--ow);border:1px solid var(--tc)}
+.tl .sg{flex:1;height:1.5px;background:var(--tc)}.tl .sg.ok{background:var(--ok)}
+.tl span:last-child{font-size:10px;color:var(--mv);margin-left:6px}
+
+.check-item{display:flex;gap:10px;padding:7px 0;border-bottom:0.5px solid rgba(209,176,160,.3);align-items:flex-start;font-size:13px}
+.check-item input{margin-top:3px;accent-color:var(--ok);width:15px;height:15px;flex:none}
+.check-item.done{opacity:.4;text-decoration:line-through}
+.back{font-size:13px;color:var(--mv);margin-bottom:14px;display:inline-block}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+
+.login{max-width:340px;margin:100px auto;text-align:center}
+.login h1{font-family:"Fraunces",serif;font-size:26px;font-weight:300;color:var(--v);margin-bottom:24px}
+.login .err{color:var(--err);font-size:13px;margin-top:8px}
 </style>
 </head>
 <body>
-
-<!-- LOGIN -->
 <div id="login-page">
   <div class="login">
     <h1 class="serif">Painel</h1>
     <div class="field"><label>E-mail</label><input type="email" id="l-email"></div>
     <div class="field"><label>Senha</label><input type="password" id="l-pass"></div>
-    <button class="primary" style="width:100%;margin-top:8px" id="l-go">Entrar</button>
+    <button class="pri" style="width:100%;margin-top:8px" id="l-go">Entrar</button>
     <div class="err" id="l-err"></div>
   </div>
 </div>
-
-<!-- APP -->
 <div id="app" style="display:none">
 <nav>
   <span class="logo">Isabella Estrela</span>
   <div class="tabs">
-    <a onclick="showPage('dash')" id="tab-dash" class="active">Caixa</a>
-    <a onclick="showPage('clients')" id="tab-clients">Clientes</a>
-    <a onclick="showPage('novo')" id="tab-novo">+ Novo</a>
+    <a onclick="showP('dash')" id="t-dash" class="on">Dashboard</a>
+    <a onclick="showP('clients')" id="t-clients">Clientes</a>
+    <a onclick="showP('novo')" id="t-novo">+ Novo</a>
+    <a onclick="showP('addreu')" id="t-addreu">+ Reunião</a>
   </div>
-  <span class="logout" onclick="logout()">sair</span>
+  <span class="out" onclick="location.reload()">sair</span>
 </nav>
-
-<!-- DASHBOARD / CAIXA -->
-<div class="page active" id="p-dash">
-  <h2 class="serif" style="font-size:22px;font-weight:300;margin-bottom:16px">Caixa <span id="dash-mes"></span></h2>
-  <div class="row3" id="dash-cards"></div>
-  <div class="card">
-    <div class="label">Próximos recebimentos</div>
-    <table><thead><tr><th>Cliente</th><th>Descrição</th><th>Valor</th><th>Vencimento</th><th></th></tr></thead><tbody id="dash-prox"></tbody></table>
-  </div>
-  <div class="card">
-    <div class="label">Recebidos no mês</div>
-    <table><thead><tr><th>Cliente</th><th>Descrição</th><th>Valor</th><th>Pago em</th></tr></thead><tbody id="dash-recebidos"></tbody></table>
-  </div>
-</div>
-
-<!-- CLIENTES -->
-<div class="page" id="p-clients">
-  <h2 class="serif" style="font-size:22px;font-weight:300;margin-bottom:16px">Clientes</h2>
-  <div id="clients-list"></div>
-</div>
-
-<!-- DETALHE DO CLIENTE -->
-<div class="page" id="p-detail">
-  <a class="back" onclick="showPage('clients')">← voltar</a>
-  <div id="detail-header"></div>
-  <div id="detail-etapas"></div>
-  <div id="detail-pagamentos"></div>
-  <div id="detail-obs"></div>
-</div>
-
-<!-- NOVO CLIENTE -->
+<div class="page on" id="p-dash"><div id="dash-content"></div></div>
+<div class="page" id="p-clients"><div id="clients-content"></div></div>
+<div class="page" id="p-detail"><div id="detail-content"></div></div>
 <div class="page" id="p-novo">
-  <h2 class="serif" style="font-size:22px;font-weight:300;margin-bottom:16px">Novo cliente</h2>
-  <div class="card">
-    <div class="row">
-      <div class="field"><label>Nome completo</label><input id="n-nome"></div>
-      <div class="field"><label>CPF ou CNPJ</label><input id="n-doc"></div>
-    </div>
-    <div class="row">
-      <div class="field"><label>WhatsApp</label><input id="n-whats"></div>
-      <div class="field"><label>E-mail</label><input id="n-email"></div>
-    </div>
+  <h2 class="serif" style="font-size:20px;font-weight:300;margin-bottom:16px">Novo cliente</h2>
+  <div style="background:#fff;border:0.5px solid var(--tc);border-radius:12px;padding:20px">
+    <div class="row"><div class="field"><label>Nome completo</label><input id="n-nome"></div><div class="field"><label>CPF ou CNPJ</label><input id="n-doc"></div></div>
+    <div class="row"><div class="field"><label>WhatsApp</label><input id="n-whats"></div><div class="field"><label>E-mail</label><input id="n-email"></div></div>
     <div class="field"><label>Título do projeto</label><input id="n-titulo" placeholder="ex.: RI 20 casas - Bairro X"></div>
-    <div class="row">
-      <div class="field"><label>Terreno (endereço)</label><input id="n-terreno"></div>
-      <div class="field"><label>Unidades</label><input type="number" id="n-un"></div>
-    </div>
-    <div class="field"><label>Etapas contratadas (uma por linha: número | nome | valor)</label>
-      <textarea id="n-etapas" placeholder="4 | Memoriais | 7000"></textarea>
-    </div>
-    <div class="field"><label>Forma de pagamento</label>
-      <select id="n-pg"><option value="50-50">50% entrada + 50% entrega</option><option value="pix">PIX à vista</option></select>
-    </div>
-    <div class="actions"><button class="primary" onclick="criarCliente()">Criar cliente</button></div>
+    <div class="row"><div class="field"><label>Terreno</label><input id="n-terreno"></div><div class="field"><label>Unidades</label><input type="number" id="n-un"></div></div>
+    <div class="field"><label>Etapas (uma por linha: número | nome | valor)</label><textarea id="n-etapas" placeholder="4 | Memoriais | 7000"></textarea></div>
+    <div class="field"><label>Pagamento</label><select id="n-pg"><option value="50-50">50% entrada + 50% entrega</option><option value="pix">PIX à vista</option></select></div>
+    <div class="actions"><button class="pri" onclick="criarCliente()">Criar cliente</button></div>
     <div id="n-msg" style="margin-top:8px;font-size:13px"></div>
   </div>
 </div>
+<div class="page" id="p-addreu">
+  <h2 class="serif" style="font-size:20px;font-weight:300;margin-bottom:16px">Agendar reunião</h2>
+  <div style="background:#fff;border:0.5px solid var(--tc);border-radius:12px;padding:20px">
+    <div class="field"><label>Cliente</label><select id="r-cli"></select></div>
+    <div class="row"><div class="field"><label>Data</label><input type="date" id="r-data"></div><div class="field"><label>Hora</label><input type="time" id="r-hora" value="10:00"></div></div>
+    <div class="field"><label>Status</label><select id="r-status"><option value="a_agendar">A agendar</option><option value="pendente">Pendente</option><option value="confirmada" selected>Confirmada</option></select></div>
+    <div class="field"><label>Pautas (uma por linha)</label><textarea id="r-pautas" placeholder="Cobrar documentos pendentes&#10;Alinhar prazo"></textarea></div>
+    <div class="actions"><button class="pri" onclick="criarReuniao()">Agendar</button></div>
+    <div id="r-msg" style="margin-top:8px;font-size:13px"></div>
+  </div>
 </div>
-
+</div>
 <script>
-/* =====================================================================
-   CONFIG
-   ===================================================================== */
-const CONFIG = {
-  supabaseUrl: "https://mooghvkrendiiwhxynkd.supabase.co",
-  supabaseAnonKey: "sb_publishable_eRt9feUOHeFOSZjIbfDrJw_ieFaA6Dx",
-  pixDesconto: 8,
-  entradaPct: 50,
-  CHECKLISTS: {
-    '1': ['Levantar zoneamento na prefeitura','Conferir matrícula','Verificar restrições','Mapear público-alvo da região','Levantar preços de venda e aluguel (1 km)','Escrever o veredito'],
-    '2': ['Estudo de volumetria','Número de unidades e tipologias','Quadro de áreas preliminar','Custo de construção estimado','VGV por unidade e total','Cronograma macro','Cenários comparados (mín. 2)','Margem e retorno de cada cenário'],
-    '3': ['Estudo preliminar (plantas, implantação, 3D)','Anteprojeto cotado','Projeto legal (pranchas da prefeitura)','Emitir RRT','Protocolar na prefeitura','Acompanhar exigências até licença'],
-    '4': ['Memorial descritivo','Quadros NBR 12.721','Memorial de incorporação (art. 32)','Minuta de convenção de condomínio','Coordenação com cartório até registro'],
-    '5': ['Imagens realistas (fachada + ambientes)','Plantas humanizadas por tipologia','Book de vendas (PDF)','Textos de venda e redes sociais','Kit do corretor'],
-    '6': ['Reunião de alinhamento','Estratégia: público, canais, verba, meta','Definir corretores e comissão','Stand ou ponto de atendimento','Campanha de pré-lançamento','Tabela de preços aprovada','Contrato-padrão revisado','Evento de lançamento','Relatórios semanais','Apuração mensal da variável'],
-    'fachada': ['Levantamento das faces','Estudo com 2 alternativas (3D)','Alternativa escolhida detalhada','Prancha de materiais','Lista de compras e quantitativo'],
-  },
-  DOCS_CLIENTE: {
-    '1': ['Matrícula do terreno','Fotos do terreno e entorno','Objetivo confirmado','Orçamento aproximado'],
-    '2': ['Levantamento topográfico','Confirmação do objetivo e orçamento'],
-    '3': ['Aprovação escrita do cenário','Topografia definitiva','Sondagem'],
-    '4': ['CNPJ da SPE e da empresa dona','Dados de sócios e administrador','Registro do terreno atualizado','Certidão de ônus atualizada','Planta de arquitetura','Licença de construção','RRT/ARTs','Nome da SPE (se houver)','Informações sobre acabamentos específicos','Código de condomínio específico','Quadro de áreas com frações ideais','Valor previsto em vendas'],
-    '5': ['Nome do empreendimento','Tabela de preços por unidade'],
-    '6': ['Contrato-padrão revisado pelo advogado'],
-    'fachada': ['Fotos de todas as faces','Planta ou medidas','Referências de gosto'],
-  },
-  PIPELINE: ['conversa_inicial','alinhado','aceito_entrada_paga','aguardando_docs','em_execucao','entregue','aprovado','concluido'],
-  PIPELINE_LABELS: {
-    'conversa_inicial':'Conversa inicial',
-    'alinhado':'Alinhado',
-    'aceito_entrada_paga':'Aceito / entrada paga',
-    'aguardando_docs':'Aguardando documentação',
-    'em_execucao':'Em execução',
-    'entregue':'Entregue',
-    'aprovado':'Aprovado',
-    'concluido':'Concluído',
-  },
-};
-/* ===================================================================== */
+const CFG={url:"https://mooghvkrendiiwhxynkd.supabase.co",key:"sb_publishable_eRt9feUOHeFOSZjIbfDrJw_ieFaA6Dx",entradaPct:50,pixDesc:8,
+CHECKLISTS:{'1':['Levantar zoneamento','Conferir matrícula','Verificar restrições','Mapear público-alvo','Levantar preços (1 km)','Escrever veredito'],
+'2':['Estudo de volumetria','Nº de unidades e tipologias','Quadro de áreas','Custo de construção','VGV por unidade','Cronograma macro','Cenários (mín. 2)','Margem e retorno'],
+'3':['Estudo preliminar','Anteprojeto cotado','Projeto legal','Emitir RRT','Protocolar na prefeitura','Acompanhar exigências'],
+'4':['Memorial descritivo','Quadros NBR 12.721','Memorial de incorporação (art. 32)','Minuta de convenção','Coordenação cartório até registro'],
+'5':['Imagens realistas','Plantas humanizadas','Book de vendas','Textos de venda','Kit do corretor'],
+'6':['Reunião de alinhamento','Estratégia','Definir corretores','Stand','Pré-lançamento','Tabela aprovada','Contrato revisado','Evento de lançamento','Relatórios semanais','Apuração variável'],
+'fachada':['Levantamento faces','2 alternativas 3D','Detalhamento','Prancha materiais','Lista de compras']},
+DOCS:{'1':['Matrícula','Fotos terreno','Objetivo','Orçamento'],
+'2':['Topografia','Confirmação objetivo'],
+'3':['Aprovação cenário','Topografia definitiva','Sondagem'],
+'4':['CNPJ da SPE','Dados sócios/admin','Registro terreno','Certidão ônus','Planta arquitetura','Licença construção','RRT/ARTs','Nome SPE','Acabamentos','Cód. condomínio','Quadro áreas/frações','Valor vendas'],
+'5':['Nome empreendimento','Tabela preços'],
+'6':['Contrato revisado'],
+'fachada':['Fotos faces','Planta/medidas','Referências']},
+PIPELINE:{conversa_inicial:'Conversa inicial',alinhado:'Alinhado',aceito_entrada_paga:'Aceito / entrada paga',aguardando_docs:'Aguardando docs',em_execucao:'Em execução',entregue:'Entregue',aprovado:'Aprovado',concluido:'Concluído'}};
 
-const brl = n => (+n).toLocaleString('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0});
-const fmt = d => d ? new Date(d+'T12:00:00').toLocaleDateString('pt-BR') : '';
-const hoje = new Date().toISOString().slice(0,10);
-const mesAtual = hoje.slice(0,7);
-let SB = null, TOKEN = null;
+const $=id=>document.getElementById(id),brl=n=>(+n).toLocaleString('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0}),fmt=d=>d?new Date(d+'T12:00:00').toLocaleDateString('pt-BR'):'',hoje=new Date().toISOString().slice(0,10),mesAt=hoje.slice(0,7);
+let TK=null,ALL={};
+const H=()=>({'Content-Type':'application/json',apikey:CFG.key,Authorization:`Bearer ${TK}`});
+async function get(t,q=''){return(await fetch(`${CFG.url}/rest/v1/${t}?${q}`,{headers:H()})).json()}
+async function patch(t,id,d){await fetch(`${CFG.url}/rest/v1/${t}?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify(d)})}
+async function ins(t,d){const r=await fetch(`${CFG.url}/rest/v1/${t}`,{method:'POST',headers:{...H(),Prefer:'return=representation'},body:JSON.stringify(d)});return r.json()}
 
-// ---------- AUTH ----------
-const H = () => ({'Content-Type':'application/json', apikey:CONFIG.supabaseAnonKey, Authorization:`Bearer ${TOKEN}`});
+$('l-go').onclick=async()=>{const e=$('l-email').value.trim(),p=$('l-pass').value;try{const r=await fetch(`${CFG.url}/auth/v1/token?grant_type=password`,{method:'POST',headers:{'Content-Type':'application/json',apikey:CFG.key},body:JSON.stringify({email:e,password:p})});const j=await r.json();if(!j.access_token){$('l-err').textContent=j.error_description||'Login falhou';return}TK=j.access_token;$('login-page').style.display='none';$('app').style.display='block';loadDash()}catch(e){$('l-err').textContent=e.message}};
 
-document.getElementById('l-go').onclick = async () => {
-  const email = document.getElementById('l-email').value.trim();
-  const pass = document.getElementById('l-pass').value;
-  if (!CONFIG.supabaseUrl){document.getElementById('l-err').textContent='Configure supabaseUrl e supabaseAnonKey no CONFIG.';return;}
-  try {
-    const r = await fetch(`${CONFIG.supabaseUrl}/auth/v1/token?grant_type=password`, {
-      method:'POST', headers:{'Content-Type':'application/json', apikey:CONFIG.supabaseAnonKey},
-      body:JSON.stringify({email,password:pass})
-    });
-    const j = await r.json();
-    if (!j.access_token){document.getElementById('l-err').textContent=j.error_description||'Login falhou';return;}
-    TOKEN = j.access_token;
-    document.getElementById('login-page').style.display='none';
-    document.getElementById('app').style.display='block';
-    loadDash();
-  } catch(e){document.getElementById('l-err').textContent=e.message;}
-};
-function logout(){TOKEN=null;location.reload();}
+function showP(id){document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));document.querySelectorAll('.tabs a').forEach(a=>a.classList.remove('on'));$('p-'+id).classList.add('on');const t=$('t-'+id);if(t)t.classList.add('on');if(id==='dash')loadDash();if(id==='clients')loadClients();if(id==='addreu')loadCliSelect()}
 
-// ---------- NAV ----------
-function showPage(id){
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.tabs a').forEach(a=>a.classList.remove('active'));
-  document.getElementById('p-'+id).classList.add('active');
-  const tab = document.getElementById('tab-'+id); if(tab) tab.classList.add('active');
-  if(id==='dash') loadDash();
-  if(id==='clients') loadClients();
-}
-
-// ---------- API helpers ----------
-async function get(table, query=''){
-  const r = await fetch(`${CONFIG.supabaseUrl}/rest/v1/${table}?${query}`, {headers:H()});
-  return r.json();
-}
-async function patch(table, id, data){
-  await fetch(`${CONFIG.supabaseUrl}/rest/v1/${table}?id=eq.${id}`, {method:'PATCH', headers:H(), body:JSON.stringify(data)});
-}
-async function insert(table, data){
-  const r = await fetch(`${CONFIG.supabaseUrl}/rest/v1/${table}`, {method:'POST', headers:{...H(), Prefer:'return=representation'}, body:JSON.stringify(data)});
-  return r.json();
-}
-
-// ---------- DASHBOARD ----------
 async function loadDash(){
-  document.getElementById('dash-mes').textContent = new Date().toLocaleDateString('pt-BR',{month:'long', year:'numeric'});
-  const pgs = await get('pagamentos','select=*,clientes(nome,titulo)&order=vencimento.asc.nullsfirst');
-  const mesPgs = pgs.filter(p => {
-    const d = p.pago_em || p.vencimento || p.criado_em?.slice(0,10);
-    return d && d.startsWith(mesAtual);
+  const[cls,pgs,reus]=await Promise.all([get('clientes','select=*&order=atualizado_em.desc'),get('pagamentos','select=*,clientes(nome,titulo)&order=vencimento.asc.nullsfirst'),get('reunioes','select=*,clientes(nome,titulo)&order=data_hora.asc')]);
+  ALL.clientes=cls;ALL.pagamentos=pgs;ALL.reunioes=reus;
+  const etapas=await get('etapas_cliente','select=*&order=ordem.asc');ALL.etapas=etapas;
+  const ativos=cls.filter(c=>c.status!=='concluido'&&c.status!=='cancelado');
+  const recebido=pgs.filter(p=>p.pago_em&&p.pago_em.startsWith(mesAt)).reduce((a,p)=>a+(+p.valor),0);
+  const pendentes=pgs.filter(p=>!p.pago_em&&p.tipo!=='variavel');
+  const aReceber=pendentes.reduce((a,p)=>a+(+p.valor),0);
+  const atrasado=pendentes.filter(p=>p.vencimento&&p.vencimento<hoje).reduce((a,p)=>a+(+p.valor),0);
+  const hojeReus=reus.filter(r=>r.data_hora&&r.data_hora.slice(0,10)===hoje);
+  const proxReus=reus.filter(r=>r.status!=='realizada'&&r.status!=='cancelada'&&(!r.data_hora||r.data_hora.slice(0,10)>hoje)).slice(0,5);
+  const alerts=[];
+  ativos.forEach(c=>{const es=etapas.filter(e=>e.cliente_id===c.id);es.forEach(e=>{
+    if(e.prazo_suspenso)alerts.push({urg:true,txt:`<b>${c.nome}</b> ${e.nome}: prazo suspenso${e.motivo_suspensao?' ('+e.motivo_suspensao+')':''}.`});
+    else if(e.prazo_inicio&&e.prazo_dias){const fim=new Date(e.prazo_inicio);fim.setDate(fim.getDate()+e.prazo_dias);const diff=Math.ceil((fim-new Date())/(864e5));if(diff<0)alerts.push({urg:true,txt:`<b>${c.nome}</b> ${e.nome}: prazo vencido há ${-diff} dia${diff<-1?'s':''}.`});else if(diff<=5)alerts.push({urg:false,txt:`<b>${c.nome}</b> ${e.nome}: faltam ${diff} dia${diff>1?'s':''}.`})}
+    const docs=CFG.DOCS[e.numero]||[];const dd=typeof e.dados_cliente==='object'&&e.dados_cliente?e.dados_cliente:{};const faltam=docs.filter(d=>!dd[d]).length;
+    if(faltam>0&&e.status!=='aprovada')alerts.push({urg:faltam>3,txt:`<b>${c.nome}</b> ${e.nome}: ${faltam} documento${faltam>1?'s':''} pendente${faltam>1?'s':''}.`})
+  })});
+  const dia=new Date();const semana=['dom','seg','ter','qua','qui','sex','sáb'];
+  let h=`<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:20px"><h1 class="serif" style="font-size:20px;font-weight:300">Bom dia, Isabella</h1><span style="font-size:13px;color:var(--mv)">${semana[dia.getDay()]}, ${dia.toLocaleDateString('pt-BR',{day:'numeric',month:'long',year:'numeric'})}</span></div>`;
+  h+=`<div class="kpis"><div class="kpi"><div class="lb">PROJETOS ATIVOS</div><div class="vl">${ativos.length}</div></div><div class="kpi"><div class="lb">RECEBIDO EM ${mesAt.slice(5)}</div><div class="vl" style="color:var(--ok)">${brl(recebido)}</div></div><div class="kpi"><div class="lb">A RECEBER</div><div class="vl">${brl(aReceber)}</div></div><div class="kpi"><div class="lb">ATRASADO</div><div class="vl" style="color:${atrasado?'var(--err)':'var(--v)'}">${brl(atrasado)}</div></div></div>`;
+  if(alerts.length){h+=`<div class="stitle">ALERTAS</div>`;alerts.forEach(a=>h+=`<div class="alert ${a.urg?'urg':'wrn'}">${a.txt}</div>`)}
+  if(hojeReus.length){h+=`<div class="stitle">AGENDA DE HOJE</div><div class="ag"><div class="dia"><div class="n">${dia.getDate()}</div><div class="s">${semana[dia.getDay()]}</div></div><div class="slots">`;hojeReus.forEach(r=>{const hr=r.data_hora?new Date(r.data_hora).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'';const p=Array.isArray(r.pautas)?r.pautas:[];const st=r.status==='confirmada'?'ok':'pend';h+=`<div class="slot"><div class="hora">${hr}</div><div class="cli">${r.clientes?.nome||''}</div><div class="pauta">${p.join('. ')}.</div><span class="st ${st}">${r.status==='confirmada'?'confirmada':'pendente'}</span></div>`});h+=`</div></div>`}
+  if(proxReus.length){h+=`<div class="stitle">PRÓXIMAS REUNIÕES</div>`;proxReus.forEach(r=>{const p=Array.isArray(r.pautas)?r.pautas:[];const dt=r.data_hora?new Date(r.data_hora).toLocaleDateString('pt-BR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'a agendar';const st=r.status==='confirmada'?'ok':'pend';h+=`<div class="reu"><div><div class="cli">${r.clientes?.nome||''}</div><div class="dt">${dt}</div><div class="tags">${p.map(t=>`<span>${t}</span>`).join('')}</div></div><span class="st ${st}" style="margin-top:4px">${CFG.PIPELINE[r.status]||r.status}</span></div>`})}
+  h+=`<div class="stitle">PROJETOS EM ANDAMENTO</div>`;
+  ativos.forEach(c=>{const es=etapas.filter(e=>e.cliente_id===c.id);const ps=pgs.filter(p=>p.cliente_id===c.id);const pago=ps.filter(p=>p.pago_em).reduce((a,p)=>a+(+p.valor),0);const pend=ps.filter(p=>!p.pago_em).reduce((a,p)=>a+(+p.valor),0);
+    const ea=es.find(e=>e.status==='em_andamento')||es[0];const ck=ea?((Array.isArray(ea.checklist)?ea.checklist:JSON.parse(ea.checklist||'[]'))):[];const feitos=ck.filter(i=>i.feito).length;const total=ck.length||1;const pct=Math.round(feitos/total*100);
+    const docs=ea?CFG.DOCS[ea.numero]||[]:[];const dd=ea&&typeof ea.dados_cliente==='object'&&ea.dados_cliente?ea.dados_cliente:{};const docsOk=docs.filter(d=>dd[d]).length;const docsFalta=docs.length-docsOk;
+    let prazoTxt='não iniciado',prazoColor='var(--mv)';
+    if(ea&&ea.prazo_suspenso){prazoTxt='suspenso';prazoColor='var(--err)'}
+    else if(ea&&ea.prazo_inicio&&ea.prazo_dias){const fim=new Date(ea.prazo_inicio);fim.setDate(fim.getDate()+ea.prazo_dias);const diff=Math.ceil((fim-new Date())/(864e5));if(diff<0){prazoTxt=`vencido há ${-diff}d`;prazoColor='var(--err)'}else{prazoTxt=`faltam ${diff}d`;prazoColor=diff<=5?'var(--err)':'var(--v)'}}
+    const status=c.status||'conversa_inicial';let cardClass='init',pipClass='p1';
+    if(status==='em_execucao'||status==='aceito_entrada_paga'){cardClass='exec';pipClass='p2'}
+    if(status==='aguardando_docs'){cardClass='docs';pipClass='p3'}
+    if(status==='concluido'||status==='aprovado'){cardClass='done';pipClass='p4'}
+    h+=`<div class="card ${cardClass}" onclick="openCli('${c.id}')"><div class="ch"><div><div class="nm">${c.nome}</div><div class="pj">${c.titulo||''}</div></div><span class="pip ${pipClass}">${CFG.PIPELINE[status]||status}</span></div>`;
+    if(ea)h+=`<div class="info"><div>Etapa <b>${ea.numero}. ${ea.nome}</b></div><div>Valor <b>${brl(ea.valor)}</b></div><div>Prazo <b style="color:${prazoColor}">${prazoTxt}</b></div></div><div style="font-size:11px;color:var(--mv)">Checklist ${feitos}/${ck.length}${docs.length?` · Docs ${docsOk}/${docs.length}`:''}</div><div class="bar"><div class="${pct>=60?'f-ok':pct>=30?'f-wrn':'f-err'}" style="width:${pct}%"></div></div>`;
+    if(docs.length){h+=`<div class="docs-row">`;docs.forEach(d=>h+=`<span class="doc ${dd[d]?'y':'n'}">${d}</span>`);h+=`</div>`}
+    h+=`<div class="fin"><span>Pago <b style="color:var(--ok)">${brl(pago)}</b></span><span>Pendente <b>${brl(pend)}</b></span></div></div>`;
   });
-  const recebido = mesPgs.filter(p=>p.pago_em).reduce((a,p)=>a+Number(p.valor),0);
-  const pendentes = pgs.filter(p=>!p.pago_em && p.tipo!=='variavel');
-  const aReceber = pendentes.reduce((a,p)=>a+Number(p.valor),0);
-  const atrasado = pendentes.filter(p=>p.vencimento && p.vencimento < hoje).reduce((a,p)=>a+Number(p.valor),0);
-  document.getElementById('dash-cards').innerHTML = `
-    <div class="card"><div class="label">Recebido no mês</div><div class="big green">${brl(recebido)}</div></div>
-    <div class="card"><div class="label">A receber</div><div class="big">${brl(aReceber)}</div></div>
-    <div class="card"><div class="label">Atrasado</div><div class="big ${atrasado?'red':''}">${brl(atrasado)}</div></div>`;
-  // próximos
-  const prox = pendentes.slice(0,10);
-  document.getElementById('dash-prox').innerHTML = prox.length ? prox.map(p => {
-    const atr = p.vencimento && p.vencimento < hoje;
-    return `<tr class="${atr?'red':''}"><td>${p.clientes?.nome||''}</td><td>${p.descricao}</td><td>${brl(p.valor)}</td><td>${p.vencimento?fmt(p.vencimento):'na entrega'}</td><td><button onclick="marcarPago('${p.id}')">Pago</button></td></tr>`;
-  }).join('') : '<tr><td colspan="5" style="color:var(--marrom)">Nenhum pagamento pendente.</td></tr>';
-  // recebidos
-  const recList = mesPgs.filter(p=>p.pago_em);
-  document.getElementById('dash-recebidos').innerHTML = recList.length ? recList.map(p =>
-    `<tr><td>${p.clientes?.nome||''}</td><td>${p.descricao}</td><td>${brl(p.valor)}</td><td>${fmt(p.pago_em)}</td></tr>`
-  ).join('') : '<tr><td colspan="4" style="color:var(--marrom)">Nenhum recebimento no mês.</td></tr>';
-}
-async function marcarPago(id){
-  const forma = prompt('Forma de pagamento (pix, transferencia, boleto):','pix');
-  if(!forma) return;
-  await patch('pagamentos', id, {pago_em:hoje, forma});
-  loadDash();
+  const done=cls.filter(c=>c.status==='concluido');
+  if(done.length){h+=`<div class="stitle">CONCLUÍDOS</div>`;done.forEach(c=>{const ps=pgs.filter(p=>p.cliente_id===c.id);const pago=ps.filter(p=>p.pago_em).reduce((a,p)=>a+(+p.valor),0);h+=`<div class="card done" onclick="openCli('${c.id}')"><div class="ch"><div><div class="nm">${c.nome}</div><div class="pj">${c.titulo||''}</div></div><span class="pip p4">Concluído</span></div><div class="info"><div>Valor <b>${brl(pago)}</b></div><div>Pago <b style="color:var(--ok)">100%</b></div></div></div>`})}
+  $('dash-content').innerHTML=h;
 }
 
-// ---------- CLIENTES ----------
-async function loadClients(){
-  const cls = await get('clientes','select=*&order=atualizado_em.desc');
-  document.getElementById('clients-list').innerHTML = cls.length ? cls.map(c => `
-    <div class="card" style="cursor:pointer" onclick="openClient('${c.id}')">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start">
-        <div><strong>${c.nome}</strong><br><span style="font-size:12px;color:var(--marrom)">${c.titulo||''}</span></div>
-        <span class="badge ${c.status==='ativo'?'green':''}">${c.status}</span>
-      </div>
-      <div style="font-size:12px;color:var(--marrom);margin-top:6px">${c.whatsapp||''} · ${c.proposta_codigo||'sem proposta'} · etapa atual: ${c.etapa_atual||'?'}</div>
-    </div>`).join('') : '<p style="color:var(--marrom)">Nenhum cliente cadastrado.</p>';
+async function loadClients(){const cls=ALL.clientes||await get('clientes','select=*&order=atualizado_em.desc');let h=`<h2 class="serif" style="font-size:20px;font-weight:300;margin-bottom:16px">Clientes</h2>`;cls.forEach(c=>h+=`<div class="card" style="cursor:pointer;border-left-color:var(--v)" onclick="openCli('${c.id}')"><div class="ch"><div><div class="nm">${c.nome}</div><div class="pj">${c.titulo||''}</div></div><span class="pip p2">${CFG.PIPELINE[c.status]||c.status}</span></div><div style="font-size:12px;color:var(--mv)">${c.whatsapp||''} · ${c.proposta_codigo||''}</div></div>`);$('clients-content').innerHTML=h}
+
+async function openCli(id){showP('detail');const[c]=await get('clientes',`id=eq.${id}`);const es=await get('etapas_cliente',`cliente_id=eq.${id}&order=ordem.asc`);const ps=await get('pagamentos',`cliente_id=eq.${id}&order=vencimento.asc.nullsfirst`);const rs=await get('reunioes',`cliente_id=eq.${id}&order=data_hora.desc`);
+  let h=`<a class="back" onclick="showP('dash')">← dashboard</a>`;
+  h+=`<div style="background:#fff;border:0.5px solid var(--tc);border-radius:12px;padding:20px;margin-bottom:16px"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px"><div><h2 class="serif" style="font-size:20px;font-weight:300">${c.nome}</h2><div style="font-size:12px;color:var(--mv)">${c.titulo||''} · ${c.doc||''}</div></div><select onchange="updSt('${c.id}',this.value)" style="width:auto;font-size:12px">${Object.entries(CFG.PIPELINE).map(([k,v])=>`<option value="${k}" ${k===c.status?'selected':''}>${v}</option>`).join('')}</select></div><div class="row" style="font-size:12px;color:var(--mv)"><div>WhatsApp: ${c.whatsapp||''}<br>E-mail: ${c.email||''}</div><div>Terreno: ${c.terreno||''}<br>Unidades: ${c.unidades||''}</div></div></div>`;
+  h+=`<div class="stitle">ETAPAS</div>`;
+  es.forEach(e=>{const ck=Array.isArray(e.checklist)?e.checklist:JSON.parse(e.checklist||'[]');const docs=CFG.DOCS[e.numero]||[];const dd=typeof e.dados_cliente==='object'&&e.dados_cliente?e.dados_cliente:{};const feitos=ck.filter(i=>i.feito).length;
+    h+=`<div style="background:#fff;border:0.5px solid var(--tc);border-radius:12px;padding:18px 20px;margin-bottom:10px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div><b>${e.numero}. ${e.nome}</b> <span class="pip ${e.status==='em_andamento'?'p2':e.status==='entregue'||e.status==='aprovada'?'p4':'p3'}">${e.status}</span></div><span class="serif" style="font-size:18px">${brl(e.valor)}</span></div>`;
+    h+=`<div style="font-size:12px;color:var(--mv);margin-bottom:6px">Prazo: ${e.prazo_evento||'a definir'}${e.prazo_inicio?' · início: '+fmt(e.prazo_inicio):''}${e.data_entrega?' · entregue: '+fmt(e.data_entrega):''}${e.prazo_suspenso?'<span style="background:var(--err);color:#fff;padding:1px 8px;border-radius:10px;font-size:10px;margin-left:6px">suspenso: '+(e.motivo_suspensao||'')+'</span>':''}</div>`;
+    h+=`<div style="font-size:11px;margin-bottom:4px">Checklist (${feitos}/${ck.length})</div>`;ck.forEach((item,i)=>h+=`<div class="check-item ${item.feito?'done':''}"><input type="checkbox" ${item.feito?'checked':''} onchange="togCk('${e.id}',${i},this.checked)"><span>${item.item}</span></div>`);
+    if(docs.length){h+=`<div style="margin-top:10px;border-top:0.5px solid var(--tc);padding-top:8px;font-size:11px;margin-bottom:4px">Documentos do cliente (${docs.filter(d=>dd[d]).length}/${docs.length})</div>`;docs.forEach(d=>h+=`<div class="check-item"><input type="checkbox" ${dd[d]?'checked':''} onchange="togDoc('${e.id}','${d.replace(/'/g,"\\'")}',this.checked)"><span>${d}</span></div>`)}
+    h+=`<div class="actions"><select onchange="updEst('${e.id}',this.value)" style="width:auto;font-size:12px">${['aguardando','em_andamento','entregue','aprovada'].map(s=>`<option ${s===e.status?'selected':''}>${s}</option>`).join('')}</select><button onclick="iniPrazo('${e.id}')">Iniciar prazo</button><button onclick="marcarEnt('${e.id}')">Entregue</button><button onclick="suspPrazo('${e.id}')">Suspender/retomar</button></div></div>`});
+  h+=`<div class="stitle">PAGAMENTOS</div><div style="background:#fff;border:0.5px solid var(--tc);border-radius:12px;padding:18px 20px;margin-bottom:10px"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr><th style="text-align:left;padding:6px;border-bottom:1px solid var(--tc);font-size:11px;color:var(--mv)">Descrição</th><th style="padding:6px;border-bottom:1px solid var(--tc);font-size:11px;color:var(--mv)">Valor</th><th style="padding:6px;border-bottom:1px solid var(--tc);font-size:11px;color:var(--mv)">Vencimento</th><th style="padding:6px;border-bottom:1px solid var(--tc);font-size:11px;color:var(--mv)">Pago em</th><th style="padding:6px;border-bottom:1px solid var(--tc)"></th></tr></thead><tbody>`;
+  ps.forEach(p=>{const atr=!p.pago_em&&p.vencimento&&p.vencimento<hoje;h+=`<tr style="${atr?'color:var(--err)':''}"><td style="padding:6px">${p.descricao}</td><td style="padding:6px">${brl(p.valor)}</td><td style="padding:6px">${p.vencimento?fmt(p.vencimento):'na entrega'}</td><td style="padding:6px">${p.pago_em?fmt(p.pago_em):''}</td><td style="padding:6px">${p.pago_em?'':'<button onclick="mPago(\''+p.id+'\')">Pago</button>'}</td></tr>`});
+  const tp=ps.filter(p=>p.pago_em).reduce((a,p)=>a+(+p.valor),0);const tn=ps.filter(p=>!p.pago_em).reduce((a,p)=>a+(+p.valor),0);
+  h+=`</tbody></table><div class="fin"><span>Pago <b style="color:var(--ok)">${brl(tp)}</b></span><span>Pendente <b>${brl(tn)}</b></span></div><div class="actions"><button onclick="addPg('${c.id}')">+ Registrar pagamento</button></div></div>`;
+  if(rs.length){h+=`<div class="stitle">REUNIÕES</div>`;rs.forEach(r=>{const p=Array.isArray(r.pautas)?r.pautas:[];const dt=r.data_hora?new Date(r.data_hora).toLocaleDateString('pt-BR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'a agendar';h+=`<div class="reu"><div><div class="dt">${dt}</div><div class="tags">${p.map(t=>`<span>${t}</span>`).join('')}</div></div><select onchange="updReu('${r.id}',this.value)" style="width:auto;font-size:11px">${['a_agendar','pendente','confirmada','realizada','cancelada'].map(s=>`<option ${s===r.status?'selected':''}>${s.replace(/_/g,' ')}</option>`).join('')}</select></div>`})}
+  h+=`<div class="stitle">OBSERVAÇÕES</div><div style="background:#fff;border:0.5px solid var(--tc);border-radius:12px;padding:18px 20px"><textarea id="obs-txt">${c.observacoes||''}</textarea><button onclick="salvarObs('${c.id}')" style="margin-top:8px">Salvar</button></div>`;
+  $('detail-content').innerHTML=h;window._cid=id;
 }
 
-// ---------- DETALHE ----------
-let CUR = {};
-async function openClient(id){
-  showPage('detail');
-  const [c] = await get('clientes',`id=eq.${id}`);
-  CUR.cliente = c;
-  CUR.etapas = await get('etapas_cliente',`cliente_id=eq.${id}&order=ordem.asc`);
-  CUR.pagamentos = await get('pagamentos',`cliente_id=eq.${id}&order=vencimento.asc.nullsfirst`);
-  renderDetail();
-}
-function renderDetail(){
-  const c = CUR.cliente, es = CUR.etapas, ps = CUR.pagamentos;
-  // header
-  document.getElementById('detail-header').innerHTML = `
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
-        <div><h2 class="serif" style="font-size:22px;font-weight:300">${c.nome}</h2><div style="font-size:13px;color:var(--marrom)">${c.titulo||''} · ${c.doc||''}</div></div>
-        <select onchange="updateStatus('${c.id}',this.value)" style="width:auto">
-          ${CONFIG.PIPELINE.map(s=>`<option value="${s}" ${s===c.status?'selected':''}>${CONFIG.PIPELINE_LABELS[s]||s}</option>`).join('')}
-        </select>
-      </div>
-      <div class="row" style="font-size:13px;color:var(--marrom)">
-        <div>WhatsApp: ${c.whatsapp||''}<br>E-mail: ${c.email||''}</div>
-        <div>Terreno: ${c.terreno||''}<br>Unidades: ${c.unidades||''} · Proposta: ${c.proposta_codigo||''}</div>
-      </div>
-    </div>`;
-  // etapas
-  let ehtml = '<h3 class="serif" style="font-size:18px;font-weight:300;margin-bottom:12px">Etapas</h3>';
-  es.forEach(e => {
-    const ck = Array.isArray(e.checklist) ? e.checklist : (typeof e.checklist==='string'?JSON.parse(e.checklist):[]);
-    const docs = CONFIG.DOCS_CLIENTE[e.numero] || [];
-    const dados = typeof e.dados_cliente === 'object' ? e.dados_cliente : {};
-    const feitos = ck.filter(i=>i.feito).length;
-    const statusCor = e.status==='aprovada'?'green':e.status==='entregue'?'blue':e.status==='em_andamento'?'':'red';
-    ehtml += `<div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <div><strong>${e.numero}. ${e.nome}</strong> <span class="badge ${statusCor}">${e.status}</span></div>
-        <span class="serif" style="font-size:18px">${brl(e.valor)}</span>
-      </div>
-      <div style="font-size:12px;color:var(--marrom);margin-bottom:8px">
-        Prazo: ${e.prazo_evento||'a definir'}
-        ${e.prazo_inicio?' · início: '+fmt(e.prazo_inicio):''}
-        ${e.data_entrega?' · entregue: '+fmt(e.data_entrega):''}
-        ${e.prazo_suspenso?'<span class="badge red" style="margin-left:6px">prazo suspenso: '+(e.motivo_suspensao||'')+'</span>':''}
-      </div>
-      <div style="font-size:12px;margin-bottom:6px">Checklist (${feitos}/${ck.length}):</div>
-      <div>${ck.map((item,i)=>`<div class="check-item ${item.feito?'done':''}"><input type="checkbox" ${item.feito?'checked':''} onchange="toggleCheck('${e.id}',${i},this.checked)"><span>${item.item}</span></div>`).join('')}</div>
-      ${docs.length?`<div class="divider"></div><div style="font-size:12px;margin-bottom:6px">Documentos do cliente:</div>
-      <div>${docs.map((d,i)=>`<div class="check-item"><input type="checkbox" ${dados[d]?'checked':''} onchange="toggleDoc('${e.id}','${d.replace(/'/g,"\\'")}',this.checked)"><span>${d}</span></div>`).join('')}</div>`:''}
-      <div class="actions">
-        <select onchange="updateEtapaStatus('${e.id}',this.value)" style="width:auto">
-          ${['aguardando','em_andamento','entregue','aprovada'].map(s=>`<option ${s===e.status?'selected':''}>${s}</option>`).join('')}
-        </select>
-        <button onclick="iniciarPrazo('${e.id}')">Iniciar prazo</button>
-        <button onclick="marcarEntregue('${e.id}')">Marcar entregue</button>
-        <button onclick="suspenderPrazo('${e.id}')">Suspender/retomar</button>
-      </div>
-    </div>`;
-  });
-  document.getElementById('detail-etapas').innerHTML = ehtml;
-  // pagamentos
-  let phtml = '<h3 class="serif" style="font-size:18px;font-weight:300;margin:16px 0 12px">Pagamentos</h3><div class="card"><table><thead><tr><th>Descrição</th><th>Valor</th><th>Vencimento</th><th>Pago em</th><th></th></tr></thead><tbody>';
-  ps.forEach(p => {
-    const atr = !p.pago_em && p.vencimento && p.vencimento < hoje;
-    phtml += `<tr class="${atr?'red':''}"><td>${p.descricao}</td><td>${brl(p.valor)}</td><td>${p.vencimento?fmt(p.vencimento):'na entrega'}</td><td>${p.pago_em?fmt(p.pago_em):''}</td><td>${p.pago_em?'':'<button onclick="marcarPagoDetalhe(\''+p.id+'\')">Pago</button>'}</td></tr>`;
-  });
-  const totalPago = ps.filter(p=>p.pago_em).reduce((a,p)=>a+Number(p.valor),0);
-  const totalPend = ps.filter(p=>!p.pago_em).reduce((a,p)=>a+Number(p.valor),0);
-  phtml += `</tbody></table><div style="display:flex;justify-content:space-between;margin-top:10px;font-size:13px"><span>Pago: <strong class="green">${brl(totalPago)}</strong></span><span>Pendente: <strong>${brl(totalPend)}</strong></span></div>
-  <div class="actions"><button onclick="addPagamento()">+ Registrar pagamento</button></div></div>`;
-  document.getElementById('detail-pagamentos').innerHTML = phtml;
-  // obs
-  document.getElementById('detail-obs').innerHTML = `<div class="card"><div class="field"><label>Observações</label><textarea id="obs-txt">${CUR.cliente.observacoes||''}</textarea></div><button onclick="salvarObs('${c.id}')">Salvar observações</button></div>`;
-}
+async function updSt(id,v){await patch('clientes',id,{status:v})}
+async function updEst(id,v){await patch('etapas_cliente',id,{status:v});openCli(window._cid)}
+async function togCk(eid,idx,val){const[e]=await get('etapas_cliente',`id=eq.${eid}`);const ck=Array.isArray(e.checklist)?e.checklist:JSON.parse(e.checklist||'[]');ck[idx].feito=val;await patch('etapas_cliente',eid,{checklist:ck});openCli(window._cid)}
+async function togDoc(eid,doc,val){const[e]=await get('etapas_cliente',`id=eq.${eid}`);const dd=typeof e.dados_cliente==='object'&&e.dados_cliente?{...e.dados_cliente}:{};dd[doc]=val;await patch('etapas_cliente',eid,{dados_cliente:dd});openCli(window._cid)}
+async function iniPrazo(id){const d=prompt('Data início (AAAA-MM-DD):',hoje);if(!d)return;const dias=prompt('Prazo em dias:','30');if(!dias)return;await patch('etapas_cliente',id,{prazo_inicio:d,prazo_dias:+dias,status:'em_andamento'});openCli(window._cid)}
+async function marcarEnt(id){await patch('etapas_cliente',id,{data_entrega:hoje,status:'entregue'});openCli(window._cid)}
+async function suspPrazo(id){const[e]=await get('etapas_cliente',`id=eq.${id}`);if(e.prazo_suspenso){await patch('etapas_cliente',id,{prazo_suspenso:false,motivo_suspensao:null})}else{const m=prompt('Motivo:');if(m===null)return;await patch('etapas_cliente',id,{prazo_suspenso:true,motivo_suspensao:m})}openCli(window._cid)}
+async function mPago(id){const f=prompt('Forma (pix, transferencia, boleto):','pix');if(!f)return;await patch('pagamentos',id,{pago_em:hoje,forma:f});openCli(window._cid)}
+async function addPg(cid){const desc=prompt('Descrição:');if(!desc)return;const val=prompt('Valor:');if(!val)return;const tipo=prompt('Tipo (entrada, marco, pix):','entrada');const venc=prompt('Vencimento (AAAA-MM-DD ou vazio):','');const pago=prompt('Pago em (AAAA-MM-DD ou vazio):','');const forma=pago?prompt('Forma:','pix'):null;await ins('pagamentos',[{cliente_id:cid,descricao:desc,tipo,valor:+val,vencimento:venc||null,pago_em:pago||null,forma}]);openCli(window._cid)}
+async function updReu(id,v){await patch('reunioes',id,{status:v})}
+async function salvarObs(id){await patch('clientes',id,{observacoes:$('obs-txt').value});alert('Salvo')}
 
-async function updateStatus(id,v){await patch('clientes',id,{status:v});CUR.cliente.status=v;}
-async function updateEtapaStatus(id,v){
-  await patch('etapas_cliente',id,{status:v});
-  const e = CUR.etapas.find(e=>e.id==id); if(e) e.status=v;
-  if(v==='em_andamento') await patch('clientes',CUR.cliente.id,{etapa_atual:e?.numero});
-  renderDetail();
-}
-async function toggleCheck(etapaId,idx,val){
-  const e = CUR.etapas.find(e=>e.id==etapaId); if(!e) return;
-  const ck = Array.isArray(e.checklist)?e.checklist:JSON.parse(e.checklist||'[]');
-  ck[idx].feito = val;
-  await patch('etapas_cliente',etapaId,{checklist:ck});
-  e.checklist = ck;
-  renderDetail();
-}
-async function toggleDoc(etapaId,doc,val){
-  const e = CUR.etapas.find(e=>e.id==etapaId); if(!e) return;
-  const dados = typeof e.dados_cliente === 'object' && e.dados_cliente ? {...e.dados_cliente} : {};
-  dados[doc] = val;
-  await patch('etapas_cliente',etapaId,{dados_cliente:dados});
-  e.dados_cliente = dados;
-  renderDetail();
-}
-async function iniciarPrazo(id){
-  const d = prompt('Data de início do prazo (AAAA-MM-DD):',hoje);
-  if(!d) return;
-  const dias = prompt('Prazo em dias:','30');
-  if(!dias) return;
-  await patch('etapas_cliente',id,{prazo_inicio:d, prazo_dias:+dias, status:'em_andamento'});
-  openClient(CUR.cliente.id);
-}
-async function marcarEntregue(id){
-  await patch('etapas_cliente',id,{data_entrega:hoje, status:'entregue'});
-  openClient(CUR.cliente.id);
-}
-async function suspenderPrazo(id){
-  const e = CUR.etapas.find(e=>e.id==id);
-  if(e?.prazo_suspenso){
-    await patch('etapas_cliente',id,{prazo_suspenso:false, motivo_suspensao:null});
-  } else {
-    const m = prompt('Motivo (ex.: aguardando topografia do cliente):');
-    if(m===null) return;
-    await patch('etapas_cliente',id,{prazo_suspenso:true, motivo_suspensao:m});
-  }
-  openClient(CUR.cliente.id);
-}
-async function marcarPagoDetalhe(id){
-  const forma = prompt('Forma (pix, transferencia, boleto):','pix');
-  if(!forma) return;
-  await patch('pagamentos',id,{pago_em:hoje, forma});
-  openClient(CUR.cliente.id);
-}
-async function salvarObs(id){
-  await patch('clientes',id,{observacoes:document.getElementById('obs-txt').value});
-  alert('Salvo');
-}
+async function criarCliente(){const nome=$('n-nome').value.trim();if(!nome){$('n-msg').textContent='Preencha o nome.';return}const etRaw=$('n-etapas').value.trim().split('\n').filter(l=>l.trim());const pg=$('n-pg').value;
+  const cli=await ins('clientes',{nome,doc:$('n-doc').value.trim(),whatsapp:$('n-whats').value.trim(),email:$('n-email').value.trim(),titulo:$('n-titulo').value.trim(),terreno:$('n-terreno').value.trim(),unidades:+$('n-un').value||null,etapa_atual:etRaw[0]?.split('|')[0]?.trim()||'1',status:'aceito_entrada_paga'});
+  const cid=cli[0]?.id;if(!cid){$('n-msg').textContent='Erro ao criar.';return}
+  const rows=etRaw.map((l,i)=>{const[num,nm,val]=l.split('|').map(s=>s.trim());return{cliente_id:cid,numero:num,nome:nm||'Etapa '+num,valor:+val||0,checklist:JSON.stringify((CFG.CHECKLISTS[num]||[]).map(item=>({item,feito:false}))),ordem:i+1,status:'aguardando'}});
+  if(rows.length)await ins('etapas_cliente',rows);
+  const total=rows.reduce((a,e)=>a+e.valor,0);const pgR=[];
+  if(pg==='pix'){pgR.push({cliente_id:cid,descricao:'PIX à vista',tipo:'pix',valor:Math.round(total*(1-CFG.pixDesc/100)),vencimento:hoje})}else{const ent=Math.round(total*CFG.entradaPct/100);pgR.push({cliente_id:cid,descricao:`Entrada ${CFG.entradaPct}%`,tipo:'entrada',valor:ent,vencimento:hoje});pgR.push({cliente_id:cid,descricao:`Saldo ${100-CFG.entradaPct}% na entrega`,tipo:'marco',valor:total-ent})}
+  if(pgR.length)await ins('pagamentos',pgR);$('n-msg').innerHTML='<span style="color:var(--ok)">Cliente criado.</span>';showP('dash')}
 
-async function addPagamento(){
-  const desc = prompt('Descrição (ex.: Entrada 50%, Saldo na entrega):');
-  if(!desc) return;
-  const valor = prompt('Valor (só número, ex.: 3500):');
-  if(!valor) return;
-  const tipo = prompt('Tipo (entrada, marco, pix, parcela, variavel):','entrada');
-  if(!tipo) return;
-  const venc = prompt('Vencimento (AAAA-MM-DD, ou deixe vazio se é na entrega):','');
-  const pago = prompt('Já foi pago? Se sim, data do pagamento (AAAA-MM-DD). Se não, deixe vazio:','');
-  const forma = pago ? prompt('Forma de pagamento (pix, transferencia, boleto, dinheiro):','pix') : null;
-  const row = {
-    cliente_id: CUR.cliente.id,
-    descricao: desc,
-    tipo: tipo,
-    valor: +valor,
-    vencimento: venc || null,
-    pago_em: pago || null,
-    forma: forma || null,
-  };
-  await insert('pagamentos', [row]);
-  openClient(CUR.cliente.id);
-}
-
-// ---------- NOVO CLIENTE MANUAL ----------
-async function criarCliente(){
-  const nome = document.getElementById('n-nome').value.trim();
-  if(!nome){document.getElementById('n-msg').textContent='Preencha o nome.';return;}
-  const titulo = document.getElementById('n-titulo').value.trim();
-  const etapasRaw = document.getElementById('n-etapas').value.trim().split('\n').filter(l=>l.trim());
-  const pg = document.getElementById('n-pg').value;
-  const cli = await insert('clientes', {
-    nome, doc:document.getElementById('n-doc').value.trim(),
-    whatsapp:document.getElementById('n-whats').value.trim(),
-    email:document.getElementById('n-email').value.trim(),
-    titulo, terreno:document.getElementById('n-terreno').value.trim(),
-    unidades:+document.getElementById('n-un').value||null,
-    etapa_atual: etapasRaw[0]?.split('|')[0]?.trim()||'1',
-  });
-  const clienteId = cli[0]?.id;
-  if(!clienteId){document.getElementById('n-msg').textContent='Erro ao criar cliente.';return;}
-  // etapas
-  const etapaRows = etapasRaw.map((l,i)=>{
-    const [num,nomee,val] = l.split('|').map(s=>s.trim());
-    return {
-      cliente_id:clienteId, numero:num, nome:nomee||'Etapa '+num, valor:+val||0,
-      checklist:JSON.stringify((CONFIG.CHECKLISTS[num]||[]).map(item=>({item,feito:false}))),
-      ordem:i+1, status:'aguardando'
-    };
-  });
-  if(etapaRows.length) await insert('etapas_cliente', etapaRows);
-  // pagamentos
-  const total = etapaRows.reduce((a,e)=>a+e.valor,0);
-  const pgRows = [];
-  if(pg==='pix'){
-    pgRows.push({cliente_id:clienteId, descricao:'PIX à vista', tipo:'pix', valor:Math.round(total*(1-CONFIG.pixDesconto/100)), vencimento:hoje});
-  } else {
-    const ent = Math.round(total*CONFIG.entradaPct/100);
-    pgRows.push({cliente_id:clienteId, descricao:`Entrada ${CONFIG.entradaPct}%`, tipo:'entrada', valor:ent, vencimento:hoje});
-    pgRows.push({cliente_id:clienteId, descricao:`Saldo ${100-CONFIG.entradaPct}% na entrega`, tipo:'marco', valor:total-ent});
-  }
-  if(pgRows.length) await insert('pagamentos', pgRows);
-  document.getElementById('n-msg').innerHTML = `<span class="green">Cliente criado.</span>`;
-  showPage('clients');
-}
+async function loadCliSelect(){const cls=ALL.clientes||await get('clientes','select=id,nome&order=nome.asc');$('r-cli').innerHTML=cls.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('')}
+async function criarReuniao(){const cid=$('r-cli').value;const d=$('r-data').value;const hr=$('r-hora').value;const st=$('r-status').value;const p=$('r-pautas').value.trim().split('\n').filter(l=>l.trim());const dt=d&&hr?new Date(`${d}T${hr}`).toISOString():null;await ins('reunioes',[{cliente_id:cid,data_hora:dt,status:st,pautas:JSON.stringify(p)}]);$('r-msg').innerHTML='<span style="color:var(--ok)">Reunião agendada.</span>';showP('dash')}
 </script>
 </body>
 </html>
