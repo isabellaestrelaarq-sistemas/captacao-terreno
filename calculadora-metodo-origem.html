@@ -199,11 +199,26 @@
       <div class="lines" id="lines"></div>
       <div class="totals" id="totals"></div>
       <div class="note" id="note"></div>
-      <div class="actions">
-        <button id="link">Gerar link da proposta</button>
-        <button class="ghost" id="copy">Copiar como texto</button>
-        <button class="ghost" id="reset">Limpar</button>
-        <span id="copied"></span>
+      <div style="border-top:1px solid var(--line);margin-top:18px;padding-top:18px">
+        <div style="margin-bottom:10px">
+          <label for="cliente-nome" style="font-size:13px;display:block;margin-bottom:4px">Nome do cliente</label>
+          <input type="text" id="cliente-nome" placeholder="ex.: Marina Costa" style="font-size:15px;padding:12px 14px">
+        </div>
+        <button id="link" style="width:100%;padding:14px;font-size:15px;background:var(--ink);color:#fff;border-color:var(--ink);border-radius:8px">Gerar proposta para o cliente</button>
+        <div id="link-result" style="display:none;margin-top:12px;background:var(--stone);border-radius:8px;padding:14px">
+          <div style="font-size:12px;color:var(--ink-soft);margin-bottom:6px">Link pronto. Copie e envie pelo WhatsApp:</div>
+          <input type="text" id="link-url" readonly style="font-size:13px;background:#fff;cursor:pointer" onclick="this.select();document.execCommand('copy')">
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button id="copy-link" style="flex:1;font-size:13px">Copiar link</button>
+            <button id="send-whats" style="flex:1;font-size:13px;background:var(--ink);color:#fff;border-color:var(--ink)">Enviar pelo WhatsApp</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="ghost" id="copy" style="flex:1;font-size:12px">Copiar como texto</button>
+          <button class="ghost" id="reset" style="flex:1;font-size:12px">Limpar</button>
+        </div>
+        <span id="copied" style="font-size:12px;color:var(--moss);display:block;margin-top:6px"></span>
+      </div>
       </div>
     </aside>
   </div>
@@ -439,11 +454,38 @@ $('reset').addEventListener('click', () => {
 });
 $('link').addEventListener('click', async () => {
   const o = window.__propostaObj;
-  if (!o || !o.lines.length || o.lines.some(l => l.v === null && l.kind !== 'var')){ $('copied').textContent = 'Complete a proposta (sem itens "sob medida") antes de gerar o link.'; setTimeout(() => $('copied').textContent = '', 3500); return; }
-  const url = linkProposta();
-  try { await navigator.clipboard.writeText(url); $('copied').textContent = 'Link copiado — envie ao cliente.'; }
-  catch { prompt('Copie o link da proposta:', url); }
-  setTimeout(() => $('copied').textContent = '', 3000);
+  const nomeCliente = $('cliente-nome').value.trim();
+  if (!nomeCliente){ $('copied').textContent = 'Preencha o nome do cliente.'; setTimeout(() => $('copied').textContent = '', 3000); return; }
+  if (!o || !o.lines.length){ $('copied').textContent = 'Monte a proposta primeiro.'; setTimeout(() => $('copied').textContent = '', 3000); return; }
+  if (o.lines.some(l => l.v === null && l.kind !== 'var')){ $('copied').textContent = 'Retire itens "sob medida" antes de gerar.'; setTimeout(() => $('copied').textContent = '', 3000); return; }
+  o.clienteNome = nomeCliente;
+  $('link').disabled = true; $('link').textContent = 'Gerando...';
+
+  // gerar código curto
+  const codigo = 'MO-' + Array.from({length:6}, ()=>'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'[Math.random()*36|0]).join('');
+
+  // salvar no Supabase
+  const SB_URL = 'https://mooghvkrendiiwhxynkd.supabase.co';
+  const SB_KEY = 'sb_publishable_eRt9feUOHeFOSZjIbfDrJw_ieFaA6Dx';
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/rascunhos`, {
+      method:'POST', headers:{'Content-Type':'application/json', apikey:SB_KEY, Authorization:`Bearer ${SB_KEY}`, Prefer:'return=minimal'},
+      body: JSON.stringify({ codigo, dados: o })
+    });
+    if (!r.ok) throw new Error(await r.text());
+  } catch(e) {
+    $('copied').textContent = 'Erro ao salvar. Verifique a conexão.'; $('link').disabled = false; $('link').textContent = 'Gerar proposta para o cliente';
+    console.error(e); setTimeout(() => $('copied').textContent = '', 4000); return;
+  }
+
+  const base = location.href.includes('localhost') || location.protocol === 'file:' ? '' : location.origin;
+  const url = `${base}/proposta.html#${codigo}`;
+  $('link-url').value = url;
+  $('link-result').style.display = 'block';
+  $('link').textContent = `Proposta gerada para ${nomeCliente}`;
+  $('link').disabled = false;
+  $('copy-link').onclick = async () => { try { await navigator.clipboard.writeText(url); } catch { $('link-url').select(); document.execCommand('copy'); } $('copied').textContent = 'Link copiado!'; setTimeout(() => $('copied').textContent = '', 2500); };
+  $('send-whats').onclick = () => { const msg = `Oi ${nomeCliente}, tudo bem? Aqui é a Isabella.\n\nPreparei uma proposta para o seu projeto. Abre esse link para ver:\n${url}`; window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank'); };
 });
 $('copy').addEventListener('click', async () => {
   try { await navigator.clipboard.writeText(window.__proposta || ''); $('copied').textContent = 'Copiado — cole no WhatsApp.'; }
