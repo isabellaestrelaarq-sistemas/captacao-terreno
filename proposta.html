@@ -90,10 +90,35 @@
     .print-only{display:block!important}
   }
   .print-only{display:none}
+  .welcome{position:relative;overflow:hidden;min-height:50vh;display:flex;align-items:center;justify-content:center;text-align:center}
+  .welcome-bg{position:absolute;inset:0;z-index:0}
+  .welcome-bg img{width:100%;height:100%;object-fit:cover;object-position:center 25%}
+  .welcome-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(26,15,16,.85) 0%,rgba(26,15,16,.3) 50%,rgba(26,15,16,.15) 100%);z-index:1}
+  .welcome-content{position:relative;z-index:2;padding:80px 24px 60px}
+  .welcome .brand{font-size:13px;color:rgba(240,214,170,.6);letter-spacing:.08em;margin-bottom:16px}
+  .welcome h1{font-family:"Fraunces",Georgia,serif;font-size:36px;font-weight:300;color:#fff;margin-bottom:8px;line-height:1.1}
+  .welcome .nome{font-family:"Fraunces",Georgia,serif;font-size:22px;color:#F0D6AA;margin-bottom:20px}
+  .welcome p{color:rgba(255,255,255,.65);font-size:15px;max-width:38ch;margin:0 auto 28px;line-height:1.6}
+  .welcome .cta-ver{display:inline-block;background:#F0D6AA;color:#6A2326;font-weight:500;padding:15px 32px;border-radius:28px;font-size:15px;cursor:pointer;border:none;transition:opacity .2s}
+  .welcome .cta-ver:hover{opacity:.9}
+  .proposta-body{display:none}
+  .proposta-body.visible{display:block}
 </style>
 </head>
 <body>
 <div class="wrap">
+  <div class="welcome" id="welcome">
+    <div class="welcome-bg"><img src="hero-isabella.jpg" alt="Isabella Estrela"></div>
+    <div class="welcome-overlay"></div>
+    <div class="welcome-content">
+      <div class="brand">ISABELLA ESTRELA · ARQUITETA</div>
+      <div class="nome" id="w-nome"></div>
+      <h1>Sua proposta está pronta</h1>
+      <p>Preparei uma proposta personalizada para o seu projeto. Veja os detalhes, as condições e o contrato.</p>
+      <button class="cta-ver" id="w-ver">Ver proposta</button>
+    </div>
+  </div>
+  <div class="proposta-body" id="proposta-body">
   <header>
     <div class="brand">Método Origem</div>
     <h1 id="h-title">Proposta</h1>
@@ -155,6 +180,7 @@
   </div>
 
   <div class="print-only" id="print-sign"></div>
+  </div><!-- /proposta-body -->
 </div>
 
 <script>
@@ -197,15 +223,24 @@ const $ = id => document.getElementById(id);
 const brl = n => n.toLocaleString('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0});
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
-// ---------- 1. Ler proposta do link (ou exemplo, se abrir sem link) ----------
+// ---------- 1. Ler proposta (código curto do Supabase) ----------
 let P = null, DEMO = false;
-try {
-  const h = new URLSearchParams(location.hash.slice(1)).get('p');
-  if (h) P = JSON.parse(decodeURIComponent(escape(atob(h.replace(/-/g,'+').replace(/_/g,'/')))));
-} catch { P = null; }
-if (!P){
+const SB_R = 'https://mooghvkrendiiwhxynkd.supabase.co';
+const SB_K = 'sb_publishable_eRt9feUOHeFOSZjIbfDrJw_ieFaA6Dx';
+
+async function carregarProposta(){
+  const hash = location.hash.slice(1);
+  if (hash && hash.startsWith('MO-')){
+    try {
+      const r = await fetch(`${SB_R}/rest/v1/rascunhos?codigo=eq.${hash}&select=dados`, {headers:{apikey:SB_K, Authorization:`Bearer ${SB_K}`}});
+      const arr = await r.json(); if (arr?.[0]?.dados){ P = arr[0].dados; return; }
+    } catch(e){ console.warn(e); }
+  }
+  if (hash && hash.includes('p=')){
+    try { const h = new URLSearchParams(hash).get('p'); if(h) P = JSON.parse(decodeURIComponent(escape(atob(h.replace(/-/g,'+').replace(/_/g,'/'))))); return; } catch{}
+  }
   DEMO = true;
-  P = { title:'Empreendimento', sub:'Terreno de 3.000 m² · 30 unidades', modo:'emp', terreno:3000, un:30, data:new Date().toISOString(),
+  P = { title:'Empreendimento', sub:'Terreno de 3.000 m² · 30 unidades', modo:'emp', terreno:3000, un:30, data:new Date().toISOString(), clienteNome:'Marina Costa',
     lines:[
       {n:'1', t:'Raio-X da Decisão', s:'Veredito sobre o terreno', v:3000},
       {n:'2', t:'Viabilidade', s:'Descobre quantas unidades cabem, tipologias e VGV', v:8000},
@@ -215,15 +250,19 @@ if (!P){
       {n:'6', t:'Lançamento e vendas — fee', s:'9 meses × R$ 1.000', v:9000},
       {n:'', t:'Lançamento e vendas — variável', s:'2% sobre VGV vendido de R$ 9.000.000 · mínimo garantido R$ 15.000', v:180000, kind:'var'},
     ], total:55800, variavel:{ pct:2, minimo:15000, vgv:9000000, curva:[30,20,15,12,12,11], meses:9 } };
-  const b = document.createElement('div');
-  b.className = 'no-print';
-  b.style.cssText = 'background:#FFF6E5;border:1px solid #E7C98F;color:#6B4E12;padding:10px 14px;border-radius:6px;font-size:13px;margin-bottom:22px';
-  b.textContent = 'Exemplo de demonstração — abra pelo link gerado na calculadora para ver uma proposta real.';
-  document.querySelector('.wrap').prepend(b);
 }
-
-$('h-title').innerHTML = `Proposta <em>${esc(P.title)}</em>`;
-$('h-sub').textContent = `${P.sub} · emitida em ${new Date(P.data).toLocaleDateString('pt-BR')}`;
+async function init(){
+  await carregarProposta();
+  if (!P){ document.querySelector('.wrap').innerHTML = '<div class="welcome" style="padding:80px 24px"><h1>Proposta não encontrada</h1><p style="color:#73504F;margin-top:12px">O link pode ter expirado. Peça um novo para a Isabella.</p></div>'; return; }
+  if (DEMO){ const b = document.createElement('div'); b.className='no-print'; b.style.cssText='background:#FFF6E5;border:1px solid #E7C98F;color:#6B4E12;padding:10px 14px;border-radius:6px;font-size:13px;margin-bottom:22px'; b.textContent='Exemplo de demonstração.'; document.getElementById('proposta-body').prepend(b); }
+  const nomeCliente = P.clienteNome || '';
+  if (nomeCliente){ $('w-nome').textContent = nomeCliente; } else { $('welcome').style.display='none'; $('proposta-body').classList.add('visible'); }
+  $('w-ver').onclick = () => { $('welcome').style.display='none'; $('proposta-body').classList.add('visible'); window.scrollTo({top:0}); };
+  $('h-title').innerHTML = `Proposta <em>${esc(P.title)}</em>`;
+  $('h-sub').textContent = `${P.sub} · emitida em ${new Date(P.data).toLocaleDateString('pt-BR')}`;
+  renderProposta();
+}
+function renderProposta(){
 $('lines').innerHTML = P.lines.map(l => {
   const v = l.v === null ? (l.kind==='var' ? 'sobre vendas' : 'sob medida') : Array.isArray(l.v) ? `${brl(l.v[0])} – ${brl(l.v[1])}` : (l.v<0?'− ':'')+brl(Math.abs(l.v));
   return `<div class="line ${l.kind||''}"><span class="n">${esc(l.n)}</span><span><b>${esc(l.t)}</b><small>${esc(l.s)}</small></span><span class="v">${v}</span></div>`;
@@ -450,6 +489,8 @@ $('go').addEventListener('click', async () => {
   $('wa').onclick = () => window.open(`https://wa.me/${CONFIG.whatsapp}?text=${encodeURIComponent(txt)}`, '_blank');
   $('pdf').onclick = () => window.print();
 });
+}
+init();
 </script>
 </body>
 </html>
