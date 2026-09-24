@@ -336,7 +336,8 @@ function renderDetail(){
   });
   const totalPago = ps.filter(p=>p.pago_em).reduce((a,p)=>a+Number(p.valor),0);
   const totalPend = ps.filter(p=>!p.pago_em).reduce((a,p)=>a+Number(p.valor),0);
-  phtml += `</tbody></table><div style="display:flex;justify-content:space-between;margin-top:10px;font-size:13px"><span>Pago: <strong class="green">${brl(totalPago)}</strong></span><span>Pendente: <strong>${brl(totalPend)}</strong></span></div></div>`;
+  phtml += `</tbody></table><div style="display:flex;justify-content:space-between;margin-top:10px;font-size:13px"><span>Pago: <strong class="green">${brl(totalPago)}</strong></span><span>Pendente: <strong>${brl(totalPend)}</strong></span></div>
+  <div class="actions"><button onclick="addPagamento()">+ Registrar pagamento</button></div></div>`;
   document.getElementById('detail-pagamentos').innerHTML = phtml;
   // obs
   document.getElementById('detail-obs').innerHTML = `<div class="card"><div class="field"><label>Observações</label><textarea id="obs-txt">${CUR.cliente.observacoes||''}</textarea></div><button onclick="salvarObs('${c.id}')">Salvar observações</button></div>`;
@@ -397,6 +398,29 @@ async function marcarPagoDetalhe(id){
 async function salvarObs(id){
   await patch('clientes',id,{observacoes:document.getElementById('obs-txt').value});
   alert('Salvo');
+}
+
+async function addPagamento(){
+  const desc = prompt('Descrição (ex.: Entrada 50%, Saldo na entrega):');
+  if(!desc) return;
+  const valor = prompt('Valor (só número, ex.: 3500):');
+  if(!valor) return;
+  const tipo = prompt('Tipo (entrada, marco, pix, parcela, variavel):','entrada');
+  if(!tipo) return;
+  const venc = prompt('Vencimento (AAAA-MM-DD, ou deixe vazio se é na entrega):','');
+  const pago = prompt('Já foi pago? Se sim, data do pagamento (AAAA-MM-DD). Se não, deixe vazio:','');
+  const forma = pago ? prompt('Forma de pagamento (pix, transferencia, boleto, dinheiro):','pix') : null;
+  const row = {
+    cliente_id: CUR.cliente.id,
+    descricao: desc,
+    tipo: tipo,
+    valor: +valor,
+    vencimento: venc || null,
+    pago_em: pago || null,
+    forma: forma || null,
+  };
+  await insert('pagamentos', [row]);
+  openClient(CUR.cliente.id);
 }
 
 // ---------- NOVO CLIENTE MANUAL ----------
