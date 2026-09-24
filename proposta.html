@@ -339,32 +339,49 @@ function clausulaVariavel(){
 
 function renderContract(){
   const pg = pagamentoEscolhido();
+  const temEtapas = etapas.length > 0;
+  const itensLivres = P.lines.filter(l => !l.n && l.kind !== 'var' && l.kind !== 'credit');
+  const isConsultoria = itensLivres.length > 0 && !temEtapas;
+  const titulo = isConsultoria ? 'Contrato de prestação de serviços de consultoria técnica' : 'Contrato de prestação de serviços de arquitetura e consultoria';
+
+  let objetoHtml = '';
+  if (isConsultoria) {
+    objetoHtml = `<p>Prestação de serviços de consultoria técnica em desenvolvimento imobiliário, conforme escopo descrito neste contrato, relativos ao imóvel ou empreendimento ${$('endterreno').value.trim() ? f('endterreno') : 'descrito na proposta'} (${esc(P.sub)}).</p>
+    <p><b>Serviços contratados:</b></p>
+    <ol>${P.lines.filter(l=>l.kind!=='var'&&l.kind!=='credit').map(l=>`<li>${esc(l.t)}${l.v?' — '+brl(l.v):''}</li>`).join('')}</ol>
+    <p>Itens não listados não integram este contrato e poderão ser contratados em aditivo.</p>
+    <h3>1.1. Natureza dos serviços</h3>
+    <p>A CONTRATADA presta orientação técnica, instrução e acompanhamento nas fases do desenvolvimento imobiliário. Os únicos serviços executados diretamente pela CONTRATADA são o estudo de viabilidade do terreno e, quando expressamente contratado como item separado, o projeto arquitetônico e material de imagens. Todas as demais atividades (abertura de empresa, execução de obra, documentação para financiamento, obtenção de habite-se, registro em cartório, venda de unidades) são de responsabilidade do CONTRATANTE ou de terceiros por ele contratados, cabendo à CONTRATADA exclusivamente a orientação e o acompanhamento.</p>
+    <p>Este contrato aplica-se a empreendimentos de até 10 unidades residenciais. Acima desse limite, o escopo e o valor serão ajustados mediante aditivo contratual.</p>`;
+  } else {
+    objetoHtml = `<p>Prestação dos serviços relativos ao imóvel ${$('endterreno').value.trim() ? f('endterreno') : 'descrito na proposta'} (${esc(P.sub)}), limitados às etapas contratadas nesta proposta:</p>
+    <ol>${P.lines.filter(l=>l.kind!=='var'&&l.kind!=='credit').map(l=>`<li>${esc(l.t)}${l.s?' — '+esc(l.s):''}${l.v?' — '+brl(l.v):''}</li>`).join('')}</ol>
+    <p>Etapas não listadas não integram este contrato e poderão ser contratadas em aditivo, com preço da tabela vigente.</p>`;
+  }
+
   $('contract').innerHTML = `
-    <h3>Contrato de prestação de serviços de arquitetura e consultoria — Método Origem</h3>
+    <h3>${titulo}</h3>
     <p><b>CONTRATADA:</b> ${cf('nome')}, arquiteta e urbanista registrada no CAU sob nº ${cf('cau')}, inscrita no CPF sob nº ${cf('cpf')}, com endereço em ${cf('endereco')}.</p>
     <p><b>CONTRATANTE:</b> ${f('nome')}, CPF/CNPJ ${f('doc')}, e-mail ${f('email')}, telefone ${f('tel')}, residente em ${f('end')}.</p>
 
     <h3>1. Objeto</h3>
-    <p>Prestação dos serviços do Método Origem relativos ao imóvel ${$('endterreno').value.trim() ? f('endterreno') : 'descrito na proposta'} (${esc(P.sub)}), limitados às etapas contratadas nesta proposta:</p>
-    <ol>${etapas.map(l=>`<li>${esc(l.t)} — ${esc(l.s)}</li>`).join('')}</ol>
-    <p>Etapas não listadas não integram este contrato e poderão ser contratadas em aditivo, com preço da tabela vigente.</p>
+    ${objetoHtml}
 
     <h3>2. Preço e forma de pagamento</h3>
-    <p>Valor fixo total de ${brl(T)}. Forma escolhida: <b>${esc(pg.tipo)}</b>. ${esc(pg.texto)}</p>
+    <p>Valor total de ${brl(T)}. Forma escolhida: <b>${esc(pg.tipo)}</b>. ${esc(pg.texto)}</p>
     ${clausulaVariavel()}
     <p>Os valores são líquidos de taxas de cartório, prefeitura, concessionárias, RRT e demais custos de terceiros, que correm por conta do CONTRATANTE.</p>
 
     <h3>3. Prazos</h3>
-    <p>Os prazos de cada etapa são contados a partir do evento indicado, condicionados à confirmação do pagamento correspondente e ao recebimento das informações necessárias:</p>
-    ${prazos()}
+    ${temEtapas ? `<p>Os prazos de cada etapa são contados a partir do evento indicado, condicionados à confirmação do pagamento correspondente e ao recebimento das informações necessárias:</p>${prazos()}` : `<p>O prazo de vigência da consultoria é de 12 meses contados da assinatura deste contrato, condicionado à regularidade dos pagamentos mensais.</p>`}
     <p>Os prazos suspendem-se enquanto houver pendência de informação, documento, pagamento ou aprovação a cargo do CONTRATANTE ou de órgão público.</p>
 
     <h3>4. Entregas e aprovação</h3>
-    <p>Cada etapa é entregue em formato digital e considera-se aprovada se não houver manifestação escrita em 7 dias. Cada etapa inclui uma rodada de ajustes; alterações de escopo ou revisões adicionais serão orçadas à parte.</p>
+    ${isConsultoria ? `<p>A consultoria é prestada por meio de reuniões mensais de alinhamento, acesso direto via WhatsApp para dúvidas pontuais, relatório mensal de progresso e material de apoio (planilhas, modelos, checklists). As entregas diretas (viabilidade e, se contratado, projeto) são entregues em formato digital e consideram-se aprovadas se não houver manifestação escrita em 7 dias.</p>` : `<p>Cada etapa é entregue em formato digital e considera-se aprovada se não houver manifestação escrita em 7 dias. Cada etapa inclui uma rodada de ajustes; alterações de escopo ou revisões adicionais serão orçadas à parte.</p>`}
 
     <h3>5. Obrigações do contratante</h3>
-    <p>Fornecer os documentos listados abaixo, informações verdadeiras e as aprovações dentro dos prazos; efetuar os pagamentos nas datas acordadas.</p>
-    <p><b>Documentos necessários para início dos trabalhos:</b></p>
+    <p>Fornecer documentos do imóvel, informações verdadeiras e as aprovações dentro dos prazos; efetuar os pagamentos nas datas acordadas; comparecer às reuniões agendadas${isConsultoria ? '; executar ou contratar a execução das atividades orientadas pela CONTRATADA' : ''}.</p>
+    ${temEtapas ? `<p><b>Documentos necessários para início dos trabalhos:</b></p>
     <ol style="font-size:13px;line-height:1.8">
       <li>CNPJ da SPE e da empresa titular</li>
       <li>Dados completos de sócios e administrador</li>
@@ -379,16 +396,19 @@ function renderContract(){
       <li>Quadro de áreas com frações ideais</li>
       <li>Valor previsto em vendas por unidade</li>
     </ol>
-    <p>Os documentos devem ser enviados para <b>isaarquiteta@live.com</b> ou via grupo de WhatsApp/Telegram no número da CONTRATADA. <b>Os prazos contratuais só começam a correr a partir do recebimento integral da documentação acima.</b></p>
+    <p>Os documentos devem ser enviados para <b>isaarquiteta@live.com</b> ou via grupo de WhatsApp/Telegram no número da CONTRATADA. <b>Os prazos contratuais só começam a correr a partir do recebimento integral da documentação acima.</b></p>` : ''}
 
     <h3>6. Inadimplemento</h3>
     <p>O atraso no pagamento de qualquer parcela ou valor devido sujeita o CONTRATANTE a multa de ${CONFIG.multaAtraso}% sobre o valor em atraso, acrescida de juros moratórios de ${CONFIG.jurosMes}% ao mês, calculados pro rata die, e correção monetária pelo índice ${CONFIG.correcao}, sem prejuízo da cobrança judicial. O atraso superior a 30 dias autoriza a CONTRATADA a suspender os trabalhos em andamento até a regularização, sem que o prazo contratual seja prorrogado. Persistindo o inadimplemento por mais de 60 dias, fica facultada a rescisão por justa causa pela CONTRATADA, aplicando-se a cláusula 8.</p>
 
     <h3>7. Direitos autorais e uso</h3>
-    <p>Os estudos, projetos e materiais são obra intelectual da CONTRATADA (Lei 9.610/98). O CONTRATANTE recebe licença de uso para o imóvel objeto deste contrato, condicionada à quitação. É vedada a reprodução em outro imóvel e a alteração do projeto sem anuência da CONTRATADA. A CONTRATADA poderá divulgar o trabalho em seu portfólio, preservando dados pessoais do CONTRATANTE.</p>
+    <p>Os estudos, projetos e materiais produzidos são obra intelectual da CONTRATADA (Lei 9.610/98). O CONTRATANTE recebe licença de uso para o imóvel objeto deste contrato, condicionada à quitação. É vedada a reprodução em outro imóvel e a alteração do projeto sem anuência da CONTRATADA. A CONTRATADA poderá divulgar o trabalho em seu portfólio, preservando dados pessoais do CONTRATANTE.</p>
 
     <h3>8. Rescisão</h3>
-    <p>Qualquer parte pode rescindir mediante aviso escrito. Etapas concluídas são devidas integralmente; etapa em andamento é devida proporcionalmente ao trabalho executado. Valores pagos por etapas não iniciadas serão devolvidos em até 30 dias. Em caso de rescisão por inadimplemento do CONTRATANTE, a multa e os juros previstos na cláusula 6 incidem até a data da quitação efetiva.</p>
+    <p><b>8.1. Rescisão pelo CONTRATANTE:</b> o CONTRATANTE pode rescindir a qualquer momento mediante comunicação escrita com antecedência mínima de 15 dias. São devidos integralmente: (a) os valores de etapas ou meses de consultoria já concluídos; (b) o valor proporcional ao trabalho executado na etapa ou mês em andamento; (c) as multas e juros sobre parcelas em atraso, se houver. Valores pagos por etapas ou meses não iniciados serão devolvidos em até 30 dias.</p>
+    <p><b>8.2. Rescisão pela CONTRATADA:</b> a CONTRATADA pode rescindir em caso de inadimplemento superior a 60 dias (conforme cláusula 6), descumprimento reiterado das obrigações do CONTRATANTE, ou impossibilidade técnica devidamente justificada. Nesta hipótese, aplica-se a mesma regra de cálculo do item 8.1.</p>
+    <p><b>8.3. Rescisão por mútuo acordo:</b> as partes podem rescindir a qualquer momento por acordo escrito, definindo livremente as condições de encerramento.</p>
+    <p><b>8.4. Efeitos:</b> em qualquer modalidade de rescisão, a CONTRATADA entregará ao CONTRATANTE todos os materiais já produzidos até a data da rescisão, condicionada à quitação dos valores devidos. Os direitos autorais permanecem com a CONTRATADA conforme cláusula 7, mesmo após a rescisão.</p>
 
     <h3>9. Aceite eletrônico</h3>
     <p>As partes reconhecem a validade do aceite eletrônico realizado nesta página, com registro de nome, documento, data, hora e endereço de rede, nos termos do art. 10, §2º, da MP 2.200-2/2001 e do art. 107 do Código Civil.</p>
