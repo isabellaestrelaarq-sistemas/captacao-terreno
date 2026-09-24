@@ -308,6 +308,11 @@ $('pay').innerHTML = `
     <div class="amt">${brl(entrada)} agora</div>
     <small>${CONFIG.entradaPct}% na assinatura do contrato e ${100-CONFIG.entradaPct}% (${brl(saldo)}) na entrega/liberação do serviço.</small>
   </span></label>
+  <label><input type="radio" name="pg" value="mensal"><span>
+    <b>Entrada + 12 parcelas mensais</b>
+    <div class="amt">${brl(Math.round(T*0.3))} + 12× de ${brl(Math.round(T*0.7/12))}</div>
+    <small>30% na assinatura (${brl(Math.round(T*0.3))}) e o saldo de ${brl(Math.round(T*0.7))} em 12 parcelas mensais iguais de ${brl(Math.round(T*0.7/12))}.</small>
+  </span></label>
   <label><input type="radio" name="pg" value="pix"><span>
     <b>À vista no PIX</b>
     <div class="amt">${brl(pix)}</div>
@@ -317,6 +322,7 @@ $('pay').innerHTML = `
 function pagamentoEscolhido(){
   const v = document.querySelector('input[name=pg]:checked').value;
   if (v === 'parcelado') return { tipo:'Em 2 vezes (50% + 50%)', valor:T, texto:`Primeira parcela de ${brl(entrada)} (${CONFIG.entradaPct}%) devida na assinatura deste contrato. Segunda parcela de ${brl(saldo)} (${100-CONFIG.entradaPct}%) devida na entrega do serviço contratado. O atraso de qualquer parcela sujeita o CONTRATANTE a multa de ${CONFIG.multaAtraso}% sobre o valor da parcela em atraso, acrescida de juros moratórios de ${CONFIG.jurosMes}% ao mês, pro rata die, e correção monetária pelo ${CONFIG.correcao}.` };
+  if (v === 'mensal') { const ent30=Math.round(T*0.3); const parc=Math.round(T*0.7/12); return { tipo:'Entrada 30% + 12 parcelas mensais', valor:T, texto:`Entrada de ${brl(ent30)} (30%) devida na assinatura deste contrato. Saldo de ${brl(T-ent30)} em 12 parcelas mensais iguais de ${brl(parc)}, vencendo no mesmo dia de cada mês subsequente. O atraso de qualquer parcela sujeita o CONTRATANTE a multa de ${CONFIG.multaAtraso}% sobre o valor da parcela em atraso, acrescida de juros moratórios de ${CONFIG.jurosMes}% ao mês, pro rata die, e correção monetária pelo ${CONFIG.correcao}.` }; }
   if (v === 'pix') return { tipo:'À vista no PIX', valor:pix, texto:`Valor total de ${brl(pix)}, já com desconto de ${CONFIG.pixDescontoPct}%, pago integralmente via PIX na assinatura deste contrato. O não pagamento no prazo sujeita o CONTRATANTE a multa de ${CONFIG.multaAtraso}% sobre o valor devido, acrescida de juros moratórios de ${CONFIG.jurosMes}% ao mês, pro rata die, e correção monetária pelo ${CONFIG.correcao}.` };
 }
 
