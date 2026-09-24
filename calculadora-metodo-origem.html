@@ -156,9 +156,18 @@
 
       <fieldset>
         <legend>Itens livres (qualquer serviço)</legend>
-        <div class="hint" style="margin-bottom:10px">Pra propostas fora do Método Origem: consultoria, acompanhamento de obra, abertura de empresa, etc. Cada linha vira um item na proposta.</div>
+        <div class="hint" style="margin-bottom:10px">Clique nas sugestões ou adicione itens personalizados.</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
+          <button type="button" onclick="addSug('Estruturação (SPE + viabilidade)',4000)" style="font-size:12px;padding:5px 12px;background:var(--stone);border:1px solid var(--line)">SPE + viabilidade</button>
+          <button type="button" onclick="addSug('Aprovações e dossiê Caixa',4000)" style="font-size:12px;padding:5px 12px;background:var(--stone);border:1px solid var(--line)">Dossiê Caixa</button>
+          <button type="button" onclick="addSug('Preparação financeira + investidores',4000)" style="font-size:12px;padding:5px 12px;background:var(--stone);border:1px solid var(--line)">Financeiro + investidores</button>
+          <button type="button" onclick="addSug('Acompanhamento de obra + habite-se',6000)" style="font-size:12px;padding:5px 12px;background:var(--stone);border:1px solid var(--line)">Obra + habite-se</button>
+          <button type="button" onclick="addSug('Venda, cartório e encerramento',6000)" style="font-size:12px;padding:5px 12px;background:var(--stone);border:1px solid var(--line)">Venda + cartório</button>
+          <button type="button" onclick="addSug('Projeto arquitetônico + imagens',6500)" style="font-size:12px;padding:5px 12px;background:var(--stone);border:1px solid var(--line)">Projeto + imagens</button>
+          <button type="button" onclick="addAllConsultoria()" style="font-size:12px;padding:5px 12px;background:var(--ink);color:#fff;border:1px solid var(--ink)">Consultoria completa (todos)</button>
+        </div>
         <div id="itens-livres"></div>
-        <button type="button" onclick="addItem()" style="margin-top:8px;font-size:13px;padding:6px 14px">+ Adicionar item</button>
+        <button type="button" onclick="addItem()" style="margin-top:8px;font-size:13px;padding:6px 14px">+ Adicionar item personalizado</button>
       </fieldset>
 
       <fieldset id="f-fachada" hidden>        <legend>Detalhes da fachada</legend>
@@ -463,13 +472,24 @@ function hints(){
 
 document.querySelectorAll('input,select').forEach(el => el.addEventListener('input', () => { hints(); build(); }));
 
-function addItem(){
+function addItem(nome,valor){
   const div = document.createElement('div');
   div.className = 'item-livre';
   div.style.cssText = 'display:grid;grid-template-columns:1fr 120px auto;gap:8px;margin-bottom:8px;align-items:start';
-  div.innerHTML = '<input class="il-nome" placeholder="Nome do serviço" style="font-size:13px"><input class="il-valor" type="number" placeholder="Valor R$" style="font-size:13px"><button type="button" onclick="this.parentElement.remove();build()" style="padding:8px 10px;font-size:12px;color:var(--ink-soft)">✕</button>';
+  div.innerHTML = `<input class="il-nome" placeholder="Nome do serviço" value="${nome||''}" style="font-size:13px"><input class="il-valor" type="number" placeholder="Valor R$" value="${valor||''}" style="font-size:13px"><button type="button" onclick="this.parentElement.remove();build()" style="padding:8px 10px;font-size:12px;color:var(--ink-soft)">✕</button>`;
   div.querySelectorAll('input').forEach(i => i.addEventListener('input', build));
   $('itens-livres').appendChild(div);
+  build();
+}
+function addSug(nome,valor){addItem(nome,valor)}
+function addAllConsultoria(){
+  $('itens-livres').innerHTML='';
+  addSug('Estruturação (SPE + viabilidade)',4000);
+  addSug('Aprovações e dossiê Caixa',4000);
+  addSug('Preparação financeira + investidores',4000);
+  addSug('Acompanhamento de obra + habite-se',6000);
+  addSug('Venda, cartório e encerramento',6000);
+  addSug('Projeto arquitetônico + imagens',6500);
 }
 $('reset').addEventListener('click', () => {
   ['terreno','un','vgv','minimo','override'].forEach(id => $(id).value='');
