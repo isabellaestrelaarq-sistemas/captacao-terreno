@@ -90,30 +90,47 @@
     .print-only{display:block!important}
   }
   .print-only{display:none}
-  .welcome{position:relative;overflow:hidden;min-height:50vh;display:flex;align-items:center;justify-content:center;text-align:center}
-  .welcome-bg{position:absolute;inset:0;z-index:0}
-  .welcome-bg img{width:100%;height:100%;object-fit:cover;object-position:center 25%}
-  .welcome-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(26,15,16,.85) 0%,rgba(26,15,16,.3) 50%,rgba(26,15,16,.15) 100%);z-index:1}
-  .welcome-content{position:relative;z-index:2;padding:80px 24px 60px}
-  .welcome .brand{font-size:13px;color:rgba(240,214,170,.6);letter-spacing:.08em;margin-bottom:16px}
-  .welcome h1{font-family:"Fraunces",Georgia,serif;font-size:36px;font-weight:300;color:#fff;margin-bottom:8px;line-height:1.1}
-  .welcome .nome{font-family:"Fraunces",Georgia,serif;font-size:22px;color:#F0D6AA;margin-bottom:20px}
-  .welcome p{color:rgba(255,255,255,.65);font-size:15px;max-width:38ch;margin:0 auto 28px;line-height:1.6}
-  .welcome .cta-ver{display:inline-block;background:#F0D6AA;color:#6A2326;font-weight:500;padding:15px 32px;border-radius:28px;font-size:15px;cursor:pointer;border:none;transition:opacity .2s}
-  .welcome .cta-ver:hover{opacity:.9}
+  .welcome{margin-bottom:32px}
+  .welcome-hero{position:relative;height:45vh;min-height:300px;max-height:480px;overflow:hidden}
+  .welcome-hero img{width:100%;height:100%;object-fit:cover;object-position:center 20%}
+  .welcome-hero .brand-bar{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(to top,rgba(26,15,16,.8),transparent);padding:32px 32px 20px;display:flex;align-items:flex-end;justify-content:space-between}
+  .welcome-hero .brand-bar span{font-size:12px;color:rgba(240,214,170,.7);letter-spacing:.08em}
+  .welcome-hero .brand-bar .cau{font-size:11px;color:rgba(255,255,255,.35)}
+  .welcome-text{background:#FAF9F6;text-align:center;padding:40px 24px 48px}
+  .welcome-text .nome{font-family:"Fraunces",Georgia,serif;font-size:20px;color:#73504F;margin-bottom:6px}
+  .welcome-text h1{font-family:"Fraunces",Georgia,serif;font-size:34px;font-weight:300;color:#6A2326;margin-bottom:12px;line-height:1.1}
+  .welcome-text p{color:#73504F;font-size:15px;max-width:36ch;margin:0 auto 28px;line-height:1.6}
+  .welcome-text .cta-ver{display:inline-block;background:#F0D6AA;color:#6A2326;font-weight:500;padding:15px 36px;border-radius:28px;font-size:15px;cursor:pointer;border:none;transition:transform .2s,opacity .2s}
+  .welcome-text .cta-ver:hover{opacity:.9;transform:translateY(-1px)}
+  .welcome-text .line{width:48px;height:1px;background:#D1B0A0;margin:0 auto 20px}
   .proposta-body{display:none}
   .proposta-body.visible{display:block}
+  @media(min-width:768px){
+    .welcome{display:grid;grid-template-columns:1fr 1fr;min-height:70vh}
+    .welcome-hero{height:auto;max-height:none}
+    .welcome-text{display:flex;flex-direction:column;justify-content:center;padding:48px 40px}
+  }
+  @media(max-width:380px){
+    .welcome-hero{height:35vh;min-height:220px}
+    .welcome-text h1{font-size:28px}
+    .welcome-text{padding:28px 18px 36px}
+  }
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="welcome" id="welcome">
-    <div class="welcome-bg"><img src="hero-isabella.jpg" alt="Isabella Estrela"></div>
-    <div class="welcome-overlay"></div>
-    <div class="welcome-content">
-      <div class="brand">ISABELLA ESTRELA · ARQUITETA</div>
+    <div class="welcome-hero">
+      <img src="hero-isabella.jpg" alt="Isabella Estrela">
+      <div class="brand-bar">
+        <span>ISABELLA ESTRELA · ARQUITETA</span>
+        <span class="cau">CAU A2264030</span>
+      </div>
+    </div>
+    <div class="welcome-text">
+      <div class="line"></div>
       <div class="nome" id="w-nome"></div>
-      <h1>Sua proposta está pronta</h1>
+      <h1>Sua proposta<br>está pronta</h1>
       <p>Preparei uma proposta personalizada para o seu projeto. Veja os detalhes, as condições e o contrato.</p>
       <button class="cta-ver" id="w-ver">Ver proposta</button>
     </div>
