@@ -115,7 +115,7 @@ h2.t-w{font-family:"Fraunces",serif;font-size:22px;font-weight:400;color:#fff;ma
 
 /* ═══ PHOTO BREAK ═══ */
 .photo-break{position:relative;height:280px;overflow:hidden}
-.photo-break img{width:100%;height:100%;object-fit:cover;object-position:center 20%}
+.photo-break img{width:100%;height:100%;object-fit:cover;object-position:center 25%}
 .photo-break .overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(var(--dk-rgb),.8) 0%,rgba(var(--dk-rgb),.3) 40%,transparent 60%);display:flex;align-items:flex-end;padding:0 24px 24px}
 .photo-break .overlay p{font-family:"Fraunces",serif;font-size:20px;color:#fff;max-width:300px;line-height:1.3}
 .photo-break .overlay em{color:var(--ch);font-style:normal}
@@ -310,7 +310,7 @@ h2.t-w{font-family:"Fraunces",serif;font-size:22px;font-weight:400;color:#fff;ma
   .quebra{padding:56px 80px}
   .quebra p{font-size:20px}
   .photo-break{height:500px}
-  .photo-break img{object-position:center 30%}
+  .photo-break img{object-position:center 18%}
   .photo-break .overlay p{font-size:32px;max-width:460px}
   .sobre-img{min-height:500px}
   .sobre-txt{padding:48px 56px}
@@ -320,7 +320,7 @@ h2.t-w{font-family:"Fraunces",serif;font-size:22px;font-weight:400;color:#fff;ma
   .invest-box{max-width:600px;margin:0 auto}
   .video-sec{padding:64px 80px}
   .video-sec .preco{font-size:42px}
-  .conselho-box{max-width:640px}
+  .conselho-box{max-width:640px;margin:0 auto}
   .form-sec form{max-width:520px}
 }
 /* ═══ WIDE ═══ */
@@ -370,10 +370,75 @@ h2.t-w{font-family:"Fraunces",serif;font-size:22px;font-weight:400;color:#fff;ma
   <p style="font-size:16px;color:var(--ch);font-weight:600;font-family:'Fraunces',serif">Eu enxergo onde est&aacute; a sobra. E tiro antes de virar concreto.</p>
 </section>
 
-<!-- ESCADA: COMO COMEÇA -->
+<!-- MANDALA: ROADMAP VISUAL -->
+<section class="reveal" style="background:#fff;padding:48px 24px;overflow:hidden">
+  <div style="max-width:520px;margin:0 auto;text-align:center">
+    <div class="stl" style="text-align:center">SUA JORNADA COMIGO</div>
+    <h2 class="t" style="text-align:center">Do terreno ao resultado</h2>
+    <div class="mandala" style="position:relative;width:100%;max-width:400px;aspect-ratio:1;margin:28px auto 0">
+      <!-- Orbit -->
+      <div style="position:absolute;top:50%;left:50%;width:78%;height:78%;border-radius:50%;border:1px dashed rgba(209,176,160,.25);transform:translate(-50%,-50%);animation:orbspin 60s linear infinite"></div>
+      <!-- Center -->
+      <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:32%;height:32%;border-radius:50%;background:var(--dk);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;z-index:3;box-shadow:0 0 0 3px var(--ch),0 0 0 6px rgba(240,214,170,.15),0 12px 40px rgba(26,15,16,.3)">
+        <span style="font-size:9px;color:rgba(240,214,170,.45);letter-spacing:.1em;text-transform:uppercase">RESULTADO</span>
+        <span style="font-family:'Fraunces',serif;font-size:min(4vw,16px);color:var(--ch);line-height:1.2;margin-top:3px">Lan&ccedil;amento<br>vendido</span>
+        <span style="font-size:8px;color:rgba(240,214,170,.4);margin-top:3px">Sem sobra</span>
+      </div>
+      <!-- SVG arrows -->
+      <svg style="position:absolute;inset:0;width:100%;height:100%;z-index:1;pointer-events:none" viewBox="0 0 400 400">
+        <defs>
+          <marker id="ma" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M1,1 L6,3.5 L1,6" fill="none" stroke="#D1B0A0" stroke-width="1.2"/></marker>
+          <marker id="mb" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M1,1 L6,3.5 L1,6" fill="none" stroke="rgba(106,35,38,.35)" stroke-width="1.2"/></marker>
+          <marker id="mc" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M1,1 L6,3.5 L1,6" fill="none" stroke="rgba(240,214,170,.5)" stroke-width="1.2"/></marker>
+        </defs>
+        <path d="M 240 30 Q 310 50 330 110" fill="none" stroke="#D1B0A0" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#ma)"/>
+        <path d="M 345 180 Q 345 240 330 290" fill="none" stroke="#D1B0A0" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#ma)"/>
+        <path d="M 290 345 Q 240 370 200 370" fill="none" stroke="rgba(106,35,38,.35)" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#mb)"/>
+        <path d="M 150 360 Q 90 340 70 290" fill="none" stroke="rgba(106,35,38,.35)" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#mb)"/>
+        <path d="M 55 180 Q 55 130 70 110" fill="none" stroke="rgba(26,15,16,.3)" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#mb)"/>
+        <path d="M 110 70 Q 140 50 160 40" fill="none" stroke="rgba(240,214,170,.5)" stroke-width="1.5" stroke-dasharray="5,4" marker-end="url(#mc)"/>
+      </svg>
+      <!-- Nodes -->
+      <div class="mn" style="position:absolute;top:-2%;left:50%;margin-left:-55px;width:110px;text-align:center;z-index:2">
+        <div style="width:36px;height:36px;border-radius:50%;background:#fff;color:var(--v);border:2px solid var(--tc);display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-size:14px;margin:0 auto 5px;box-shadow:0 3px 10px rgba(26,15,16,.12)">1</div>
+        <div style="font-size:11px;font-weight:600;color:var(--dk)">Conta seu terreno</div>
+        <div style="font-size:9px;color:var(--v);font-style:italic;opacity:.8">Primeira an&aacute;lise do potencial</div>
+      </div>
+      <div class="mn" style="position:absolute;top:14%;right:-5%;width:110px;text-align:center;z-index:2">
+        <div style="width:36px;height:36px;border-radius:50%;background:rgba(106,35,38,.08);color:var(--v);border:2px solid rgba(106,35,38,.12);display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-size:14px;margin:0 auto 5px;box-shadow:0 3px 10px rgba(26,15,16,.12)">2</div>
+        <div style="font-size:11px;font-weight:600;color:var(--dk)">Consultoria</div>
+        <div style="font-size:9px;color:var(--v);font-style:italic;opacity:.8">Dire&ccedil;&atilde;o clara em 30 min</div>
+      </div>
+      <div class="mn" style="position:absolute;bottom:14%;right:-5%;width:110px;text-align:center;z-index:2">
+        <div style="width:36px;height:36px;border-radius:50%;background:rgba(106,35,38,.18);color:var(--v);border:1px solid rgba(106,35,38,.15);display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-size:14px;margin:0 auto 5px;box-shadow:0 3px 10px rgba(26,15,16,.12)">3</div>
+        <div style="font-size:11px;font-weight:600;color:var(--dk)">Raio-X</div>
+        <div style="font-size:9px;color:var(--v);font-style:italic;opacity:.8">O que construir, com n&uacute;mero</div>
+      </div>
+      <div class="mn" style="position:absolute;bottom:-2%;left:50%;margin-left:-55px;width:110px;text-align:center;z-index:2">
+        <div style="width:36px;height:36px;border-radius:50%;background:var(--v);color:var(--ch);display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-size:14px;margin:0 auto 5px;box-shadow:0 3px 10px rgba(26,15,16,.2)">4</div>
+        <div style="font-size:11px;font-weight:600;color:var(--v)">Incorpora&ccedil;&atilde;o</div>
+        <div style="font-size:9px;color:var(--v);font-style:italic;opacity:.8">Margem maior, venda r&aacute;pida</div>
+      </div>
+      <div class="mn" style="position:absolute;bottom:14%;left:-5%;width:110px;text-align:center;z-index:2">
+        <div style="width:36px;height:36px;border-radius:50%;background:var(--dk);color:var(--ch);display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-size:14px;margin:0 auto 5px;box-shadow:0 3px 10px rgba(26,15,16,.2)">5</div>
+        <div style="font-size:11px;font-weight:600;color:var(--dk)">Projeto + RI</div>
+        <div style="font-size:9px;color:var(--v);font-style:italic;opacity:.8">Produto pronto pra lan&ccedil;ar</div>
+      </div>
+      <div class="mn" style="position:absolute;top:14%;left:-5%;width:110px;text-align:center;z-index:2">
+        <div style="width:36px;height:36px;border-radius:50%;background:var(--ch);color:var(--dk);display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-size:14px;margin:0 auto 5px;box-shadow:0 0 0 3px rgba(240,214,170,.2),0 3px 10px rgba(26,15,16,.15)">&starf;</div>
+        <div style="font-size:11px;font-weight:600;color:var(--dk)">Conselho</div>
+        <div style="font-size:9px;color:var(--v);font-style:italic;opacity:.8">Estrat&eacute;gia de longo prazo</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>@keyframes orbspin{to{transform:translate(-50%,-50%) rotate(360deg)}}</style>
+
+<!-- ESCADA: DETALHES -->
 <section class="escada reveal">
-  <div class="stl">SUA JORNADA COMIGO</div>
-  <h2 class="t">Do terreno parado ao lan&ccedil;amento vendido</h2>
+  <div class="stl">PASSO A PASSO</div>
+  <h2 class="t">Cada etapa em detalhe</h2>
   <p class="lead">Voc&ecirc; avan&ccedil;a quando faz sentido. Sem compromisso at&eacute; o passo 3.</p>
 
   <div class="stairs">
