@@ -214,7 +214,25 @@
     <h2>Proposta aceita</h2>
     <p>Registrada em <span id="done-when"></span>.</p>
     <div class="code" id="done-code"></div>
-    <p>O aceite foi registrado e uma cópia foi enviada para a Isabella. Baixe o contrato assinado clicando no botão abaixo.</p>
+
+    <!-- QR Code PIX -->
+    <div id="pix-area" style="display:none;margin:20px auto;max-width:380px">
+      <div style="background:#fff;border-radius:16px;padding:28px;text-align:center">
+        <div style="font-family:'Fraunces',serif;font-size:18px;color:var(--dk);margin-bottom:4px">Pague via PIX</div>
+        <div id="pix-valor" style="font-family:'Fraunces',serif;font-size:32px;color:var(--v);margin:8px 0 16px"></div>
+        <img id="pix-qr" style="width:220px;height:220px;border-radius:8px;border:1px solid #eee" alt="QR Code PIX">
+        <div style="margin-top:14px">
+          <input type="text" id="pix-copiacola" readonly style="width:100%;font-size:11px;padding:10px;border:1px solid #ddd;border-radius:8px;background:#f9f9f9;color:#666;cursor:pointer;text-align:center" onclick="this.select();navigator.clipboard.writeText(this.value).then(()=>{document.getElementById('pix-copied').style.display='block';setTimeout(()=>document.getElementById('pix-copied').style.display='none',2500)})">
+          <div id="pix-copied" style="display:none;font-size:12px;color:var(--v);margin-top:6px">Código copiado</div>
+        </div>
+        <div style="font-size:12px;color:#999;margin-top:12px">Escaneie o QR Code ou copie o código acima e cole no app do seu banco.</div>
+      </div>
+      <div id="pix-link" style="margin-top:12px"></div>
+    </div>
+    <div id="pix-loading" style="display:none;margin:16px 0;font-size:14px;color:var(--ch)">Gerando QR Code PIX...</div>
+    <div id="pix-erro" style="display:none;margin:16px 0;font-size:13px;color:rgba(240,214,170,.7)"></div>
+
+    <p style="margin-top:16px">O aceite foi registrado e uma cópia foi enviada para a Isabella. Baixe o contrato assinado clicando no botão abaixo.</p>
     <button id="pdf" style="background:var(--ch);color:var(--dk);font-size:16px;padding:16px">Baixar contrato assinado (PDF)</button>
     <p style="font-size:12px;margin-top:12px;opacity:.6">O contrato inclui data, hora, IP e código de registro do aceite eletrônico.</p>
   </div>
@@ -841,6 +859,55 @@ $('go').addEventListener('click', async () => {
   } else {
     $('done-code').textContent += ' · notificação pendente';
     console.warn('Telegram: não foi possível enviar. O aceite foi registrado no banco.');
+  }
+
+  // Gerar cobrança PIX via Asaas
+  const pgEscolhido = document.querySelector('input[name=pg]:checked')?.value || '';
+  const valorPix = pg.valor || T;
+
+  if (valorPix > 0) {
+    $('pix-loading').style.display = 'block';
+    try {
+      const pixRes = await fetch('/api/asaas-pix', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nome: registro.cliente_nome,
+          cpfCnpj: registro.cliente_doc,
+          email: registro.cliente_email,
+          telefone: registro.cliente_whatsapp,
+          valor: valorPix,
+          descricao: `${P.title} - ${pg.tipo}`,
+          codigo: codigo,
+        })
+      });
+      const pixJson = await pixRes.json();
+      $('pix-loading').style.display = 'none';
+
+      if (pixJson.ok && pixJson.pixData) {
+        $('pix-area').style.display = 'block';
+        $('pix-valor').textContent = brl(valorPix);
+        $('pix-qr').src = 'data:image/png;base64,' + pixJson.pixData.qrCode;
+        $('pix-copiacola').value = pixJson.pixData.payload;
+        if (pixJson.invoiceUrl) {
+          $('pix-link').innerHTML = '<a href="'+pixJson.invoiceUrl+'" target="_blank" style="display:inline-block;margin-top:10px;padding:12px 24px;background:#6A2326;color:#F0D6AA;border-radius:24px;font-size:14px;font-weight:500;text-decoration:none">Pagar pelo link Asaas</a>';
+        }
+      } else if (pixJson.invoiceUrl) {
+        $('pix-area').style.display = 'block';
+        $('pix-valor').textContent = brl(valorPix);
+        $('pix-qr').style.display = 'none';
+        $('pix-copiacola').parentElement.style.display = 'none';
+        $('pix-link').innerHTML = '<a href="'+pixJson.invoiceUrl+'" target="_blank" style="display:inline-block;padding:14px 28px;background:#6A2326;color:#F0D6AA;border-radius:24px;font-size:15px;font-weight:600;text-decoration:none">Clique aqui para pagar via PIX</a>';
+      } else {
+        $('pix-erro').style.display = 'block';
+        $('pix-erro').textContent = 'QR Code indisponível. Use os dados bancários acima para transferência manual.';
+      }
+    } catch(pixErr) {
+      $('pix-loading').style.display = 'none';
+      $('pix-erro').style.display = 'block';
+      $('pix-erro').textContent = 'PIX automático indisponível. Use os dados bancários acima.';
+      console.warn('Asaas PIX erro:', pixErr);
+    }
   }
 
   // Botão PDF
