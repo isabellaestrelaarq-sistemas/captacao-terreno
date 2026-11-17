@@ -196,11 +196,11 @@
 
   <div class="done">
     <h2>Proposta aceita</h2>
-    <p>Registrada em <span id="done-when"></span>. Guarde o código:</p>
+    <p>Registrada em <span id="done-when"></span>.</p>
     <div class="code" id="done-code"></div>
-    <p>Próximo passo: baixe o contrato assinado e, se quiser, envie o aceite pelo WhatsApp para confirmarmos a data de início.</p>
-    <button id="pdf">Baixar contrato em PDF</button>
-    <button class="ghost" id="wa">Enviar aceite pelo WhatsApp</button>
+    <p>O aceite foi registrado e uma cópia foi enviada para a Isabella. Baixe o contrato assinado clicando no botão abaixo.</p>
+    <button id="pdf" style="background:var(--ch);color:var(--dk);font-size:16px;padding:16px">Baixar contrato assinado (PDF)</button>
+    <p style="font-size:12px;margin-top:12px;opacity:.6">O contrato inclui data, hora, IP e código de registro do aceite eletrônico.</p>
   </div>
 
   <div class="print-only" id="print-sign"></div>
@@ -297,6 +297,7 @@ $('var').textContent = varLine ? `Variável sobre vendas: ${varLine.s}` + (varLi
 
 // ---------- 2. Formas de pagamento ----------
 const isConselhoMode = P.modo === 'conselho' || (P.conselho && P.conselho.salarios);
+const isConsultoriaMode = P.modo === 'consultoria' || (P.consultoria && P.consultoria.salarios);
 const T = P.total;
 const entrada = Math.round(T * CONFIG.entradaPct/100);
 const saldo = T - entrada;
@@ -306,11 +307,53 @@ const pix = Math.round(T * (1 - CONFIG.pixDescontoPct/100));
 
 if (isConselhoMode) {
   const C = P.conselho || {};
+  const cSM = C.salarios || 3;
+  const cMensal = C.mensal || cSM * 1412;
+  const cMeses = C.meses || 12;
+  const cDia = C.dia || '10';
+  const cForma = C.forma || 'PIX';
+  const cTotal = cMensal * cMeses;
+  // Descontos: 6m = 0.5 mensalidade, 12m = 1 mensalidade, 18m = 2 mensalidades
+  let desconto = 0;
+  let descontoLabel = '';
+  if (cMeses <= 6) { desconto = cMensal * 0.5; descontoLabel = 'meia mensalidade'; }
+  else if (cMeses <= 12) { desconto = cMensal; descontoLabel = '1 mensalidade'; }
+  else { desconto = cMensal * 2; descontoLabel = '2 mensalidades'; }
+  const cVista = cTotal - desconto;
+
   $('pay').innerHTML = `<label><input type="radio" name="pg" value="conselho" checked><span>
     <b>Pagamento mensal</b>
-    <div class="amt">${brl(C.mensal || (C.salarios||3)*1412)}/mês</div>
-    <small>${C.salarios||3} salário${(C.salarios||3)>1?'s':''} mínimo${(C.salarios||3)>1?'s':''} · ${C.meses||12} meses · Dia ${C.dia||10} via ${C.forma||'PIX'}</small>
+    <div class="amt">${brl(cMensal)}/m&ecirc;s</div>
+    <small>${cSM} sal&aacute;rio${cSM>1?'s':''} m&iacute;nimo${cSM>1?'s':''} &middot; ${cMeses} meses &middot; Dia ${cDia} via ${cForma} &middot; Total: ${brl(cTotal)}</small>
+  </span></label>
+  <label><input type="radio" name="pg" value="conselho-vista"><span>
+    <b>&Agrave; vista com desconto</b>
+    <div class="amt">${brl(cVista)}</div>
+    <small>Desconto de ${descontoLabel} (${brl(desconto)}). Valor integral ${brl(cTotal)}, pago integralmente via ${cForma} na assinatura.</small>
   </span></label>`;
+} else if (isConsultoriaMode) {
+  const CI = P.consultoria || {};
+  const ciSM = CI.salarios || 2;
+  const ciMensal = CI.mensal || ciSM * 1412;
+  const ciMeses = CI.meses || 6;
+  const ciDia = CI.dia || '10';
+  const ciForma = CI.forma || 'PIX';
+  const ciTotal = ciMensal * ciMeses;
+  let ciDesconto = 0, ciDescontoLabel = '';
+  if (ciMeses >= 12) { ciDesconto = ciMensal; ciDescontoLabel = '1 mensalidade'; }
+  else if (ciMeses >= 6) { ciDesconto = ciMensal * 0.5; ciDescontoLabel = 'meia mensalidade'; }
+  const ciVista = ciTotal - ciDesconto;
+
+  $('pay').innerHTML = `<label><input type="radio" name="pg" value="consultoria" checked><span>
+    <b>Pagamento mensal</b>
+    <div class="amt">${brl(ciMensal)}/m&ecirc;s</div>
+    <small>${ciSM} sal&aacute;rio${ciSM>1?'s':''} m&iacute;nimo${ciSM>1?'s':''} &middot; ${ciMeses} meses &middot; Dia ${ciDia} via ${ciForma} &middot; Total: ${brl(ciTotal)}</small>
+  </span></label>
+  ${ciDesconto > 0 ? `<label><input type="radio" name="pg" value="consultoria-vista"><span>
+    <b>&Agrave; vista com desconto</b>
+    <div class="amt">${brl(ciVista)}</div>
+    <small>Desconto de ${ciDescontoLabel} (${brl(ciDesconto)}). Valor integral ${brl(ciTotal)}, pago integralmente via ${ciForma} na assinatura.</small>
+  </span></label>` : ''}`;
 } else
 $('pay').innerHTML = `
   <label><input type="radio" name="pg" value="parcelado" checked><span>
@@ -331,11 +374,44 @@ $('pay').innerHTML = `
 
 function pagamentoEscolhido(){
   const v = document.querySelector('input[name=pg]:checked').value;
+  if (v === 'consultoria') {
+    const CI = P.consultoria || {};
+    const sm = CI.salarios || 2;
+    const mensal = CI.mensal || sm*1412;
+    const meses = CI.meses || 6;
+    return { tipo:'Pagamento mensal (salários mínimos)', valor:mensal, texto:`Valor mensal de ${brl(mensal)} (${sm} salário${sm>1?'s':''} mínimo${sm>1?'s':''}), devido até o dia ${CI.dia||10} de cada mês, mediante ${CI.forma||'PIX'}. Vigência de ${meses} meses, totalizando ${brl(mensal*meses)}. Reajuste automático acompanhando o salário mínimo vigente. O atraso no pagamento sujeita o CONTRATANTE a multa de 2% sobre o valor devido, acrescida de juros moratórios de 1% ao mês, pro rata die.` };
+  }
+  if (v === 'consultoria-vista') {
+    const CI = P.consultoria || {};
+    const sm = CI.salarios || 2;
+    const mensal = CI.mensal || sm*1412;
+    const meses = CI.meses || 6;
+    const total = mensal * meses;
+    let desconto = 0, descontoLabel = '';
+    if (meses >= 12) { desconto = mensal; descontoLabel = '1 mensalidade'; }
+    else if (meses >= 6) { desconto = mensal * 0.5; descontoLabel = 'meia mensalidade'; }
+    const vista = total - desconto;
+    return { tipo:'À vista com desconto de ' + descontoLabel, valor:vista, texto:`Valor total de ${brl(vista)}, já com desconto de ${descontoLabel} (${brl(desconto)}) sobre o valor integral de ${brl(total)}, pago integralmente via ${CI.forma||'PIX'} na assinatura deste contrato. Vigência de ${meses} meses.` };
+  }
   if (v === 'conselho') {
     const C = P.conselho || {};
     const sm = C.salarios || 3;
     const mensal = C.mensal || sm*1412;
-    return { tipo:'Pagamento mensal (salários mínimos)', valor:mensal, texto:`Valor mensal de ${brl(mensal)} (${sm} salário${sm>1?'s':''} mínimo${sm>1?'s':''}), devido até o dia ${C.dia||10} de cada mês, mediante ${C.forma||'PIX'}. Vigência de ${C.meses||12} meses. Reajuste automático acompanhando o salário mínimo vigente.` };
+    const meses = C.meses || 12;
+    return { tipo:'Pagamento mensal (salários mínimos)', valor:mensal, texto:`Valor mensal de ${brl(mensal)} (${sm} salário${sm>1?'s':''} mínimo${sm>1?'s':''}), devido até o dia ${C.dia||10} de cada mês, mediante ${C.forma||'PIX'}. Vigência de ${meses} meses, totalizando ${brl(mensal*meses)}. Reajuste automático acompanhando o salário mínimo vigente. O atraso no pagamento sujeita o CONTRATANTE a multa de 2% sobre o valor devido, acrescida de juros moratórios de 1% ao mês, pro rata die.` };
+  }
+  if (v === 'conselho-vista') {
+    const C = P.conselho || {};
+    const sm = C.salarios || 3;
+    const mensal = C.mensal || sm*1412;
+    const meses = C.meses || 12;
+    const total = mensal * meses;
+    let desconto = 0, descontoLabel = '';
+    if (meses <= 6) { desconto = mensal * 0.5; descontoLabel = 'meia mensalidade'; }
+    else if (meses <= 12) { desconto = mensal; descontoLabel = '1 mensalidade'; }
+    else { desconto = mensal * 2; descontoLabel = '2 mensalidades'; }
+    const vista = total - desconto;
+    return { tipo:'À vista com desconto de ' + descontoLabel, valor:vista, texto:`Valor total de ${brl(vista)}, já com desconto de ${descontoLabel} (${brl(desconto)}) sobre o valor integral de ${brl(total)}, pago integralmente via ${C.forma||'PIX'} na assinatura deste contrato. Vigência de ${meses} meses.` };
   }
   if (v === 'parcelado') return { tipo:'Em 2 vezes (50% + 50%)', valor:T, texto:`Primeira parcela de ${brl(entrada)} (${CONFIG.entradaPct}%) devida na assinatura deste contrato. Segunda parcela de ${brl(saldo)} (${100-CONFIG.entradaPct}%) devida na entrega do serviço contratado. O atraso de qualquer parcela sujeita o CONTRATANTE a multa de ${CONFIG.multaAtraso}% sobre o valor da parcela em atraso, acrescida de juros moratórios de ${CONFIG.jurosMes}% ao mês, pro rata die, e correção monetária pelo ${CONFIG.correcao}.` };
   if (v === 'mensal') { const ent30=Math.round(T*0.3); const parc=Math.round(T*0.7/12); return { tipo:'Entrada 30% + 12 parcelas mensais', valor:T, texto:`Entrada de ${brl(ent30)} (30%) devida na assinatura deste contrato. Saldo de ${brl(T-ent30)} em 12 parcelas mensais iguais de ${brl(parc)}, vencendo no mesmo dia de cada mês subsequente. O atraso de qualquer parcela sujeita o CONTRATANTE a multa de ${CONFIG.multaAtraso}% sobre o valor da parcela em atraso, acrescida de juros moratórios de ${CONFIG.jurosMes}% ao mês, pro rata die, e correção monetária pelo ${CONFIG.correcao}.` }; }
@@ -364,8 +440,9 @@ function renderContract(){
   const temEtapas = etapas.length > 0;
   const itensLivres = P.lines.filter(l => !l.n && l.kind !== 'var' && l.kind !== 'credit' && l.kind !== 'fee');
   const isConselho = P.modo === 'conselho' || (P.conselho && P.conselho.salarios);
-  const isConsultoria = !isConselho && itensLivres.length > 0 && !temEtapas;
-  const titulo = isConselho ? 'Contrato de prestação de serviços de assessoria estratégica em desenvolvimento imobiliário' : isConsultoria ? 'Contrato de prestação de serviços de consultoria técnica' : 'Contrato de prestação de serviços de arquitetura e consultoria';
+  const isConsultoriaInc = P.modo === 'consultoria' || (P.consultoria && P.consultoria.salarios);
+  const isConsultoria = !isConselho && !isConsultoriaInc && itensLivres.length > 0 && !temEtapas;
+  const titulo = isConselho ? 'Contrato de prestação de serviços de assessoria estratégica em desenvolvimento imobiliário' : isConsultoriaInc ? 'Contrato de prestação de serviços de consultoria de incorporação' : isConsultoria ? 'Contrato de prestação de serviços de consultoria técnica' : 'Contrato de prestação de serviços de arquitetura e consultoria';
 
   let objetoHtml = '';
   if (isConselho) {
@@ -391,6 +468,24 @@ function renderContract(){
 
     // Override payment section for conselho
     $('contract').dataset.conselho = JSON.stringify(C);
+  } else if (isConsultoriaInc) {
+    const CI = P.consultoria || {};
+    const ciSM = CI.salarios || 2;
+    const ciMeses = CI.meses || 6;
+    const ciMensal = CI.mensal || (ciSM * 1412);
+    const ciTotal = CI.total || (ciMensal * ciMeses);
+    const ciUn = CI.unidades || '';
+    objetoHtml = `<p>Prestação de serviços de consultoria de incorporação imobiliária, direcionada ao projeto do CONTRATANTE${ciUn ? ' ('+ciUn+' unidades)' : ''}, compreendendo:</p>
+    <ol>
+      <li>Reunião semanal de acompanhamento (1 encontro por semana, 1h cada, por vídeo)</li>
+      <li>Diretrizes de tipologia, metragem, mix e posicionamento do produto</li>
+      <li>Análise de preço, margem e velocidade de venda</li>
+      <li>Acompanhamento da evolução das etapas do projeto</li>
+      <li>Relatório mensal de status</li>
+      <li>Acesso direto para consultas pontuais (até 4 por mês, resposta em 24h úteis)</li>
+    </ol>
+    <p>A natureza do serviço é exclusivamente de <b>instrução e orientação</b>. A CONTRATADA não executa diretamente projeto, obra, registro ou venda, apenas direciona a tomada de decisão do CONTRATANTE.</p>
+    <p>Itens não listados (projeto arquitetônico, RI, 3D, obra, materiais de venda) não integram este contrato e poderão ser contratados em separado.</p>`;
   } else if (isConsultoria) {
     objetoHtml = `<p>Prestação de serviços de consultoria técnica em desenvolvimento imobiliário, conforme escopo descrito neste contrato, relativos ao imóvel ou empreendimento ${$('endterreno').value.trim() ? f('endterreno') : 'descrito na proposta'} (${esc(P.sub)}).</p>
     <p><b>Serviços contratados:</b></p>
@@ -414,7 +509,20 @@ function renderContract(){
     ${objetoHtml}
 
     <h3>2. Preço e forma de pagamento</h3>
-    ${isConselho ? (function(){
+    ${isConsultoriaInc ? (function(){
+      const CI = P.consultoria || {};
+      const ciSM = CI.salarios || 2;
+      const ciMeses = CI.meses || 6;
+      const ciDia = CI.dia || '10';
+      const ciForma = CI.forma || 'PIX';
+      const ciMensal = CI.mensal || (ciSM * 1412);
+      const ciTotal = CI.total || (ciMensal * ciMeses);
+      const ext = {1:'um',2:'dois',3:'três',4:'quatro',5:'cinco',6:'seis',7:'sete',8:'oito',9:'nove',10:'dez'};
+      return '<p>O valor mensal é de <b>' + ciSM + ' (' + (ext[ciSM]||ciSM) + ') salários mínimos</b> vigentes na data de cada vencimento, equivalente a <b>' + brl(ciMensal) + '</b> na presente data, totalizando <b>' + brl(ciTotal) + '</b> no período de ' + ciMeses + ' meses.</p>'
+        + '<p>O pagamento é devido até o <b>dia ' + ciDia + '</b> de cada mês, mediante <b>' + ciForma + '</b> para a conta da CONTRATADA. O primeiro pagamento é devido na data de celebração deste contrato.</p>'
+        + '<p>O reajuste é automático, acompanhando o salário mínimo vigente, sem necessidade de aditivo.</p>';
+    })() :
+    isConselho ? (function(){
       const C = P.conselho || {};
       const smQty = C.salarios || 3;
       const smMeses = C.meses || 12;
@@ -431,14 +539,16 @@ function renderContract(){
     <p>Os valores são líquidos de taxas de cartório, prefeitura, concessionárias, RRT e demais custos de terceiros, que correm por conta do CONTRATANTE.</p>`}
 
     <h3>3. Prazos</h3>
-    ${isConselho ? `<p>O contrato tem vigência de <b>${(P.conselho||{}).meses||12} meses</b>, contados da data de aceite, renovável automaticamente por iguais períodos, salvo manifestação contrária de qualquer das partes com antecedência mínima de 30 dias antes do término.</p>` : temEtapas ? `<p>Os prazos de cada etapa são contados a partir do evento indicado, condicionados à confirmação do pagamento correspondente e ao recebimento das informações necessárias:</p>${prazos()}` : `<p>O prazo de vigência da consultoria é de 12 meses contados da assinatura deste contrato, condicionado à regularidade dos pagamentos mensais.</p>`}
+    ${isConsultoriaInc ? `<p>O contrato tem vigência de <b>${(P.consultoria||{}).meses||6} meses</b>, contados da data de aceite. Poderá ser renovado por acordo entre as partes mediante novo instrumento.</p>` :
+    isConselho ? `<p>O contrato tem vigência de <b>${(P.conselho||{}).meses||12} meses</b>, contados da data de aceite, renovável automaticamente por iguais períodos, salvo manifestação contrária de qualquer das partes com antecedência mínima de 30 dias antes do término.</p>` : temEtapas ? `<p>Os prazos de cada etapa são contados a partir do evento indicado, condicionados à confirmação do pagamento correspondente e ao recebimento das informações necessárias:</p>${prazos()}` : `<p>O prazo de vigência da consultoria é de 12 meses contados da assinatura deste contrato, condicionado à regularidade dos pagamentos mensais.</p>`}
     <p>Os prazos suspendem-se enquanto houver pendência de informação, documento, pagamento ou aprovação a cargo do CONTRATANTE ou de órgão público.</p>
 
-    <h3>4. ${isConselho ? 'Reuniões e entregas' : 'Entregas e aprovação'}</h3>
-    ${isConselho ? `<p>As reuniões serão realizadas semanalmente, em até 2 (duas) por semana, por videoconferência, com duração de até 1 (uma) hora cada, em data e horário acordados entre as partes com antecedência mínima de 48 horas. A pauta é enviada pelo CONTRATANTE com antecedência de 24 horas. Reuniões não realizadas por ausência do CONTRATANTE não são reposicionáveis. A CONTRATADA poderá remarcar até 2 reuniões por mês sem penalidade.</p>` : isConsultoria ? `<p>A consultoria é prestada por meio de reuniões mensais de alinhamento, acesso direto via WhatsApp para dúvidas pontuais, relatório mensal de progresso e material de apoio (planilhas, modelos, checklists). As entregas diretas (viabilidade e, se contratado, projeto) são entregues em formato digital e consideram-se aprovadas se não houver manifestação escrita em 7 dias.</p>` : `<p>Cada etapa é entregue em formato digital e considera-se aprovada se não houver manifestação escrita em 7 dias. Cada etapa inclui uma rodada de ajustes; alterações de escopo ou revisões adicionais serão orçadas à parte.</p>`}
+    <h3>4. ${(isConselho || isConsultoriaInc) ? 'Reuniões e entregas' : 'Entregas e aprovação'}</h3>
+    ${isConsultoriaInc ? `<p>As reuniões serão realizadas semanalmente, 1 (uma) por semana, por videoconferência, com duração de até 1 (uma) hora cada, em data e horário acordados entre as partes com antecedência mínima de 48 horas. A pauta é enviada pelo CONTRATANTE com antecedência de 24 horas. Reuniões não realizadas por ausência do CONTRATANTE não são reposicionáveis. A CONTRATADA poderá remarcar até 2 reuniões por mês sem penalidade. Relatório mensal de status é entregue até o 5º dia útil do mês seguinte.</p>` :
+    isConselho ? `<p>As reuniões serão realizadas semanalmente, em até 2 (duas) por semana, por videoconferência, com duração de até 1 (uma) hora cada, em data e horário acordados entre as partes com antecedência mínima de 48 horas. A pauta é enviada pelo CONTRATANTE com antecedência de 24 horas. Reuniões não realizadas por ausência do CONTRATANTE não são reposicionáveis. A CONTRATADA poderá remarcar até 2 reuniões por mês sem penalidade.</p>` : isConsultoria ? `<p>A consultoria é prestada por meio de reuniões mensais de alinhamento, acesso direto via WhatsApp para dúvidas pontuais, relatório mensal de progresso e material de apoio (planilhas, modelos, checklists). As entregas diretas (viabilidade e, se contratado, projeto) são entregues em formato digital e consideram-se aprovadas se não houver manifestação escrita em 7 dias.</p>` : `<p>Cada etapa é entregue em formato digital e considera-se aprovada se não houver manifestação escrita em 7 dias. Cada etapa inclui uma rodada de ajustes; alterações de escopo ou revisões adicionais serão orçadas à parte.</p>`}
 
     <h3>5. Obrigações do contratante</h3>
-    <p>${isConselho ? 'Efetuar os pagamentos nas datas acordadas; comparecer às reuniões agendadas; fornecer informações verdadeiras sobre seus empreendimentos e operação; executar ou contratar a execução das atividades orientadas pela CONTRATADA.' : `Fornecer documentos do imóvel, informações verdadeiras e as aprovações dentro dos prazos; efetuar os pagamentos nas datas acordadas; comparecer às reuniões agendadas${isConsultoria ? '; executar ou contratar a execução das atividades orientadas pela CONTRATADA' : ''}.`}</p>
+    <p>${(isConselho || isConsultoriaInc) ? 'Efetuar os pagamentos nas datas acordadas; comparecer às reuniões agendadas; fornecer informações verdadeiras sobre seus empreendimentos e operação; executar ou contratar a execução das atividades orientadas pela CONTRATADA.' : `Fornecer documentos do imóvel, informações verdadeiras e as aprovações dentro dos prazos; efetuar os pagamentos nas datas acordadas; comparecer às reuniões agendadas${isConsultoria ? '; executar ou contratar a execução das atividades orientadas pela CONTRATADA' : ''}.`}</p>
     ${temEtapas ? `<p><b>Documentos necessários para início dos trabalhos:</b></p>
     <ol style="font-size:13px;line-height:1.8">
       <li>CNPJ da SPE e da empresa titular</li>
@@ -459,7 +569,7 @@ function renderContract(){
     <h3>6. Inadimplemento</h3>
     <p>O atraso no pagamento de qualquer parcela ou valor devido sujeita o CONTRATANTE a multa de ${CONFIG.multaAtraso}% sobre o valor em atraso, acrescida de juros moratórios de ${CONFIG.jurosMes}% ao mês, calculados pro rata die, e correção monetária pelo índice ${CONFIG.correcao}, sem prejuízo da cobrança judicial. O atraso superior a 30 dias autoriza a CONTRATADA a suspender os trabalhos em andamento até a regularização, sem que o prazo contratual seja prorrogado. Persistindo o inadimplemento por mais de 60 dias, fica facultada a rescisão por justa causa pela CONTRATADA, aplicando-se a cláusula 8.</p>
 
-    ${isConselho ? `<h3>7. Confidencialidade</h3>
+    ${(isConselho || isConsultoriaInc) ? `<h3>7. Confidencialidade</h3>
     <p>As partes se comprometem a manter sigilo sobre todas as informações comerciais, financeiras e estratégicas compartilhadas durante a vigência deste contrato, inclusive após seu término, pelo prazo de 2 (dois) anos. A CONTRATADA poderá divulgar a relação de assessoria em seu portfólio, sem expor dados financeiros do CONTRATANTE.</p>
 
     <h3>8. Propriedade intelectual</h3>
@@ -480,10 +590,10 @@ function renderContract(){
     <p><b>8.3. Rescisão por mútuo acordo:</b> as partes podem rescindir a qualquer momento por acordo escrito, definindo livremente as condições de encerramento.</p>
     <p><b>8.4. Efeitos:</b> em qualquer modalidade de rescisão, a CONTRATADA entregará ao CONTRATANTE todos os materiais já produzidos até a data da rescisão, condicionada à quitação dos valores devidos. Os direitos autorais permanecem com a CONTRATADA conforme cláusula 7, mesmo após a rescisão.</p>`}
 
-    <h3>${isConselho ? '10' : '9'}. Aceite eletrônico</h3>
+    <h3>${(isConselho || isConsultoriaInc) ? '10' : '9'}. Aceite eletrônico</h3>
     <p>As partes reconhecem a validade do aceite eletrônico realizado nesta página, com registro de nome, documento, data, hora e endereço de rede, nos termos do art. 10, §2º, da MP 2.200-2/2001 e do art. 107 do Código Civil.</p>
 
-    <h3>${isConselho ? '11' : '10'}. Foro</h3>
+    <h3>${(isConselho || isConsultoriaInc) ? '11' : '10'}. Foro</h3>
     <p>Fica eleito o foro da comarca de ${cf('cidadeForo')} para dirimir quaisquer questões deste contrato.</p>
     <p id="c-sign"></p>`;
 }
@@ -597,25 +707,70 @@ $('go').addEventListener('click', async () => {
     } catch(e){ erroBanco = e.message; }
   }
 
+  // Vigência no contrato
+  const inicioVigencia = quando.toLocaleDateString('pt-BR');
+  const fimDate = new Date(quando);
+  const mesesVigencia = (P.consultoria && P.consultoria.meses) ? P.consultoria.meses : (P.conselho && P.conselho.meses) ? P.conselho.meses : (P.modo === 'conselho' ? 12 : (P.modo === 'consultoria' ? 6 : null));
+  if (mesesVigencia) {
+    fimDate.setMonth(fimDate.getMonth() + mesesVigencia);
+  } else {
+    fimDate.setFullYear(fimDate.getFullYear() + 1);
+  }
+  const fimVigencia = fimDate.toLocaleDateString('pt-BR');
+  const vigenciaHtml = `<p style="margin-top:16px;padding:12px 16px;background:rgba(106,35,38,.04);border-left:3px solid var(--v);border-radius:0 8px 8px 0;font-size:13px"><b>Vigência:</b> ${inicioVigencia} a ${fimVigencia}${mesesVigencia ? ' (' + mesesVigencia + ' meses)' : ''}</p>`;
+
   // Assinatura no contrato
   const sign = `Aceito eletronicamente por ${esc(registro.cliente_nome)} (${esc(registro.cliente_doc)}) em ${quando.toLocaleString('pt-BR')} · IP ${esc(ip)} · código ${codigo}`;
-  $('c-sign').innerHTML = `<br><b>${sign}</b>`;
-  $('print-sign').innerHTML = `<p style="margin-top:30px"><b>${sign}</b></p>`;
+  $('c-sign').innerHTML = vigenciaHtml + `<br><b>${sign}</b>`;
+  $('print-sign').innerHTML = `<p style="margin-top:16px"><b>Vigência:</b> ${inicioVigencia} a ${fimVigencia}</p><p style="margin-top:30px"><b>${sign}</b></p>`;
   $('det').open = true;
 
   // Estado final
   document.body.classList.add('accepted');
   $('done-when').textContent = quando.toLocaleString('pt-BR');
   $('done-code').textContent = codigo + (salvoBanco ? ' · registrado' : '');
-  if (erroBanco) $('done-code').textContent += ' · (não gravou no banco — envie pelo WhatsApp)';
-  $('wa').style.display = CONFIG.whatsapp ? '' : 'none';
+  if (erroBanco) $('done-code').textContent += ' · (não gravou no banco)';
   window.scrollTo({top:0, behavior:'smooth'});
 
-  const txt = [`*Aceite de proposta — Método Origem*`, `Código: ${codigo}`, `Data: ${quando.toLocaleString('pt-BR')}`, '',
-    `*Cliente:* ${registro.cliente_nome}`, `Documento: ${registro.cliente_doc}`, `E-mail: ${registro.cliente_email}`, `WhatsApp: ${registro.cliente_whatsapp}`, `Endereço: ${registro.cliente_endereco}`, registro.terreno ? `Terreno: ${registro.terreno}` : '', '',
-    `*Proposta:* ${P.title} — ${P.sub}`, ...etapas.map(l=>`${l.n}. ${l.t} — ${brl(l.v)}`), `Total fixo: ${brl(T)}`, varLine ? `Variável: ${varLine.s}` : '', '',
-    `*Pagamento:* ${pg.tipo}`, pg.texto, '', `IP ${ip}`].filter(x=>x!=='').join('\n');
-  $('wa').onclick = () => window.open(`https://wa.me/${CONFIG.whatsapp}?text=${encodeURIComponent(txt)}`, '_blank');
+  // Montar texto do aceite
+  const txt = [
+    'CONTRATO ACEITO',
+    'Código: ' + codigo,
+    'Data: ' + quando.toLocaleString('pt-BR'),
+    'Vigência: ' + inicioVigencia + ' a ' + fimVigencia,
+    '',
+    'CLIENTE:',
+    'Nome: ' + registro.cliente_nome,
+    'CPF/CNPJ: ' + registro.cliente_doc,
+    'E-mail: ' + registro.cliente_email,
+    'WhatsApp: ' + registro.cliente_whatsapp,
+    'Endereço: ' + registro.cliente_endereco,
+    registro.terreno ? 'Terreno: ' + registro.terreno : '',
+    '',
+    'PROPOSTA: ' + P.title + ' — ' + P.sub,
+    ...etapas.map(l => l.n + '. ' + l.t + ' — ' + brl(l.v)),
+    P.consultoria ? 'Valor mensal: ' + brl(P.consultoria.mensal || 0) + ' (' + (P.consultoria.salarios||2) + ' SM) · Consultoria de incorporação' : '',
+    P.conselho ? 'Valor mensal: ' + brl(P.conselho.mensal || 0) + ' (' + (P.conselho.salarios||3) + ' SM) · Conselho estratégico' : '',
+    'Total fixo: ' + brl(T),
+    varLine ? 'Variável: ' + varLine.s : '',
+    '',
+    'PAGAMENTO: ' + pg.tipo,
+    pg.texto,
+    '',
+    'IP: ' + ip
+  ].filter(x => x !== '').join('\n');
+
+  // Enviar pro Telegram
+  var TG_BOT = '7607498857:AAE0jM_cFrU7qHlXrPAz9q5rQxI3ZOQNxpI';
+  var TG_CHAT = '-4580797688';
+  try {
+    fetch('https://api.telegram.org/bot' + TG_BOT + '/sendMessage', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({chat_id: TG_CHAT, text: txt})
+    });
+  } catch(e){}
+
+  // Botão PDF
   $('pdf').onclick = () => window.print();
 });
 }
