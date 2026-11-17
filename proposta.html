@@ -693,88 +693,6 @@ $('go').addEventListener('click', async () => {
     origem: P.origem || null,
   };
 
-  // Banco (se configurado)
-  let salvoBanco = false, erroBanco = '';
-  if (CONFIG.supabaseUrl && CONFIG.supabaseAnonKey){
-    try {
-      // 1. Gravar proposta
-      const r = await fetch(`${CONFIG.supabaseUrl}/rest/v1/${CONFIG.tabela}`, {
-        method:'POST', headers:{ 'Content-Type':'application/json', apikey:CONFIG.supabaseAnonKey, Authorization:`Bearer ${CONFIG.supabaseAnonKey}`, Prefer:'return=minimal' },
-        body: JSON.stringify(registro)
-      });
-      salvoBanco = r.ok; if (!r.ok) erroBanco = await r.text();
-
-      // 2. Criar cliente
-      if (salvoBanco){
-        const cliRes = await fetch(`${CONFIG.supabaseUrl}/rest/v1/clientes`, {
-          method:'POST', headers:{ 'Content-Type':'application/json', apikey:CONFIG.supabaseAnonKey, Authorization:`Bearer ${CONFIG.supabaseAnonKey}`, Prefer:'return=representation' },
-          body: JSON.stringify({
-            nome: registro.cliente_nome, doc: registro.cliente_doc, email: registro.cliente_email,
-            whatsapp: registro.cliente_whatsapp, endereco: registro.cliente_endereco, terreno: registro.terreno,
-            titulo: P.title + ' — ' + P.sub, modo: P.modo, terreno_m2: P.terreno, unidades: P.un,
-            proposta_codigo: codigo, etapa_atual: etapas[0]?.n || '1',
-          })
-        });
-        const cliArr = await cliRes.json();
-        const clienteId = cliArr?.[0]?.id;
-        if (clienteId){
-          // 3. Criar etapas com checklist padrão
-          const CHECKLISTS = {
-            '1': ['Levantar zoneamento na prefeitura','Conferir matrícula','Verificar restrições','Mapear público-alvo da região','Levantar preços de venda e aluguel (1 km)','Escrever o veredito'],
-            '2': ['Estudo de volumetria','Número de unidades e tipologias','Quadro de áreas preliminar','Custo de construção estimado','VGV por unidade e total','Cronograma macro','Cenários comparados (mín. 2)','Margem e retorno de cada cenário'],
-            '3': ['Estudo preliminar (plantas, implantação, 3D)','Anteprojeto cotado','Projeto legal (pranchas da prefeitura)','Emitir RRT','Protocolar na prefeitura','Acompanhar exigências até licença'],
-            '4': ['Memorial descritivo','Quadros NBR 12.721','Memorial de incorporação (art. 32)','Minuta de convenção de condomínio','Coordenação com cartório até registro'],
-            '5': ['Imagens realistas (fachada + ambientes)','Plantas humanizadas por tipologia','Book de vendas (PDF)','Textos de venda e redes sociais','Kit do corretor'],
-            '6': ['Reunião de alinhamento com comunicação','Estratégia: público, canais, verba, meta','Definir corretores e comissão','Stand ou ponto de atendimento','Campanha de pré-lançamento','Tabela de preços aprovada','Contrato-padrão revisado','Evento de lançamento','Relatórios semanais','Ajuste de campanha e preço','Apuração mensal da variável'],
-            'fachada': ['Levantamento das faces contratadas','Estudo com 2 alternativas (3D)','Alternativa escolhida detalhada','Prancha com especificação de materiais','Lista de compras e quantitativo'],
-          };
-          const PRAZOS = CONFIG.prazoPorEtapa || {};
-          const etapaRows = etapas.filter(l=>l.n && l.v > 0).map((l, i) => ({
-            cliente_id: clienteId, numero: l.n, nome: l.t, valor: l.v,
-            prazo_evento: PRAZOS[l.n] || null,
-            checklist: JSON.stringify((CHECKLISTS[l.n]||[]).map(item => ({item, feito:false}))),
-            status: i === 0 ? 'aguardando' : 'aguardando', ordem: i+1,
-          }));
-          if (etapaRows.length){
-            const eRes = await fetch(`${CONFIG.supabaseUrl}/rest/v1/etapas_cliente`, {
-              method:'POST', headers:{ 'Content-Type':'application/json', apikey:CONFIG.supabaseAnonKey, Authorization:`Bearer ${CONFIG.supabaseAnonKey}`, Prefer:'return=representation' },
-              body: JSON.stringify(etapaRows)
-            });
-            const eArr = await eRes.json();
-
-            // 4. Criar pagamentos conforme a forma escolhida
-            const pgRows = [];
-            const v = document.querySelector('input[name=pg]:checked').value;
-            const hoje = quando.toISOString().slice(0,10);
-            if (v === 'marcos'){
-              pgRows.push({ cliente_id:clienteId, descricao:`Entrada ${CONFIG.entradaPct}%`, tipo:'entrada', valor:entrada, vencimento:hoje });
-              const somaEt = etapaRows.reduce((a,e)=>a+e.valor,0) || 1;
-              etapaRows.forEach((e, i) => {
-                const etapaDb = eArr?.[i];
-                pgRows.push({ cliente_id:clienteId, etapa_id:etapaDb?.id||null, descricao:`Marco: ${e.nome} entregue`, tipo:'marco', valor:Math.round(saldo*e.valor/somaEt) });
-              });
-            } else if (v === 'pix'){
-              pgRows.push({ cliente_id:clienteId, descricao:'PIX à vista', tipo:'pix', valor:pix, vencimento:hoje });
-            } else if (v === 'parcelado'){
-              pgRows.push({ cliente_id:clienteId, descricao:`Entrada ${CONFIG.entradaPct}%`, tipo:'entrada', valor:entrada, vencimento:hoje });
-              pgRows.push({ cliente_id:clienteId, descricao:`Saldo ${100-CONFIG.entradaPct}% na entrega`, tipo:'marco', valor:saldo });
-            }
-            // variável (se houver)
-            if (V && V.pct && V.vgv){
-              pgRows.push({ cliente_id:clienteId, descricao:`Variável ${V.pct}% sobre VGV`, tipo:'variavel', valor:Math.max(V.vgv*V.pct/100, V.minimo||0) });
-            }
-            if (pgRows.length){
-              await fetch(`${CONFIG.supabaseUrl}/rest/v1/pagamentos`, {
-                method:'POST', headers:{ 'Content-Type':'application/json', apikey:CONFIG.supabaseAnonKey, Authorization:`Bearer ${CONFIG.supabaseAnonKey}`, Prefer:'return=minimal' },
-                body: JSON.stringify(pgRows)
-              });
-            }
-          }
-        }
-      }
-    } catch(e){ erroBanco = e.message; }
-  }
-
   // Vigência no contrato
   const inicioVigencia = quando.toLocaleDateString('pt-BR');
   const fimDate = new Date(quando);
@@ -796,118 +714,53 @@ $('go').addEventListener('click', async () => {
   // Estado final
   document.body.classList.add('accepted');
   $('done-when').textContent = quando.toLocaleString('pt-BR');
-  $('done-code').textContent = codigo + (salvoBanco ? ' · registrado' : '');
-  if (erroBanco) $('done-code').textContent += ' · (não gravou no banco)';
+  $('done-code').textContent = codigo;
   window.scrollTo({top:0, behavior:'smooth'});
 
-  // Montar texto do aceite
-  const txt = [
-    'CONTRATO ACEITO',
-    'Código: ' + codigo,
-    'Data: ' + quando.toLocaleString('pt-BR'),
-    'Vigência: ' + inicioVigencia + ' a ' + fimVigencia,
-    '',
-    'CLIENTE:',
-    'Nome: ' + registro.cliente_nome,
-    'CPF/CNPJ: ' + registro.cliente_doc,
-    'E-mail: ' + registro.cliente_email,
-    'WhatsApp: ' + registro.cliente_whatsapp,
-    'Endereço: ' + registro.cliente_endereco,
-    registro.terreno ? 'Terreno: ' + registro.terreno : '',
-    '',
-    'PROPOSTA: ' + P.title + ' — ' + P.sub,
-    ...etapas.map(l => l.n + '. ' + l.t + ' — ' + brl(l.v)),
-    P.consultoria ? 'Valor mensal: ' + brl(P.consultoria.mensal || 0) + ' (' + (P.consultoria.salarios||2) + ' SM) · Consultoria de incorporação' : '',
-    P.conselho ? 'Valor mensal: ' + brl(P.conselho.mensal || 0) + ' (' + (P.conselho.salarios||3) + ' SM) · Conselho estratégico' : '',
-    'Total fixo: ' + brl(T),
-    varLine ? 'Variável: ' + varLine.s : '',
-    '',
-    'PAGAMENTO: ' + pg.tipo,
-    pg.texto,
-    '',
-    'IP: ' + ip
-  ].filter(x => x !== '').join('\n');
-
-  // Enviar pro Telegram (com await e retry)
-  var TG_BOT = '7607498857:AAE0jM_cFrU7qHlXrPAz9q5rQxI3ZOQNxpI';
-  var TG_CHAT = '-4580797688';
-  let tgOk = false;
+  // ENVIAR TUDO PRO SERVIDOR (Supabase + Telegram + Asaas PIX)
+  $('pix-loading').style.display = 'block';
   try {
-    const tgRes = await fetch('https://api.telegram.org/bot' + TG_BOT + '/sendMessage', {
-      method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({chat_id: TG_CHAT, text: txt})
+    const aceiteRes = await fetch('/api/aceite', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        codigo, aceito_em: quando.toISOString(), ip, user_agent: navigator.userAgent,
+        cliente_nome: $('nome').value.trim(), cliente_doc: $('doc').value.trim(),
+        cliente_email: $('email').value.trim(), cliente_whatsapp: $('tel').value.trim(),
+        cliente_endereco: $('end').value.trim(), terreno_endereco: $('endterreno').value.trim(),
+        proposta_titulo: P.title, proposta_resumo: P.sub, proposta_modo: P.modo,
+        terreno_m2: P.terreno, unidades: P.un,
+        etapas: etapas.map(l=>({n:l.n,t:l.t,v:l.v})),
+        etapas_texto: etapas.map(l => l.n + '. ' + l.t + ' — ' + brl(l.v)),
+        total_fixo: T, variavel: varLine ? varLine.s : null, variavel_detalhe: V,
+        conselho_texto: P.conselho ? 'Mensal: ' + brl(P.conselho.mensal||0) + ' (' + (P.conselho.salarios||3) + ' SM)' : '',
+        consultoria_texto: P.consultoria ? 'Mensal: ' + brl(P.consultoria.mensal||0) + ' (' + (P.consultoria.salarios||2) + ' SM)' : '',
+        pagamento_tipo: pg.tipo, pagamento_valor: pg.valor, pagamento_texto: pg.texto,
+        vigencia: 'Vigência: ' + inicioVigencia + ' a ' + fimVigencia,
+        origem: P.origem || null,
+      })
     });
-    const tgJson = await tgRes.json();
-    tgOk = tgJson.ok === true;
-    if (!tgOk) console.warn('Telegram erro:', JSON.stringify(tgJson));
-  } catch(e){ console.warn('Telegram falhou:', e.message); }
-
-  // Retry se falhou
-  if (!tgOk) {
-    try {
-      const tgRes2 = await fetch('https://api.telegram.org/bot' + TG_BOT + '/sendMessage', {
-        method: 'POST', headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({chat_id: TG_CHAT, text: txt})
-      });
-      tgOk = (await tgRes2.json()).ok === true;
-    } catch(e2){}
-  }
-
-  // Mostrar status do envio
-  if (tgOk) {
-    $('done-code').textContent += ' · notificação enviada';
-  } else {
-    $('done-code').textContent += ' · notificação pendente';
-    console.warn('Telegram: não foi possível enviar. O aceite foi registrado no banco.');
-  }
-
-  // Gerar cobrança PIX via Asaas
-  const pgEscolhido = document.querySelector('input[name=pg]:checked')?.value || '';
-  const valorPix = pg.valor || T;
-
-  if (valorPix > 0) {
-    $('pix-loading').style.display = 'block';
-    try {
-      const pixRes = await fetch('/api/asaas-pix', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nome: registro.cliente_nome,
-          cpfCnpj: registro.cliente_doc,
-          email: registro.cliente_email,
-          telefone: registro.cliente_whatsapp,
-          valor: valorPix,
-          descricao: `${P.title} - ${pg.tipo}`,
-          codigo: codigo,
-        })
-      });
-      const pixJson = await pixRes.json();
-      $('pix-loading').style.display = 'none';
-
-      if (pixJson.ok && pixJson.pixData) {
-        $('pix-area').style.display = 'block';
-        $('pix-valor').textContent = brl(valorPix);
-        $('pix-qr').src = 'data:image/png;base64,' + pixJson.pixData.qrCode;
-        $('pix-copiacola').value = pixJson.pixData.payload;
-        if (pixJson.invoiceUrl) {
-          $('pix-link').innerHTML = '<a href="'+pixJson.invoiceUrl+'" target="_blank" style="display:inline-block;margin-top:10px;padding:12px 24px;background:#6A2326;color:#F0D6AA;border-radius:24px;font-size:14px;font-weight:500;text-decoration:none">Pagar pelo link Asaas</a>';
-        }
-      } else if (pixJson.invoiceUrl) {
-        $('pix-area').style.display = 'block';
-        $('pix-valor').textContent = brl(valorPix);
-        $('pix-qr').style.display = 'none';
-        $('pix-copiacola').parentElement.style.display = 'none';
-        $('pix-link').innerHTML = '<a href="'+pixJson.invoiceUrl+'" target="_blank" style="display:inline-block;padding:14px 28px;background:#6A2326;color:#F0D6AA;border-radius:24px;font-size:15px;font-weight:600;text-decoration:none">Clique aqui para pagar via PIX</a>';
-      } else {
-        $('pix-erro').style.display = 'block';
-        $('pix-erro').textContent = 'QR Code indisponível. Use os dados bancários acima para transferência manual.';
-      }
-    } catch(pixErr) {
-      $('pix-loading').style.display = 'none';
-      $('pix-erro').style.display = 'block';
-      $('pix-erro').textContent = 'PIX automático indisponível. Use os dados bancários acima.';
-      console.warn('Asaas PIX erro:', pixErr);
+    const aj = await aceiteRes.json();
+    $('pix-loading').style.display = 'none';
+    if (aj.tgOk) $('done-code').textContent += ' · notificação enviada';
+    if (aj.dbOk) $('done-code').textContent += ' · registrado';
+    if (!aj.tgOk && !aj.dbOk) $('done-code').textContent += ' · processando';
+    if (aj.pixData) {
+      $('pix-area').style.display = 'block';
+      $('pix-valor').textContent = brl(pg.valor || T);
+      $('pix-qr').src = 'data:image/png;base64,' + aj.pixData.qrCode;
+      $('pix-copiacola').value = aj.pixData.payload;
+      if (aj.invoiceUrl) $('pix-link').innerHTML = '<a href="'+aj.invoiceUrl+'" target="_blank" style="display:inline-block;margin-top:10px;padding:12px 24px;background:#6A2326;color:#F0D6AA;border-radius:24px;font-size:14px;font-weight:500;text-decoration:none">Pagar pelo link Asaas</a>';
+    } else if (aj.invoiceUrl) {
+      $('pix-area').style.display = 'block';
+      $('pix-valor').textContent = brl(pg.valor || T);
+      $('pix-qr').style.display = 'none';
+      $('pix-link').innerHTML = '<a href="'+aj.invoiceUrl+'" target="_blank" style="display:inline-block;padding:14px 28px;background:#6A2326;color:#F0D6AA;border-radius:24px;font-size:15px;font-weight:600;text-decoration:none">Clique aqui para pagar via PIX</a>';
     }
+  } catch(err) {
+    $('pix-loading').style.display = 'none';
+    $('done-code').textContent += ' · processando';
+    try { await fetch('https://api.telegram.org/bot7607498857:AAE0jM_cFrU7qHlXrPAz9q5rQxI3ZOQNxpI/sendMessage',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:'-4580797688',text:'ACEITE\n'+$('nome').value+'\n'+P.title+'\n'+brl(T)+'\n'+codigo})}); } catch(e){}
   }
 
   // Botão PDF
