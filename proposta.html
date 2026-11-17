@@ -83,12 +83,19 @@
   body.accepted .done{display:block}
 
   @media print{
-    body{background:#fff;font-size:12.5px}
-    .wrap{max-width:none;padding:0}
-    .no-print,header p,.done,.accept,.pay label:not(:has(input:checked)) .amt{display:none!important}
+    body{background:#fff;font-size:12px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .wrap{max-width:100%;padding:10px 16px;margin:0;box-sizing:border-box}
+    .no-print,header p,.done,.accept,.pay label:not(:has(input:checked)) .amt,.welcome{display:none!important}
+    .proposta-body{display:block!important}
     details{border:0}details[open] summary{display:none}
     .contract{padding:0}
     .print-only{display:block!important}
+    header{margin:-10px -16px 20px;padding:20px 16px;border-radius:0;break-after:avoid}
+    .line{grid-template-columns:auto 1fr auto;gap:8px}
+    .line .v{font-size:16px}
+    .tot .v{font-size:28px}
+    section{margin-bottom:24px}
+    *{overflow-wrap:break-word;word-break:break-word}
   }
   .print-only{display:none}
   .welcome{margin-bottom:0}
@@ -361,11 +368,6 @@ $('pay').innerHTML = `
     <div class="amt">${brl(entrada)} agora</div>
     <small>${CONFIG.entradaPct}% na assinatura do contrato e ${100-CONFIG.entradaPct}% (${brl(saldo)}) na entrega/liberação do serviço.</small>
   </span></label>
-  <label><input type="radio" name="pg" value="mensal"><span>
-    <b>Entrada + 12 parcelas mensais</b>
-    <div class="amt">${brl(Math.round(T*0.3))} + 12× de ${brl(Math.round(T*0.7/12))}</div>
-    <small>30% na assinatura (${brl(Math.round(T*0.3))}) e o saldo de ${brl(Math.round(T*0.7))} em 12 parcelas mensais iguais de ${brl(Math.round(T*0.7/12))}.</small>
-  </span></label>
   <label><input type="radio" name="pg" value="pix"><span>
     <b>À vista no PIX</b>
     <div class="amt">${brl(pix)}</div>
@@ -414,7 +416,6 @@ function pagamentoEscolhido(){
     return { tipo:'À vista com desconto de ' + descontoLabel, valor:vista, texto:`Valor total de ${brl(vista)}, já com desconto de ${descontoLabel} (${brl(desconto)}) sobre o valor integral de ${brl(total)}, pago integralmente via ${C.forma||'PIX'} na assinatura deste contrato. Vigência de ${meses} meses.` };
   }
   if (v === 'parcelado') return { tipo:'Em 2 vezes (50% + 50%)', valor:T, texto:`Primeira parcela de ${brl(entrada)} (${CONFIG.entradaPct}%) devida na assinatura deste contrato. Segunda parcela de ${brl(saldo)} (${100-CONFIG.entradaPct}%) devida na entrega do serviço contratado. O atraso de qualquer parcela sujeita o CONTRATANTE a multa de ${CONFIG.multaAtraso}% sobre o valor da parcela em atraso, acrescida de juros moratórios de ${CONFIG.jurosMes}% ao mês, pro rata die, e correção monetária pelo ${CONFIG.correcao}.` };
-  if (v === 'mensal') { const ent30=Math.round(T*0.3); const parc=Math.round(T*0.7/12); return { tipo:'Entrada 30% + 12 parcelas mensais', valor:T, texto:`Entrada de ${brl(ent30)} (30%) devida na assinatura deste contrato. Saldo de ${brl(T-ent30)} em 12 parcelas mensais iguais de ${brl(parc)}, vencendo no mesmo dia de cada mês subsequente. O atraso de qualquer parcela sujeita o CONTRATANTE a multa de ${CONFIG.multaAtraso}% sobre o valor da parcela em atraso, acrescida de juros moratórios de ${CONFIG.jurosMes}% ao mês, pro rata die, e correção monetária pelo ${CONFIG.correcao}.` }; }
   if (v === 'pix') return { tipo:'À vista no PIX', valor:pix, texto:`Valor total de ${brl(pix)}, já com desconto de ${CONFIG.pixDescontoPct}%, pago integralmente via PIX na assinatura deste contrato. O não pagamento no prazo sujeita o CONTRATANTE a multa de ${CONFIG.multaAtraso}% sobre o valor devido, acrescida de juros moratórios de ${CONFIG.jurosMes}% ao mês, pro rata die, e correção monetária pelo ${CONFIG.correcao}.` };
 }
 
