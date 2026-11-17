@@ -102,6 +102,7 @@
           <label><input type="radio" name="mode" value="emp" checked><span>Empreendimento</span></label>
           <label><input type="radio" name="mode" value="casa"><span>Uma casa</span></label>
           <label><input type="radio" name="mode" value="fachada"><span>Só fachada</span></label>
+          <label><input type="radio" name="mode" value="consultoria"><span>Consultoria</span></label>
           <label><input type="radio" name="mode" value="conselho"><span>Conselho</span></label>
         </div>
       </fieldset>
@@ -171,6 +172,65 @@
         <button type="button" onclick="addItem('','','')" style="margin-top:8px;font-size:13px;padding:6px 14px">+ Adicionar item personalizado</button>
       </fieldset>
 
+      <fieldset id="f-consultoria" hidden>
+        <legend>Consultoria de incorpora&ccedil;&atilde;o</legend>
+        <div class="field">
+          <label for="cons-un">N&uacute;mero de unidades do projeto</label>
+          <input type="number" id="cons-un" min="1" max="200" value="24" placeholder="ex.: 24">
+          <div class="hint" id="cons-un-hint">Define o n&iacute;vel de SM (at&eacute; 10 = 1 SM, 11-25 = 2 SM, 26-40 = 3 SM, 41-60 = 4 SM)</div>
+        </div>
+        <div class="field">
+          <label>Valor mensal (SM sugerido com base nas unidades)</label>
+          <div class="segment" role="radiogroup" aria-label="SM Consultoria" style="margin-bottom:8px">
+            <label><input type="radio" name="consult-sm" value="1"><span>1 SM</span></label>
+            <label><input type="radio" name="consult-sm" value="2" checked><span>2 SM</span></label>
+            <label><input type="radio" name="consult-sm" value="3"><span>3 SM</span></label>
+            <label><input type="radio" name="consult-sm" value="4"><span>4 SM</span></label>
+          </div>
+          <input type="number" id="consult-sm-input" min="1" max="10" value="2" placeholder="Ou digite">
+          <div class="hint">Sal&aacute;rio m&iacute;nimo vigente: R$ 1.412. Reajuste autom&aacute;tico.</div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label for="consult-meses">Dura&ccedil;&atilde;o</label>
+            <select id="consult-meses">
+              <option value="4">4 meses</option>
+              <option value="6" selected>6 meses</option>
+              <option value="9">9 meses</option>
+              <option value="12">12 meses</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="consult-dia">Dia do pagamento</label>
+            <select id="consult-dia">
+              <option value="5">Dia 5</option>
+              <option value="10" selected>Dia 10</option>
+              <option value="15">Dia 15</option>
+              <option value="20">Dia 20</option>
+              <option value="25">Dia 25</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label for="consult-forma">Forma de pagamento</label>
+            <select id="consult-forma">
+              <option value="PIX" selected>PIX</option>
+              <option value="Transferência bancária">Transfer&ecirc;ncia</option>
+              <option value="Boleto">Boleto</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="consult-data">Data de celebra&ccedil;&atilde;o</label>
+            <input type="date" id="consult-data">
+          </div>
+        </div>
+        <div style="margin-top:16px;padding:14px;background:var(--stone);border-radius:8px;font-size:13px;color:var(--ink-soft)">
+          <b style="color:var(--ink)">Inclui:</b> reuni&atilde;o semanal (1h), diretrizes de tipologia/mix/posicionamento, an&aacute;lise de pre&ccedil;o e margem, acompanhamento de etapas, relat&oacute;rio mensal, acesso direto (4 consultas/m&ecirc;s).
+          <br><b style="color:var(--ink);margin-top:6px;display:inline-block">N&atilde;o inclui:</b> projeto arquitet&ocirc;nico, RI, 3D, obra, materiais de venda.
+        </div>
+      </fieldset>
+
       <fieldset id="f-conselho" hidden>
         <legend>Conselho Estrat&eacute;gico</legend>
         <div class="field">
@@ -191,6 +251,7 @@
             <select id="conselho-meses">
               <option value="6">6 meses</option>
               <option value="12" selected>12 meses</option>
+              <option value="18">18 meses</option>
             </select>
           </div>
           <div class="field">
@@ -309,7 +370,14 @@ const TABELA = {
 
   // Etapas 3, 4 e 5 — valor base (feito uma vez) + valor por unidade
   projeto:   { base: 12000, porUnidade: 400, tipologiaExtra: 4000 },
-  memoriais: { base: 2500,  porUnidade: 150, min: 7000 },
+  memoriais: { base: 3900,  porUnidade: 150, min: 7000,
+    faixas: [
+      { ate: 10,  min: 3900, max: 7000 },
+      { ate: 25,  min: 7000, max: 12000 },
+      { ate: 40,  min: 12000, max: 18000 },
+      { ate: 60,  min: 18000, max: 25000 },
+    ]
+  },
   material:  { base: 3000,  porUnidade: 60 },
   maxUnidades: 60, // acima disso = sob medida
 
@@ -356,14 +424,17 @@ function build(){
 
   // show/hide input groups
   var isConselho = m === 'conselho';
-  $('f-terreno').hidden = isConselho;
+  var isConsultoria = m === 'consultoria';
+  var isSM = isConselho || isConsultoria;
+  $('f-terreno').hidden = isSM;
   $('f-unidades').hidden = m !== 'emp';
-  $('f-etapas').hidden = m === 'fachada' || isConselho;
+  $('f-etapas').hidden = m === 'fachada' || isSM;
   $('f-fachada').hidden = m !== 'fachada';
   $('f-conselho').hidden = !isConselho;
-  $('f-abate').hidden = m === 'fachada' || isConselho;
-  $('f-livres').hidden = isConselho;
-  document.querySelector('fieldset:has(#override)').hidden = isConselho;
+  $('f-consultoria').hidden = !isConsultoria;
+  $('f-abate').hidden = m === 'fachada' || isSM;
+  $('f-livres').hidden = isSM;
+  document.querySelector('fieldset:has(#override)').hidden = isSM;
   $('f-un-num').hidden = unk;
   $('f-e6').hidden = !$('e6').checked || m !== 'emp';
   document.querySelectorAll('.emp-only').forEach(el => el.hidden = m !== 'emp');
@@ -422,7 +493,16 @@ function build(){
         lines.push({n, t:lbl, s, v}); fixo += v;
       };
       if ($('e3').checked) per('3','Projeto assinado','', TABELA.projeto, (tip-1)*TABELA.projeto.tipologiaExtra);
-      if ($('e4').checked) per('4','Memoriais','Descritivo, incorporação e quadros NBR · ', TABELA.memoriais);
+      if ($('e4').checked){
+        if (un > TABELA.maxUnidades){ lines.push({n:'4', t:'Memoriais e RI', s:'Acima de '+TABELA.maxUnidades+' unidades', v:null}); tbd = true; }
+        else {
+          var faixa = TABELA.memoriais.faixas.find(f => un <= f.ate);
+          var riVal = faixa ? Math.max(faixa.min, TABELA.memoriais.base + TABELA.memoriais.porUnidade * un) : null;
+          if (riVal && riVal < TABELA.memoriais.min) riVal = TABELA.memoriais.min;
+          if (riVal){ lines.push({n:'4', t:'Memoriais e RI', s:'Faixa até '+faixa.ate+' un · mín. '+brl(faixa.min), v:riVal}); fixo += riVal; }
+          else { lines.push({n:'4', t:'Memoriais e RI', s:'Acima de 60 unidades', v:null}); tbd = true; }
+        }
+      }
       if ($('e5').checked) per('5','Material de venda','', TABELA.material);
     }
     if ($('e6').checked && !unk && un >= 2){
@@ -441,6 +521,32 @@ function build(){
       lines.push({n:'', t:'Lançamento e vendas — variável', s, v: est, kind:'var'});
       variavel = { pct, minimo, vgv, curva, meses };
     }
+  }
+
+  if (m === 'consultoria'){
+    var SM = 1412;
+    var consultUn = +$('cons-un').value || 24;
+    // Auto-suggest SM based on units
+    var sugSM = consultUn <= 10 ? 1 : consultUn <= 25 ? 2 : consultUn <= 40 ? 3 : 4;
+    var consultSmRadio = document.querySelector('input[name=consult-sm]:checked');
+    var consultSmVal = consultSmRadio ? +consultSmRadio.value : (+$('consult-sm-input').value || sugSM);
+    $('consult-sm-input').value = consultSmVal;
+    $('cons-un-hint').textContent = 'Sugerido: ' + sugSM + ' SM para ' + consultUn + ' unidades. Valor atual: ' + consultSmVal + ' SM = ' + brl(consultSmVal * SM) + '/mês';
+    var cMeses = +$('consult-meses').value || 6;
+    var cDia = $('consult-dia').value || '10';
+    var cForma = $('consult-forma').value || 'PIX';
+    var mensal = consultSmVal * SM;
+    var totalC = mensal * cMeses;
+    title = 'Consultoria de incorporação';
+    sub = consultSmVal + ' salário' + (consultSmVal>1?'s':'') + ' mínimo' + (consultSmVal>1?'s':'') + ' · ' + consultUn + ' unidades · ' + cMeses + ' meses · Dia ' + cDia + ' via ' + cForma;
+    lines.push({n:'1', t:'Reunião semanal de acompanhamento', s:'1 encontro por semana, 1h, por vídeo', v:0});
+    lines.push({n:'2', t:'Diretrizes de tipologia e posicionamento', s:'Metragem, layout, mix, faixa de preço, perfil do comprador', v:0});
+    lines.push({n:'3', t:'Análise de preço e margem', s:'Preço, desconto, velocidade de venda, margem real', v:0});
+    lines.push({n:'4', t:'Acompanhamento de etapas', s:'Evolução do projeto, relatório mensal de status', v:0});
+    lines.push({n:'5', t:'Acesso direto', s:'Até 4 consultas/mês entre reuniões, resposta em 24h úteis', v:0});
+    lines.push({n:'', t:'Valor mensal: ' + consultSmVal + ' salário' + (consultSmVal>1?'s':'') + ' mínimo' + (consultSmVal>1?'s':''), s:cMeses + ' meses · Pgto dia ' + cDia + ' via ' + cForma, v:mensal, kind:'fee'});
+    fixo = totalC;
+    window.__consultoriaData = {salarios:consultSmVal, meses:cMeses, dia:cDia, forma:cForma, data:$('consult-data').value||'', mensal:mensal, total:totalC, unidades:consultUn};
   }
 
   if (m === 'conselho'){
@@ -530,7 +636,7 @@ function build(){
   }), '', `*Total fixo: ${brl(total)}*`, varLine ? `Variável: ${varLine.s}` : '', note].filter(x=>x!==undefined).join('\n');
 
   // object for proposta.html
-  window.__propostaObj = { title, sub, lines, total, variavel, modo:m, terreno, un: (m==='emp' && !unk) ? un : null, data: new Date().toISOString(), conselho: m==='conselho' ? window.__conselhoData : null };
+  window.__propostaObj = { title, sub, lines, total, variavel, modo:m, terreno, un: (m==='emp' && !unk) ? un : (m==='consultoria' ? (+$('cons-un').value||null) : null), data: new Date().toISOString(), conselho: m==='conselho' ? window.__conselhoData : null, consultoria: m==='consultoria' ? window.__consultoriaData : null };
 }
 function linkProposta(){
   const json = JSON.stringify(window.__propostaObj);
@@ -555,11 +661,23 @@ function hints(){
 
 document.querySelectorAll('input,select').forEach(el => el.addEventListener('input', () => { hints(); build(); }));
 document.querySelectorAll('input,select').forEach(el => el.addEventListener('change', () => { hints(); build(); }));
-// Sync SM radio with input
+// Sync SM radio with input (Conselho)
 document.querySelectorAll('input[name=csm]').forEach(r => r.addEventListener('change', function(){ $('conselho-sm').value = this.value; build(); }));
 $('conselho-sm').addEventListener('input', function(){ document.querySelectorAll('input[name=csm]').forEach(r => r.checked = r.value === this.value); build(); });
-// Default date
+// Sync SM radio with input (Consultoria)
+document.querySelectorAll('input[name=consult-sm]').forEach(r => r.addEventListener('change', function(){ $('consult-sm-input').value = this.value; build(); }));
+$('consult-sm-input').addEventListener('input', function(){ document.querySelectorAll('input[name=consult-sm]').forEach(r => r.checked = r.value === this.value); build(); });
+// Auto-suggest SM when units change
+$('cons-un').addEventListener('input', function(){
+  var un = +this.value || 0;
+  var sug = un <= 10 ? 1 : un <= 25 ? 2 : un <= 40 ? 3 : 4;
+  $('consult-sm-input').value = sug;
+  document.querySelectorAll('input[name=consult-sm]').forEach(r => r.checked = +r.value === sug);
+  build();
+});
+// Default dates
 try { $('conselho-data').valueAsDate = new Date(); } catch(e){}
+try { $('consult-data').valueAsDate = new Date(); } catch(e){}
 
 function addItem(nome,valor,desc){
   const div = document.createElement('div');
