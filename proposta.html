@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Proposta — Método Origem</title>
+<title>Proposta — Isabella Estrela</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -12,34 +12,34 @@
   html,body{margin:0;background:var(--paper);color:var(--ink);font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:15px;line-height:1.5}
   h1,h2,h3{font-family:"Fraunces",Georgia,serif;font-weight:500;margin:0}
   .wrap{max-width:760px;margin:0 auto;padding:40px 22px 90px}
-  header{background:var(--dk);color:#fff;padding:32px 28px;margin:-40px -22px 28px;border-radius:0 0 16px 16px;text-align:center}
-  header .brand{font-family:"Fraunces",serif;font-size:12px;color:var(--ch);letter-spacing:.1em;text-transform:uppercase}
-  header h1{font-size:32px;font-weight:400;line-height:1.15;margin-top:10px;color:#fff}
-  header h1 em{font-style:normal;color:var(--ch);font-weight:500}
-  header p{color:var(--line);margin:10px 0 0;font-size:14px}
-  section{margin-bottom:40px}
-  section h2{font-size:24px;font-weight:300;margin-bottom:14px}
-  section h2 span{font-family:"Fraunces",serif;color:var(--freijo-deep);margin-right:10px}
+  header{background:linear-gradient(135deg,#6A2326 0%,#7B2D30 60%,#6A2326 100%);color:#fff;padding:36px 32px;margin:-40px -22px 32px;border-radius:0 0 16px 16px;text-align:center}
+  header .brand{font-family:"Fraunces",serif;font-size:11px;color:rgba(240,214,170,.5);letter-spacing:.12em;text-transform:uppercase}
+  header h1{font-size:30px;font-weight:300;line-height:1.15;margin-top:12px;color:#F0D6AA}
+  header h1 em{font-style:normal;color:#fff;font-weight:500}
+  header p{color:rgba(240,214,170,.6);margin:10px 0 0;font-size:13px}
+  section{margin-bottom:36px}
+  section h2{font-size:22px;font-weight:300;margin-bottom:16px;color:var(--v)}
+  section h2 span{font-family:"Fraunces",serif;color:var(--ch);background:var(--v);width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;font-size:14px;margin-right:10px}
 
-  .lines{border-top:1px solid var(--line)}
-  .line{display:grid;grid-template-columns:auto 1fr auto;gap:14px;padding:12px 0;border-bottom:1px solid var(--line);align-items:baseline}
-  .line .n{font-family:"Fraunces",serif;color:var(--v);font-size:17px;min-width:1.3em}
-  .line b{font-weight:500}
-  .line small{display:block;color:var(--ink-soft);font-size:13px}
-  .line .v{font-family:"Fraunces",serif;font-size:19px;white-space:nowrap}
+  .lines{border-top:0}
+  .line{display:grid;grid-template-columns:32px 1fr auto;gap:12px;padding:16px 18px;margin-bottom:8px;background:#fff;border-radius:10px;border:1px solid rgba(209,176,160,.25);align-items:baseline}
+  .line .n{font-family:"Fraunces",serif;color:var(--v);font-size:16px;min-width:1.3em;text-align:center}
+  .line b{font-weight:500;color:var(--ink)}
+  .line small{display:block;color:var(--ink-soft);font-size:12px;margin-top:2px}
+  .line .v{font-family:"Fraunces",serif;font-size:18px;white-space:nowrap;color:var(--v)}
   .line.credit .v{color:var(--moss)}
-  .tot{display:flex;justify-content:space-between;align-items:baseline;border-top:2px solid var(--v);margin-top:10px;padding-top:14px}
-  .tot .lbl{font-family:"Fraunces",serif;font-size:18px}
-  .tot .v{font-family:"Fraunces",serif;font-size:34px;font-weight:300}
-  .var{color:var(--moss);font-size:14px;margin-top:6px}
+  .tot{display:flex;justify-content:space-between;align-items:baseline;background:var(--v);color:#fff;border-radius:10px;margin-top:12px;padding:18px 22px}
+  .tot .lbl{font-family:"Fraunces",serif;font-size:16px;color:var(--ch)}
+  .tot .v{font-family:"Fraunces",serif;font-size:32px;font-weight:300;color:#fff}
+  .var{color:var(--ink-soft);font-size:13px;margin-top:8px;padding:10px 14px;background:rgba(106,35,38,.04);border-radius:8px}
 
   .pay{display:grid;gap:10px}
-  .pay label{display:grid;grid-template-columns:auto 1fr;gap:14px;border:1px solid var(--line);border-radius:8px;padding:16px;background:#fff;cursor:pointer}
-  .pay label:has(input:checked){border-color:var(--v);box-shadow:inset 0 0 0 1px var(--v);background:rgba(106,35,38,.03)}
+  .pay label{display:grid;grid-template-columns:auto 1fr;gap:14px;border:1px solid rgba(209,176,160,.3);border-radius:10px;padding:18px;background:#fff;cursor:pointer;transition:all .2s}
+  .pay label:has(input:checked){border-color:var(--v);box-shadow:0 0 0 1px var(--v),0 4px 12px rgba(106,35,38,.08);background:rgba(106,35,38,.02)}
   .pay label:has(input:focus-visible){outline:2px solid var(--freijo);outline-offset:2px}
-  .pay input{margin-top:5px;accent-color:var(--v)}
-  .pay b{font-weight:500;display:block}
-  .pay .amt{font-family:"Fraunces",serif;font-size:22px;margin:4px 0 2px}
+  .pay input{margin-top:5px;accent-color:var(--v);width:18px;height:18px}
+  .pay b{font-weight:500;display:block;color:var(--ink)}
+  .pay .amt{font-family:"Fraunces",serif;font-size:22px;margin:4px 0 2px;color:var(--v)}
   .pay small{color:var(--ink-soft);display:block;font-size:13px}
   .pay select{margin-top:8px;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font:inherit;background:#fff}
   .marcos{margin-top:12px;font-size:13px;color:var(--ink-soft);border-top:1px dashed var(--line);padding-top:10px}
@@ -49,13 +49,13 @@
   @media (max-width:560px){form .row{grid-template-columns:1fr}header h1{font-size:30px}}
   .field{margin-top:12px}
   .field label{display:block;margin-bottom:5px}
-  input[type=text],input[type=email],input[type=tel]{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:6px;background:#fff;font:inherit;color:var(--ink)}
+  input[type=text],input[type=email],input[type=tel]{width:100%;padding:12px 14px;border:1px solid rgba(209,176,160,.3);border-radius:10px;background:#fff;font:inherit;color:var(--ink)}
   input:focus{outline:2px solid var(--v);outline-offset:1px;border-color:var(--v)}
   input:user-invalid{border-color:var(--danger)}
 
-  details{border:1px solid var(--line);border-radius:8px;background:#fff}
-  summary{padding:16px;cursor:pointer;font-family:"Fraunces",serif;font-size:18px;list-style:none;display:flex;justify-content:space-between}
-  summary::after{content:"abrir";font-family:"IBM Plex Sans",sans-serif;font-size:13px;color:var(--ink-soft)}
+  details{border:1px solid rgba(209,176,160,.3);border-radius:10px;background:#fff}
+  summary{padding:18px;cursor:pointer;font-family:"Fraunces",serif;font-size:17px;list-style:none;display:flex;justify-content:space-between;color:var(--v)}
+  summary::after{content:"abrir";font-family:"IBM Plex Sans",sans-serif;font-size:12px;color:var(--ink-soft);background:rgba(106,35,38,.06);padding:4px 12px;border-radius:16px}
   details[open] summary::after{content:"fechar"}
   .contract{padding:0 24px 24px;font-size:14px;line-height:1.65}
   .contract h3{font-size:16px;margin:22px 0 8px}
@@ -64,21 +64,23 @@
   .contract .empty{color:var(--danger)}
   .contract ol{padding-left:20px;margin:0 0 10px}
 
-  .accept{border:1px solid var(--line);border-radius:8px;padding:18px;background:#fff}
-  .accept label{display:flex;gap:12px;align-items:flex-start;cursor:pointer}
-  .accept input{margin-top:4px;accent-color:var(--v);width:16px;height:16px;flex:none}
-  button{font:inherit;padding:14px 20px;border-radius:32px;border:none;background:var(--v);color:var(--ch);cursor:pointer;width:100%;margin-top:14px;font-size:15px;font-weight:600;transition:transform .2s}
+  .accept{border:1px solid rgba(209,176,160,.3);border-radius:10px;padding:20px;background:#fff}
+  .accept label{display:flex;gap:12px;align-items:flex-start;cursor:pointer;font-size:14px;line-height:1.6}
+  .accept input{margin-top:4px;accent-color:var(--v);width:18px;height:18px;flex:none}
+  button{font:inherit;padding:16px 24px;border-radius:32px;border:none;background:var(--v);color:var(--ch);cursor:pointer;width:100%;margin-top:14px;font-size:15px;font-weight:600;transition:all .2s;letter-spacing:.02em}
+  button:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(106,35,38,.2)}
   button:active{transform:scale(.97)}
-  button.ghost{background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:8px}
+  button.ghost{background:transparent;color:var(--ink);border:1px solid rgba(209,176,160,.3);border-radius:10px}
+  button.ghost:hover{background:rgba(106,35,38,.03);box-shadow:none;transform:none}
   button:disabled{opacity:.4;cursor:not-allowed}
   button:focus-visible{outline:2px solid var(--v);outline-offset:2px}
   .msg{margin-top:12px;font-size:14px;color:var(--ink-soft)}
   .msg.err{color:var(--danger)}
 
-  .done{display:none;background:var(--dk);color:#fff;padding:32px;border-radius:16px;text-align:center}
-  .done h2{font-size:24px;font-weight:400;color:var(--ch)}
-  .done p{color:var(--line);font-size:14px}
-  .done .code{font-family:"Fraunces",serif;font-size:18px;margin:10px 0 18px;color:var(--ch)}
+  .done{display:none;background:linear-gradient(135deg,#6A2326 0%,#7B2D30 60%,#6A2326 100%);color:#fff;padding:36px;border-radius:16px;text-align:center}
+  .done h2{font-size:24px;font-weight:300;color:var(--ch)}
+  .done p{color:rgba(240,214,170,.6);font-size:14px}
+  .done .code{font-family:"Fraunces",serif;font-size:18px;margin:10px 0 18px;color:#fff}
   body.accepted .form-only{display:none}
   body.accepted .done{display:block}
 
@@ -151,7 +153,7 @@
   </div>
   <div class="proposta-body" id="proposta-body">
   <header>
-    <div class="brand">Método Origem</div>
+    <div class="brand">ISABELLA ESTRELA</div>
     <h1 id="h-title">Proposta</h1>
     <p id="h-sub"></p>
   </header>
