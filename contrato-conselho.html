@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Conselho Estratégico — Isabella Estrela</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--v:#6A2326;--ch:#F0D6AA;--ow:#FAF9F6;--tc:#D1B0A0;--mv:#73504F;--dk:#1A0F10}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--ow);color:var(--dk);font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:15px;line-height:1.6}
+.wrap{max-width:720px;margin:0 auto;padding:40px 24px 100px}
+h1{font-family:"Fraunces",serif;font-size:32px;font-weight:400;color:var(--dk);margin-bottom:6px}
+h2{font-family:"Fraunces",serif;font-size:20px;font-weight:400;color:var(--v);margin:32px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--tc)}
+h3{font-size:14px;font-weight:600;color:var(--dk);margin:16px 0 6px}
+.sub{color:var(--mv);font-size:14px;margin-bottom:28px}
+p{margin-bottom:10px;color:var(--mv);line-height:1.7}
+p b{color:var(--dk);font-weight:600}
+.tag{display:inline-block;background:var(--v);color:var(--ch);font-size:11px;font-weight:600;padding:4px 12px;border-radius:6px;letter-spacing:.05em;margin-bottom:16px}
+
+/* Hero */
+.hero{background:var(--dk);color:#fff;padding:40px 24px;text-align:center;margin:-40px -24px 32px;border-radius:0 0 16px 16px}
+.hero .tag{background:rgba(240,214,170,.1);color:var(--ch);border:1px solid rgba(240,214,170,.15)}
+.hero h1{color:#fff;font-size:28px;margin-bottom:8px}
+.hero .sub{color:var(--tc);margin-bottom:0}
+
+/* Config form */
+.config{background:#fff;border:1px solid var(--tc);border-radius:12px;padding:24px;margin-bottom:28px}
+.config h3{margin-top:0;font-size:16px}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:12px;color:var(--mv);margin-bottom:4px;font-weight:500}
+.field input,.field select{width:100%;padding:10px 12px;border:1px solid var(--tc);border-radius:8px;font-size:14px;font-family:inherit;background:#fff;color:var(--dk)}
+.field input:focus,.field select:focus{outline:none;border-color:var(--v)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:500px){.row{grid-template-columns:1fr}}
+
+/* Salary selector */
+.salary-opts{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.salary-opt{padding:12px 20px;border:2px solid var(--tc);border-radius:10px;cursor:pointer;text-align:center;font-family:"Fraunces",serif;transition:all .2s;min-width:80px}
+.salary-opt:hover{border-color:var(--v)}
+.salary-opt.active{border-color:var(--v);background:var(--v);color:var(--ch)}
+.salary-opt .num{font-size:24px;font-weight:500;display:block}
+.salary-opt .lbl{font-size:10px;font-family:"IBM Plex Sans",sans-serif;display:block;margin-top:2px}
+
+/* Summary */
+.summary{background:var(--v);color:#fff;border-radius:12px;padding:24px;margin-bottom:28px}
+.summary .total-label{font-size:12px;color:var(--tc);text-transform:uppercase;letter-spacing:.08em}
+.summary .total-value{font-family:"Fraunces",serif;font-size:36px;color:var(--ch);margin:4px 0}
+.summary .total-detail{font-size:13px;color:rgba(255,255,255,.6)}
+
+/* Scope cards */
+.scope{display:grid;gap:12px;margin-bottom:12px}
+.scope-card{background:#fff;border:1px solid rgba(var(--tc),.3);border-radius:10px;padding:16px 18px;border-left:3px solid var(--ch)}
+.scope-card h3{margin:0 0 4px;font-size:14px}
+.scope-card p{font-size:13px;margin:0;color:var(--mv)}
+
+.not-included{background:rgba(209,176,160,.08);border-radius:10px;padding:16px 18px;margin-bottom:28px}
+.not-included h3{margin:0 0 8px;font-size:13px;color:var(--mv);text-transform:uppercase;letter-spacing:.05em}
+.not-included ul{list-style:none;margin:0}
+.not-included li{font-size:13px;color:var(--mv);padding:3px 0;display:flex;align-items:center;gap:6px}
+.not-included li::before{content:'✕';color:var(--tc);font-size:11px}
+
+/* Contract */
+.contract-box{border:1px solid var(--tc);border-radius:12px;overflow:hidden;margin-bottom:24px}
+.contract-toggle{width:100%;background:#fff;border:none;padding:16px 20px;font-family:"Fraunces",serif;font-size:17px;color:var(--dk);cursor:pointer;display:flex;justify-content:space-between;align-items:center;text-align:left}
+.contract-toggle::after{content:'Ver contrato';font-family:"IBM Plex Sans",sans-serif;font-size:12px;color:var(--mv)}
+.contract-toggle.open::after{content:'Fechar'}
+.contract-content{display:none;padding:20px 24px;background:#fff;font-size:13px;line-height:1.75}
+.contract-content.open{display:block}
+.contract-content p{color:var(--dk);font-size:13px}
+.contract-content ol{padding-left:20px;margin:8px 0}
+.contract-content li{margin-bottom:4px}
+
+/* Accept */
+.accept{background:#fff;border:1px solid var(--tc);border-radius:12px;padding:24px;margin-bottom:20px}
+.accept label{display:flex;gap:12px;align-items:flex-start;cursor:pointer;font-size:13px;color:var(--mv)}
+.accept input{margin-top:4px;accent-color:var(--v)}
+.btn{display:block;width:100%;background:var(--v);color:var(--ch);border:none;padding:16px;border-radius:32px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;transition:transform .2s}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-pdf{display:block;width:100%;background:var(--dk);color:var(--ch);border:none;padding:14px;border-radius:32px;font-size:14px;font-weight:500;cursor:pointer;font-family:inherit;margin-top:12px}
+#msg{text-align:center;margin-top:12px;font-size:13px}
+.success{display:none;text-align:center;padding:28px;background:#fff;border:1px solid var(--tc);border-radius:12px}
+.success h3{font-family:"Fraunces",serif;font-size:20px;color:var(--dk);margin-bottom:8px}
+.success p{color:var(--mv);font-size:14px}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <div class="hero">
+    <span class="tag">CONSELHO ESTRAT&Eacute;GICO</span>
+    <h1>Proposta de Assessoria</h1>
+    <div class="sub">Isabella Estrela &middot; Arquiteta e Incorporadora</div>
+  </div>
+
+  <!-- CONFIG -->
+  <div class="config">
+    <h3>Dados do contratante</h3>
+    <div class="row">
+      <div class="field"><label>Nome / Raz&atilde;o social</label><input id="c-nome" placeholder="Nome completo ou empresa"></div>
+      <div class="field"><label>CPF / CNPJ</label><input id="c-doc" placeholder="000.000.000-00"></div>
+    </div>
+    <div class="row">
+      <div class="field"><label>Empresa (se tiver)</label><input id="c-empresa" placeholder="Nome da empresa"></div>
+      <div class="field"><label>Cidade / Estado</label><input id="c-cidade" placeholder="Ex: S&atilde;o Paulo, SP"></div>
+    </div>
+    <h3 style="margin-top:20px">Condi&ccedil;&otilde;es</h3>
+    <div class="row">
+      <div class="field"><label>Data de celebra&ccedil;&atilde;o</label><input id="c-data" type="date"></div>
+      <div class="field"><label>Vig&ecirc;ncia</label><select id="c-vigencia"><option value="6">6 meses</option><option value="12" selected>12 meses</option></select></div>
+    </div>
+    <div class="row">
+      <div class="field"><label>Dia do pagamento</label><select id="c-dia"><option value="5">Dia 5</option><option value="10" selected>Dia 10</option><option value="15">Dia 15</option><option value="20">Dia 20</option><option value="25">Dia 25</option></select></div>
+      <div class="field"><label>Forma de pagamento</label><select id="c-forma"><option value="PIX" selected>PIX</option><option value="Transferência bancária">Transfer&ecirc;ncia banc&aacute;ria</option><option value="Boleto">Boleto</option></select></div>
+    </div>
+  </div>
+
+  <!-- SALARY SELECTOR -->
+  <h2>Valor mensal</h2>
+  <p>O valor &eacute; medido em sal&aacute;rios m&iacute;nimos vigentes, reajustado automaticamente conforme legisla&ccedil;&atilde;o.</p>
+
+  <div class="salary-opts" id="salaryOpts">
+    <div class="salary-opt" data-qty="1"><span class="num">1</span><span class="lbl">sal&aacute;rio</span></div>
+    <div class="salary-opt" data-qty="2"><span class="num">2</span><span class="lbl">sal&aacute;rios</span></div>
+    <div class="salary-opt active" data-qty="3"><span class="num">3</span><span class="lbl">sal&aacute;rios</span></div>
+    <div class="salary-opt" data-qty="4"><span class="num">4</span><span class="lbl">sal&aacute;rios</span></div>
+    <div class="salary-opt" data-qty="5"><span class="num">5</span><span class="lbl">sal&aacute;rios</span></div>
+  </div>
+
+  <div class="field" style="max-width:200px;margin-bottom:24px">
+    <label>Ou digite a quantidade</label>
+    <input id="salaryCustom" type="number" min="1" max="20" placeholder="3">
+  </div>
+
+  <!-- SUMMARY -->
+  <div class="summary" id="summaryBox">
+    <div class="total-label">VALOR MENSAL</div>
+    <div class="total-value" id="totalValue">R$ 4.236</div>
+    <div class="total-detail" id="totalDetail">3 sal&aacute;rios m&iacute;nimos &middot; Contrato anual (12 meses) &middot; Total: R$ 50.832</div>
+  </div>
+
+  <!-- SCOPE -->
+  <h2>O que est&aacute; inclu&iacute;do</h2>
+
+  <div class="scope">
+    <div class="scope-card">
+      <h3>Reuni&otilde;es semanais de conselho</h3>
+      <p>At&eacute; 2 reuni&otilde;es por semana, por v&iacute;deo (ou presencial quando vi&aacute;vel), para discuss&atilde;o de estrat&eacute;gia, decis&otilde;es de produto, posicionamento e timing de lan&ccedil;amento. Dura&ccedil;&atilde;o: at&eacute; 1h por reuni&atilde;o. Pauta definida com anteced&ecirc;ncia.</p>
+    </div>
+    <div class="scope-card">
+      <h3>Diretrizes sobre terrenos e oportunidades</h3>
+      <p>Orienta&ccedil;&atilde;o estrat&eacute;gica sobre terrenos: diretrizes de tipologia, posicionamento e perfil de p&uacute;blico. Indica&ccedil;&atilde;o de caminho, sem estudo detalhado de viabilidade (que pode ser contratado em separado).</p>
+    </div>
+    <div class="scope-card">
+      <h3>Posicionamento de produto</h3>
+      <p>Diretrizes sobre metragem, layout, mix de unidades, faixa de pre&ccedil;o e perfil do comprador ideal. O que constr&oacute;i desejo naquela rua, naquele bairro, naquela faixa.</p>
+    </div>
+    <div class="scope-card">
+      <h3>Estrat&eacute;gia de margem e venda</h3>
+      <p>Pre&ccedil;o de tabela, pol&iacute;tica de desconto, velocidade de venda esperada. Quanto custa construir vs. quanto o mercado paga. Onde est&aacute; a margem de verdade.</p>
+    </div>
+    <div class="scope-card">
+      <h3>Acesso direto</h3>
+      <p>Canal de comunica&ccedil;&atilde;o direto para d&uacute;vidas pontuais entre reuni&otilde;es. Respostas em at&eacute; 24 horas &uacute;teis. At&eacute; 4 consultas r&aacute;pidas por m&ecirc;s fora da reuni&atilde;o.</p>
+    </div>
+    <div class="scope-card">
+      <h3>Acesso ao canal de investidores</h3>
+      <p>Apresenta&ccedil;&atilde;o de oportunidades de investimento nos lan&ccedil;amentos da Isabella, com viabilidade comprovada e retorno atrelado a VGV real. Acesso por aplica&ccedil;&atilde;o.</p>
+    </div>
+  </div>
+
+  <div class="not-included">
+    <h3>O que n&atilde;o est&aacute; inclu&iacute;do</h3>
+    <ul>
+      <li>Projeto arquitet&ocirc;nico ou complementar</li>
+      <li>Registro de incorpora&ccedil;&atilde;o (RI)</li>
+      <li>Memorial de incorpora&ccedil;&atilde;o</li>
+      <li>Acompanhamento de obra</li>
+      <li>Estudo de viabilidade econ&ocirc;mica detalhado</li>
+      <li>Materiais de venda (renders, plantas humanizadas)</li>
+    </ul>
+    <p style="font-size:12px;color:var(--mv);margin:8px 0 0">Qualquer item acima pode ser contratado em separado, como aditivo ou pelo M&eacute;todo Origem.</p>
+  </div>
+
+  <!-- CONTRACT -->
+  <div class="contract-box">
+    <button class="contract-toggle" id="contractToggle" onclick="this.classList.toggle('open');document.getElementById('contractContent').classList.toggle('open')">
+      Contrato de Assessoria Estrat&eacute;gica
+    </button>
+    <div class="contract-content" id="contractContent">
+      <p><b>CONTRATO DE PRESTA&Ccedil;&Atilde;O DE SERVI&Ccedil;OS DE ASSESSORIA ESTRAT&Eacute;GICA EM DESENVOLVIMENTO IMOBILI&Aacute;RIO</b></p>
+
+      <p><b>CL&Aacute;USULA 1 — DAS PARTES</b></p>
+      <p><b>CONTRATADA:</b> Isabella Estrela de Hip&oacute;lito, CPF 055.577.177-65, CAU A2264030, com endere&ccedil;o profissional na Rua Rosa Pacheco, n&ordm; 20, Bairro Dom Rodrigo, Nova Igua&ccedil;u, RJ.</p>
+      <p><b>CONTRATANTE:</b> <span id="ct-nome">[nome do contratante]</span>, inscrito no <span id="ct-doc">[CPF/CNPJ]</span>, com sede em <span id="ct-cidade">[cidade/estado]</span>.</p>
+
+      <p><b>CL&Aacute;USULA 2 — DO OBJETO</b></p>
+      <p>Presta&ccedil;&atilde;o de servi&ccedil;os de assessoria estrat&eacute;gica em desenvolvimento imobili&aacute;rio, na modalidade de conselho estrat&eacute;gico, compreendendo: (a) reuni&otilde;es semanais de alinhamento e direcionamento (at&eacute; 2 por semana); (b) diretrizes sobre terrenos e oportunidades; (c) diretrizes de posicionamento de produto; (d) orienta&ccedil;&atilde;o sobre pre&ccedil;o, margem e velocidade de venda; (e) acesso direto para consultas pontuais.</p>
+      <p>A natureza do servi&ccedil;o &eacute; exclusivamente de <b>instru&ccedil;&atilde;o e orienta&ccedil;&atilde;o</b>. A CONTRATADA n&atilde;o executa diretamente projeto, obra, registro ou venda, apenas direciona a tomada de decis&atilde;o do CONTRATANTE.</p>
+
+      <p><b>CL&Aacute;USULA 3 — DO PRAZO</b></p>
+      <p>O contrato tem vig&ecirc;ncia de <b><span id="ct-meses">12</span> (<span id="ct-mesesextenso">doze</span>) meses</b>, contados da data de celebra&ccedil;&atilde;o (<span id="ct-datacelebra">[data]</span>), renov&aacute;vel automaticamente por iguais per&iacute;odos, salvo manifesta&ccedil;&atilde;o contr&aacute;ria de qualquer das partes com anteced&ecirc;ncia m&iacute;nima de 30 (trinta) dias antes do t&eacute;rmino.</p>
+
+      <p><b>CL&Aacute;USULA 4 — DO VALOR E PAGAMENTO</b></p>
+      <p>O valor mensal &eacute; de <b><span id="ct-qty">3</span> (<span id="ct-qtyextenso">tr&ecirc;s</span>) sal&aacute;rios m&iacute;nimos</b> vigentes na data de cada vencimento, equivalente a <b><span id="ct-valor">R$ 4.236</span></b> na presente data, totalizando <b><span id="ct-total">R$ 50.832</span></b> no per&iacute;odo de <span id="ct-meses2">12</span> meses.</p>
+      <p>O pagamento &eacute; devido at&eacute; o <b>dia <span id="ct-diapgto">10</span></b> de cada m&ecirc;s, mediante <b><span id="ct-formapgto">PIX</span></b> para a conta da CONTRATADA. O primeiro pagamento &eacute; devido na data de celebra&ccedil;&atilde;o deste contrato.</p>
+      <p>O reajuste &eacute; autom&aacute;tico, acompanhando o sal&aacute;rio m&iacute;nimo vigente, sem necessidade de aditivo.</p>
+
+      <p><b>CL&Aacute;USULA 5 — DO INADIMPLEMENTO</b></p>
+      <p>O atraso no pagamento sujeita o CONTRATANTE a multa de 2% (dois por cento) sobre o valor devido, acrescida de juros morat&oacute;rios de 1% (um por cento) ao m&ecirc;s, pro rata die. Ap&oacute;s 30 (trinta) dias de inadimpl&ecirc;ncia, a CONTRATADA poder&aacute; suspender os servi&ccedil;os at&eacute; a regulariza&ccedil;&atilde;o. Ap&oacute;s 60 (sessenta) dias, poder&aacute; rescindir o contrato conforme cl&aacute;usula 8.</p>
+
+      <p><b>CL&Aacute;USULA 6 — DAS REUNI&Otilde;ES</b></p>
+      <p>As reuni&otilde;es ser&atilde;o realizadas semanalmente, em at&eacute; 2 (duas) por semana, por videoconfer&ecirc;ncia, com dura&ccedil;&atilde;o de at&eacute; 1 (uma) hora cada, em data e hor&aacute;rio acordados entre as partes com anteced&ecirc;ncia m&iacute;nima de 48 horas. A pauta &eacute; enviada pelo CONTRATANTE com anteced&ecirc;ncia de 24 horas. Reuni&otilde;es n&atilde;o realizadas por aus&ecirc;ncia do CONTRATANTE n&atilde;o s&atilde;o reposi&ccedil;&atilde;veis. A CONTRATADA poder&aacute; remarcar at&eacute; 2 reuni&otilde;es por m&ecirc;s sem pen&aacute;lidade.</p>
+
+      <p><b>CL&Aacute;USULA 7 — DA CONFIDENCIALIDADE</b></p>
+      <p>As partes se comprometem a manter sigilo sobre todas as informa&ccedil;&otilde;es comerciais, financeiras e estrat&eacute;gicas compartilhadas durante a vig&ecirc;ncia deste contrato, inclusive ap&oacute;s seu t&eacute;rmino, pelo prazo de 2 (dois) anos. A CONTRATADA poder&aacute; divulgar a rela&ccedil;&atilde;o de assessoria em seu portf&oacute;lio, sem expor dados financeiros do CONTRATANTE.</p>
+
+      <p><b>CL&Aacute;USULA 8 — DA RESCIS&Atilde;O</b></p>
+      <p><b>8.1.</b> Pelo CONTRATANTE: mediante aviso pr&eacute;vio de 30 (trinta) dias e quita&ccedil;&atilde;o das mensalidades vencidas. Multa de 2 mensalidades caso a rescis&atilde;o ocorra nos primeiros 6 meses.</p>
+      <p><b>8.2.</b> Pela CONTRATADA: em caso de inadimpl&ecirc;ncia superior a 60 (sessenta) dias, ou por justa causa.</p>
+      <p><b>8.3.</b> Por m&uacute;tuo acordo: a qualquer tempo, sem multa, mediante quita&ccedil;&atilde;o dos valores devidos.</p>
+      <p><b>8.4.</b> Em qualquer modalidade de rescis&atilde;o, as orienta&ccedil;&otilde;es j&aacute; prestadas permanecem de propriedade intelectual da CONTRATADA. O CONTRATANTE poder&aacute; utilizar as diretrizes recebidas, mas n&atilde;o reproduzi-las comercialmente.</p>
+
+      <p><b>CL&Aacute;USULA 9 — PROPRIEDADE INTELECTUAL</b></p>
+      <p>As an&aacute;lises, pareceres e materiais produzidos pela CONTRATADA durante a assessoria s&atilde;o obra intelectual protegida pela Lei 9.610/98. O CONTRATANTE recebe licen&ccedil;a de uso para seus empreendimentos, condicionada &agrave; quita&ccedil;&atilde;o. &Eacute; vedada a revenda ou distribui&ccedil;&atilde;o a terceiros.</p>
+
+      <p><b>CL&Aacute;USULA 10 — ACEITE ELETR&Ocirc;NICO</b></p>
+      <p>O aceite eletr&ocirc;nico deste instrumento, realizado por meio do bot&atilde;o abaixo, tem validade jur&iacute;dica conforme a Medida Provis&oacute;ria 2.200-2/2001 e o Marco Civil da Internet (Lei 12.965/2014), registrando data, hora, endere&ccedil;o IP e identifica&ccedil;&atilde;o do signat&aacute;rio.</p>
+
+      <p><b>CL&Aacute;USULA 11 — DO FORO</b></p>
+      <p>Fica eleito o foro da comarca de S&atilde;o Jos&eacute; dos Campos &mdash; SP para dirimir quaisquer quest&otilde;es deste contrato.</p>
+    </div>
+  </div>
+
+  <!-- ACCEPT -->
+  <div class="accept" id="acceptBox">
+    <label><input type="checkbox" id="ok" onchange="document.getElementById('btnAccept').disabled=!this.checked"><span>Li a proposta e o contrato acima, confirmo que meus dados est&atilde;o corretos e aceito os termos. Entendo que este aceite eletr&ocirc;nico registra data, hora e endere&ccedil;o de rede.</span></label>
+  </div>
+  <button class="btn" id="btnAccept" disabled onclick="aceitar()">Aceitar proposta</button>
+  <div id="msg"></div>
+
+  <div class="success" id="successBox">
+    <h3>Proposta aceita</h3>
+    <p>Seu aceite foi registrado. A Isabella vai entrar em contato para alinhar a primeira reuni&atilde;o.</p>
+    <button class="btn-pdf" onclick="gerarPDF()">Baixar contrato em PDF</button>
+  </div>
+</div>
+
+<script>
+const SM = 1412; // Salário mínimo vigente 2024/2025 - atualizar conforme legislação
+let qty = 3;
+
+function extenso(n){
+  const nomes = {1:'um',2:'dois',3:'três',4:'quatro',5:'cinco',6:'seis',7:'sete',8:'oito',9:'nove',10:'dez',11:'onze',12:'doze',13:'treze',14:'quatorze',15:'quinze',16:'dezesseis',17:'dezessete',18:'dezoito',19:'dezenove',20:'vinte'};
+  return nomes[n] || String(n);
+}
+
+function brl(n){return n.toLocaleString('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0})}
+
+function atualizar(){
+  var meses = parseInt(document.getElementById('c-vigencia').value) || 12;
+  var dia = document.getElementById('c-dia').value || '10';
+  var forma = document.getElementById('c-forma').value || 'PIX';
+  var dataVal = document.getElementById('c-data').value || '';
+  var mensal = qty * SM;
+  var total = mensal * meses;
+  document.getElementById('totalValue').textContent = brl(mensal);
+  document.getElementById('totalDetail').textContent = qty + ' salário' + (qty>1?'s':'') + ' mínimo' + (qty>1?'s':'') + ' · Contrato de ' + meses + ' meses · Total: ' + brl(total);
+
+  // Update contract
+  var e = document.getElementById('ct-qty'); if(e) e.textContent = qty;
+  var e2 = document.getElementById('ct-qtyextenso'); if(e2) e2.textContent = extenso(qty);
+  var e3 = document.getElementById('ct-valor'); if(e3) e3.textContent = brl(mensal);
+  var e4 = document.getElementById('ct-total'); if(e4) e4.textContent = brl(total);
+  var e5 = document.getElementById('ct-meses'); if(e5) e5.textContent = meses;
+  var e6 = document.getElementById('ct-mesesextenso'); if(e6) e6.textContent = extenso(meses);
+  var e7 = document.getElementById('ct-meses2'); if(e7) e7.textContent = meses;
+  var e8 = document.getElementById('ct-diapgto'); if(e8) e8.textContent = dia;
+  var e9 = document.getElementById('ct-formapgto'); if(e9) e9.textContent = forma;
+  var e10 = document.getElementById('ct-datacelebra');
+  if(e10) e10.textContent = dataVal ? new Date(dataVal+'T12:00:00').toLocaleDateString('pt-BR') : '[a definir]';
+
+  // Update options visual
+  document.querySelectorAll('.salary-opt').forEach(function(el){
+    el.classList.toggle('active', parseInt(el.dataset.qty) === qty);
+  });
+}
+
+document.querySelectorAll('.salary-opt').forEach(function(el){
+  el.addEventListener('click', function(){
+    qty = parseInt(this.dataset.qty);
+    document.getElementById('salaryCustom').value = qty;
+    atualizar();
+  });
+});
+
+document.getElementById('salaryCustom').addEventListener('input', function(){
+  var v = parseInt(this.value);
+  if(v && v > 0 && v <= 20){ qty = v; atualizar(); }
+});
+
+// Sync condition fields
+['c-vigencia','c-dia','c-forma','c-data'].forEach(function(id){
+  document.getElementById(id).addEventListener('change', atualizar);
+});
+
+// Set today as default date
+document.getElementById('c-data').valueAsDate = new Date();
+
+// Sync contratante fields to contract
+['c-nome','c-doc','c-cidade'].forEach(function(id){
+  document.getElementById(id).addEventListener('input', function(){
+    var map = {'c-nome':'ct-nome','c-doc':'ct-doc','c-cidade':'ct-cidade'};
+    var el = document.getElementById(map[id]);
+    if(el) el.textContent = this.value || '[a preencher]';
+  });
+});
+
+function aceitar(){
+  var nome = document.getElementById('c-nome').value.trim();
+  var doc = document.getElementById('c-doc').value.trim();
+  if(!nome || !doc){
+    document.getElementById('msg').innerHTML = '<span style="color:#9C3B2E">Preencha nome e CPF/CNPJ acima.</span>';
+    return;
+  }
+
+  var dados = {
+    tipo: 'conselho-estrategico',
+    contratante: nome,
+    documento: doc,
+    empresa: document.getElementById('c-empresa').value.trim(),
+    cidade: document.getElementById('c-cidade').value.trim(),
+    salarios: qty,
+    vigenciaMeses: parseInt(document.getElementById('c-vigencia').value) || 12,
+    diaPagamento: document.getElementById('c-dia').value,
+    formaPagamento: document.getElementById('c-forma').value,
+    dataCelebracao: document.getElementById('c-data').value,
+    valorMensal: qty * SM,
+    valorTotal: qty * SM * (parseInt(document.getElementById('c-vigencia').value) || 12),
+    aceiteData: new Date().toISOString(),
+    origem: 'contrato-conselho'
+  };
+
+  // Enviar pro Telegram
+  var TG_BOT='7607498857:AAE0jM_cFrU7qHlXrPAz9q5rQxI3ZOQNxpI';
+  var TG_CHAT='-4580797688';
+  var msg = 'CONTRATO CONSELHO ACEITO\n\n'
+    + 'Contratante: ' + nome + '\n'
+    + 'Doc: ' + doc + '\n'
+    + 'Empresa: ' + (dados.empresa || 'N/A') + '\n'
+    + 'Cidade: ' + (dados.cidade || 'N/A') + '\n'
+    + 'Valor: ' + qty + ' SM = ' + brl(qty*SM) + '/mês\n'
+    + 'Vigência: ' + dados.vigenciaMeses + ' meses\n'
+    + 'Total: ' + brl(dados.valorTotal) + '\n'
+    + 'Dia pgto: ' + dados.diaPagamento + ' | Forma: ' + dados.formaPagamento + '\n'
+    + 'Data: ' + new Date().toLocaleString('pt-BR');
+
+  fetch('https://api.telegram.org/bot'+TG_BOT+'/sendMessage',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({chat_id:TG_CHAT,text:msg})
+  }).catch(function(){});
+
+  // Supabase
+  try{
+    fetch('https://mooghvkrendiiwhxynkd.supabase.co/rest/v1/propostas',{
+      method:'POST',headers:{'Content-Type':'application/json',apikey:'sb_publishable_eRt9feUOHeFOSZjIbfDrJw_ieFaA6Dx',Authorization:'Bearer sb_publishable_eRt9feUOHeFOSZjIbfDrJw_ieFaA6Dx',Prefer:'return=minimal'},
+      body:JSON.stringify(dados)
+    });
+  }catch(e){}
+
+  document.getElementById('acceptBox').style.display='none';
+  document.getElementById('btnAccept').style.display='none';
+  document.getElementById('msg').style.display='none';
+  document.getElementById('successBox').style.display='block';
+}
+
+function gerarPDF(){
+  window.print();
+}
+
+atualizar();
+</script>
+</body>
+</html>
