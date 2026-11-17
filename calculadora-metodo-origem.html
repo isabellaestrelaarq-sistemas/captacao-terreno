@@ -102,6 +102,7 @@
           <label><input type="radio" name="mode" value="emp" checked><span>Empreendimento</span></label>
           <label><input type="radio" name="mode" value="casa"><span>Uma casa</span></label>
           <label><input type="radio" name="mode" value="fachada"><span>Só fachada</span></label>
+          <label><input type="radio" name="mode" value="conselho"><span>Conselho</span></label>
         </div>
       </fieldset>
 
@@ -154,7 +155,7 @@
         </div>
       </fieldset>
 
-      <fieldset>
+      <fieldset id="f-livres">
         <legend>Itens livres (qualquer serviço)</legend>
         <div class="hint" style="margin-bottom:10px">Clique nas sugestões ou adicione itens personalizados.</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
@@ -168,6 +169,59 @@
         </div>
         <div id="itens-livres"></div>
         <button type="button" onclick="addItem('','','')" style="margin-top:8px;font-size:13px;padding:6px 14px">+ Adicionar item personalizado</button>
+      </fieldset>
+
+      <fieldset id="f-conselho" hidden>
+        <legend>Conselho Estrat&eacute;gico</legend>
+        <div class="field">
+          <label for="conselho-sm">Valor mensal (em sal&aacute;rios m&iacute;nimos)</label>
+          <div class="segment" role="radiogroup" aria-label="Salários" style="margin-bottom:8px">
+            <label><input type="radio" name="csm" value="1"><span>1 SM</span></label>
+            <label><input type="radio" name="csm" value="2"><span>2 SM</span></label>
+            <label><input type="radio" name="csm" value="3" checked><span>3 SM</span></label>
+            <label><input type="radio" name="csm" value="4"><span>4 SM</span></label>
+            <label><input type="radio" name="csm" value="5"><span>5 SM</span></label>
+          </div>
+          <input type="number" id="conselho-sm" min="1" max="20" value="3" placeholder="Ou digite">
+          <div class="hint">Sal&aacute;rio m&iacute;nimo vigente: R$ 1.412. Reajuste autom&aacute;tico.</div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label for="conselho-meses">Vig&ecirc;ncia</label>
+            <select id="conselho-meses">
+              <option value="6">6 meses</option>
+              <option value="12" selected>12 meses</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="conselho-dia">Dia do pagamento</label>
+            <select id="conselho-dia">
+              <option value="5">Dia 5</option>
+              <option value="10" selected>Dia 10</option>
+              <option value="15">Dia 15</option>
+              <option value="20">Dia 20</option>
+              <option value="25">Dia 25</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label for="conselho-forma">Forma de pagamento</label>
+            <select id="conselho-forma">
+              <option value="PIX" selected>PIX</option>
+              <option value="Transferência bancária">Transfer&ecirc;ncia</option>
+              <option value="Boleto">Boleto</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="conselho-data">Data de celebra&ccedil;&atilde;o</label>
+            <input type="date" id="conselho-data">
+          </div>
+        </div>
+        <div style="margin-top:16px;padding:14px;background:var(--stone);border-radius:8px;font-size:13px;color:var(--ink-soft)">
+          <b style="color:var(--ink)">Inclui:</b> reuni&otilde;es semanais (at&eacute; 2/semana), diretrizes sobre terrenos, posicionamento de produto, estrat&eacute;gia de margem e venda, acesso direto, canal de investidores.
+          <br><b style="color:var(--ink);margin-top:6px;display:inline-block">N&atilde;o inclui:</b> projeto, RI, memorial, obra, viabilidade detalhada, materiais de venda.
+        </div>
       </fieldset>
 
       <fieldset id="f-fachada" hidden>        <legend>Detalhes da fachada</legend>
@@ -301,11 +355,15 @@ function build(){
   const abate = $('abate').checked;
 
   // show/hide input groups
-  $('f-terreno').hidden = false;
+  var isConselho = m === 'conselho';
+  $('f-terreno').hidden = isConselho;
   $('f-unidades').hidden = m !== 'emp';
-  $('f-etapas').hidden = m === 'fachada';
+  $('f-etapas').hidden = m === 'fachada' || isConselho;
   $('f-fachada').hidden = m !== 'fachada';
-  $('f-abate').hidden = m === 'fachada';
+  $('f-conselho').hidden = !isConselho;
+  $('f-abate').hidden = m === 'fachada' || isConselho;
+  $('f-livres').hidden = isConselho;
+  document.querySelector('fieldset:has(#override)').hidden = isConselho;
   $('f-un-num').hidden = unk;
   $('f-e6').hidden = !$('e6').checked || m !== 'emp';
   document.querySelectorAll('.emp-only').forEach(el => el.hidden = m !== 'emp');
@@ -385,7 +443,31 @@ function build(){
     }
   }
 
-  // itens livres
+  if (m === 'conselho'){
+    var SM = 1412;
+    var csmRadio = document.querySelector('input[name=csm]:checked');
+    var csmVal = csmRadio ? +csmRadio.value : (+$('conselho-sm').value || 3);
+    $('conselho-sm').value = csmVal;
+    var cMeses = +$('conselho-meses').value || 12;
+    var cDia = $('conselho-dia').value || '10';
+    var cForma = $('conselho-forma').value || 'PIX';
+    var mensal = csmVal * SM;
+    var totalC = mensal * cMeses;
+    title = 'Conselho Estratégico';
+    sub = csmVal + ' salário' + (csmVal>1?'s':'') + ' mínimo' + (csmVal>1?'s':'') + ' · ' + cMeses + ' meses · Pgto dia ' + cDia + ' via ' + cForma;
+    lines.push({n:'1', t:'Reuniões semanais de conselho', s:'Até 2 reuniões por semana, 1h cada, por vídeo ou presencial', v:0});
+    lines.push({n:'2', t:'Diretrizes sobre terrenos', s:'Orientação estratégica: tipologia, posicionamento, perfil de público', v:0});
+    lines.push({n:'3', t:'Posicionamento de produto', s:'Metragem, layout, mix, faixa de preço, perfil do comprador', v:0});
+    lines.push({n:'4', t:'Estratégia de margem e venda', s:'Preço, desconto, velocidade de venda, margem real', v:0});
+    lines.push({n:'5', t:'Acesso direto + investidores', s:'Canal entre reuniões (até 4 consultas/mês) + canal de investidores', v:0});
+    lines.push({n:'', t:'Valor mensal: ' + csmVal + ' salário' + (csmVal>1?'s':'') + ' mínimo' + (csmVal>1?'s':''), s:cMeses + ' meses · Pgto dia ' + cDia + ' via ' + cForma, v:mensal, kind:'fee'});
+    fixo = totalC;
+    // store extra data for contract
+    window.__conselhoData = {salarios:csmVal, meses:cMeses, dia:cDia, forma:cForma, data:$('conselho-data').value||'', mensal:mensal, total:totalC};
+  }
+
+  // itens livres (não aplicável ao conselho)
+  if (m !== 'conselho')
   document.querySelectorAll('.item-livre').forEach(el => {
     const nome = el.querySelector('.il-nome').value.trim();
     const valor = +el.querySelector('.il-valor').value || 0;
@@ -448,7 +530,7 @@ function build(){
   }), '', `*Total fixo: ${brl(total)}*`, varLine ? `Variável: ${varLine.s}` : '', note].filter(x=>x!==undefined).join('\n');
 
   // object for proposta.html
-  window.__propostaObj = { title, sub, lines, total, variavel, modo:m, terreno, un: (m==='emp' && !unk) ? un : null, data: new Date().toISOString() };
+  window.__propostaObj = { title, sub, lines, total, variavel, modo:m, terreno, un: (m==='emp' && !unk) ? un : null, data: new Date().toISOString(), conselho: m==='conselho' ? window.__conselhoData : null };
 }
 function linkProposta(){
   const json = JSON.stringify(window.__propostaObj);
@@ -472,6 +554,12 @@ function hints(){
 }
 
 document.querySelectorAll('input,select').forEach(el => el.addEventListener('input', () => { hints(); build(); }));
+document.querySelectorAll('input,select').forEach(el => el.addEventListener('change', () => { hints(); build(); }));
+// Sync SM radio with input
+document.querySelectorAll('input[name=csm]').forEach(r => r.addEventListener('change', function(){ $('conselho-sm').value = this.value; build(); }));
+$('conselho-sm').addEventListener('input', function(){ document.querySelectorAll('input[name=csm]').forEach(r => r.checked = r.value === this.value); build(); });
+// Default date
+try { $('conselho-data').valueAsDate = new Date(); } catch(e){}
 
 function addItem(nome,valor,desc){
   const div = document.createElement('div');
