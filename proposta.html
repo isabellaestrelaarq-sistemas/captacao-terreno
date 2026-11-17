@@ -166,6 +166,10 @@
   <section class="form-only">
     <h2><span>2</span>Como você prefere pagar</h2>
     <div class="pay" id="pay"></div>
+    <div id="pay-dados" style="margin-top:14px;padding:16px 18px;background:#fff;border:1px solid var(--line);border-radius:8px;display:none">
+      <div style="font-family:'Fraunces',serif;font-size:16px;margin-bottom:10px">Dados para pagamento</div>
+      <div id="pay-dados-content" style="font-size:14px;line-height:1.7"></div>
+    </div>
   </section>
 
   <section class="form-only">
@@ -227,6 +231,16 @@ const CONFIG = {
     cidadeForo: "São José dos Campos – SP",
   },
   whatsapp: "5521984052365",
+
+  // Dados bancários para pagamento
+  pix: {
+    chave: "055.577.177-65",
+    tipo: "CPF",
+    titular: "Isabella Estrela de Hipólito",
+    banco: "Bradesco (237)",
+    agencia: "6536",
+    conta: "551646-3",
+  },
 
   // Registro no banco (opcional). Vazio = só WhatsApp/PDF.
   supabaseUrl: "https://mooghvkrendiiwhxynkd.supabase.co",
@@ -599,8 +613,37 @@ function renderContract(){
     <p id="c-sign"></p>`;
 }
 document.querySelectorAll('#f input, input[name=pg]').forEach(el => el.addEventListener('input', renderContract));
-document.addEventListener('change', e => { if (e.target.name === 'pg') renderContract(); });
+document.addEventListener('change', e => { if (e.target.name === 'pg') { renderContract(); renderPayDados(); } });
+function renderPayDados(){
+  const v = document.querySelector('input[name=pg]:checked')?.value || '';
+  const box = $('pay-dados');
+  const content = $('pay-dados-content');
+  if (!box || !content) return;
+  const pix = CONFIG.pix || {};
+  const isConselhoM = P.modo === 'conselho' || (P.conselho && P.conselho.salarios);
+  const isConsultoriaM = P.modo === 'consultoria' || (P.consultoria && P.consultoria.salarios);
+  const isMensal = v === 'conselho' || v === 'consultoria';
+  const isVista = v === 'pix' || v === 'conselho-vista' || v === 'consultoria-vista';
+  const isParcelado = v === 'parcelado';
+
+  const dadosBanco = `<b>Banco:</b> ${esc(pix.banco)}<br><b>Agência:</b> ${esc(pix.agencia||'')}<br><b>Conta:</b> ${esc(pix.conta||'')}<br><b>Titular:</b> ${esc(pix.titular)}<br><b>Chave PIX (${esc(pix.tipo)}):</b> ${esc(pix.chave)}`;
+
+  if (isMensal) {
+    const C = isConselhoM ? (P.conselho||{}) : (P.consultoria||{});
+    const dia = C.dia || '10';
+    const forma = C.forma || 'PIX';
+    box.style.display = 'block';
+    content.innerHTML = `${dadosBanco}<br><br><span style="color:var(--ink-soft);font-size:13px">Pagamento mensal até o dia ${dia} de cada mês via ${forma}.</span>`;
+  } else if (isVista || isParcelado) {
+    box.style.display = 'block';
+    const label = isVista ? 'Pagamento integral na assinatura via PIX.' : 'Primeira parcela na assinatura via PIX.';
+    content.innerHTML = `${dadosBanco}<br><br><span style="color:var(--ink-soft);font-size:13px">${label}</span>`;
+  } else {
+    box.style.display = 'none';
+  }
+}
 renderContract();
+renderPayDados();
 
 // ---------- 4. Aceite ----------
 $('ok').addEventListener('change', () => $('go').disabled = !$('ok').checked);
