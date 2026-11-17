@@ -438,12 +438,13 @@ function build(){
   $('f-un-num').hidden = unk;
   $('f-e6').hidden = !$('e6').checked || m !== 'emp';
   document.querySelectorAll('.emp-only').forEach(el => el.hidden = m !== 'emp');
-  const noUn = m === 'emp' && unk;
+  const noUn = m === 'emp' && unk && !terreno;
   document.querySelectorAll('.needs-un').forEach(el => el.classList.toggle('off', noUn));
 
   const lines = [];   // {n,t,s,v,kind}
   let fixo = 0, tbd = false, credit = 0, variavel = null;
   let title = 'Proposta', sub = '';
+  let estimado = false, unEfetivo = 0;
 
   if (m === 'fachada'){
     title = 'Projeto de fachada';
@@ -474,38 +475,48 @@ function build(){
 
   if (m === 'emp'){
     title = 'Empreendimento';
-    sub = terreno ? `Terreno de ${terreno.toLocaleString('pt-BR')} m²` + (unk ? ' · unidades a definir' : ` · ${un} unidades`) : 'Informe a área do terreno';
+    // Estimativa automática: TO 60% do terreno, unidades de 45 m²
+    unEfetivo = un;
+    if (unk && terreno > 0){
+      unEfetivo = Math.floor(terreno * 0.60 / 45);
+      if (unEfetivo < 2) unEfetivo = 2;
+      estimado = true;
+    }
+    sub = terreno ? `Terreno de ${terreno.toLocaleString('pt-BR')} m²` + (unk ? ` · ~${unEfetivo} unidades (estimativa: TO 60%, 45 m²/un)` : ` · ${un} unidades`) : 'Informe a área do terreno';
     if ($('e1').checked){ lines.push({n:'1', t:'Raio-X da Decisão', s:'Veredito sobre o terreno', v:TABELA.raiox}); fixo += TABELA.raiox; }
     if ($('e2').checked){
       const v = terreno ? bandByArea(TABELA.viabilidade, terreno) : 0;
       if (terreno && v === null){ lines.push({n:'2', t:'Viabilidade', s:'Terreno acima de 10.000 m²', v:null}); tbd = true; }
       else { lines.push({n:'2', t:'Viabilidade', s:'Descobre quantas unidades cabem, tipologias e VGV', v}); fixo += v; }
     }
-    if (!unk && un >= 2){
+    if ((!unk && un >= 2) || (unk && terreno > 0 && unEfetivo >= 2)){
+      const useUn = unk ? unEfetivo : un;
       const tip = Math.max(1, +$('tip').value || 1);
+      const estLabel = estimado ? ' (estimativa)' : '';
       const per = (n, lbl, sub, t, extra) => {
-        if (un > TABELA.maxUnidades){ lines.push({n, t:lbl, s:`Acima de ${TABELA.maxUnidades} unidades`, v:null}); tbd = true; return; }
-        let v = t.base + t.porUnidade*un + (extra||0);
+        if (useUn > TABELA.maxUnidades){ lines.push({n, t:lbl, s:`Acima de ${TABELA.maxUnidades} unidades`, v:null}); tbd = true; return; }
+        let v = t.base + t.porUnidade*useUn + (extra||0);
         if (t.min && v < t.min) v = t.min;
-        let s = `${sub}${brl(t.base)} + ${un} × ${brl(t.porUnidade)}`;
-        if (t.min && (t.base + t.porUnidade*un + (extra||0)) < t.min) s += ` (mín. ${brl(t.min)})`;
+        let s = `${sub}${brl(t.base)} + ${useUn} × ${brl(t.porUnidade)}${estLabel}`;
+        if (t.min && (t.base + t.porUnidade*useUn + (extra||0)) < t.min) s += ` (mín. ${brl(t.min)})`;
         if (extra) s += ` + ${tip-1} tipologia${tip>2?'s':''} extra`;
         lines.push({n, t:lbl, s, v}); fixo += v;
       };
       if ($('e3').checked) per('3','Projeto assinado','', TABELA.projeto, (tip-1)*TABELA.projeto.tipologiaExtra);
       if ($('e4').checked){
-        if (un > TABELA.maxUnidades){ lines.push({n:'4', t:'Memoriais e RI', s:'Acima de '+TABELA.maxUnidades+' unidades', v:null}); tbd = true; }
+        if (useUn > TABELA.maxUnidades){ lines.push({n:'4', t:'Memoriais e RI', s:'Acima de '+TABELA.maxUnidades+' unidades', v:null}); tbd = true; }
         else {
-          var faixa = TABELA.memoriais.faixas.find(f => un <= f.ate);
-          var riVal = faixa ? Math.max(faixa.min, TABELA.memoriais.base + TABELA.memoriais.porUnidade * un) : null;
+          var faixa = TABELA.memoriais.faixas.find(f => useUn <= f.ate);
+          var riVal = faixa ? Math.max(faixa.min, TABELA.memoriais.base + TABELA.memoriais.porUnidade * useUn) : null;
           if (riVal && riVal < TABELA.memoriais.min) riVal = TABELA.memoriais.min;
-          if (riVal){ lines.push({n:'4', t:'Memoriais e RI', s:'Faixa até '+faixa.ate+' un · mín. '+brl(faixa.min), v:riVal}); fixo += riVal; }
+          if (riVal){ lines.push({n:'4', t:'Memoriais e RI', s:'Faixa até '+faixa.ate+' un · mín. '+brl(faixa.min)+estLabel, v:riVal}); fixo += riVal; }
           else { lines.push({n:'4', t:'Memoriais e RI', s:'Acima de 60 unidades', v:null}); tbd = true; }
         }
       }
       if ($('e5').checked) per('5','Material de venda','', TABELA.material);
     }
-    if ($('e6').checked && !unk && un >= 2){
+    if ($('e6').checked && ((!unk && un >= 2) || (unk && terreno > 0))){
+      const useUn6 = unk ? unEfetivo : un;
       const meses = +$('meses').value || 0;
       const vgv = +$('vgv').value || 0;
       const pct = +$('pct').value || 0;
@@ -624,7 +635,8 @@ function build(){
   $('totals').innerHTML = T;
 
   let note = '';
-  if (noUn && $('e1').checked) note = 'Depois da viabilidade, com o número de unidades definido, as etapas 3 a 6 entram com preço por unidade.';
+  if (estimado && m === 'emp') note = 'Valores estimados com base em TO 60% e 45 m²/un (~' + unEfetivo + ' unidades). O valor final depende da viabilidade.';
+  else if (noUn && $('e1').checked && !terreno) note = 'Informe a área do terreno para estimar as unidades e os valores das etapas 3 a 6.';
   else if (tbd) note = 'Itens "sob medida" saem em proposta específica em até 48h.';
   else if (lines.length) note = 'Pagamento por marcos: cada etapa é paga na entrega correspondente.';
   $('note').textContent = note;
@@ -636,7 +648,8 @@ function build(){
   }), '', `*Total fixo: ${brl(total)}*`, varLine ? `Variável: ${varLine.s}` : '', note].filter(x=>x!==undefined).join('\n');
 
   // object for proposta.html
-  window.__propostaObj = { title, sub, lines, total, variavel, modo:m, terreno, un: (m==='emp' && !unk) ? un : (m==='consultoria' ? (+$('cons-un').value||null) : null), data: new Date().toISOString(), conselho: m==='conselho' ? window.__conselhoData : null, consultoria: m==='consultoria' ? window.__consultoriaData : null };
+  var unFinal = (m==='emp') ? (unk ? (terreno > 0 ? unEfetivo : null) : un) : (m==='consultoria' ? (+$('cons-un').value||null) : null);
+  window.__propostaObj = { title, sub, lines, total, variavel, modo:m, terreno, un: unFinal, estimado: (m==='emp' && estimado), data: new Date().toISOString(), conselho: m==='conselho' ? window.__conselhoData : null, consultoria: m==='consultoria' ? window.__consultoriaData : null };
 }
 function linkProposta(){
   const json = JSON.stringify(window.__propostaObj);
