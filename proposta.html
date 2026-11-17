@@ -295,6 +295,7 @@ const varLine = P.lines.find(l => l.kind === 'var');
 $('var').textContent = varLine ? `Variável sobre vendas: ${varLine.s}` + (varLine.v ? ` (estimativa ${brl(varLine.v)})` : '') : '';
 
 // ---------- 2. Formas de pagamento ----------
+const isConselhoMode = P.modo === 'conselho' || (P.conselho && P.conselho.salarios);
 const T = P.total;
 const entrada = Math.round(T * CONFIG.entradaPct/100);
 const saldo = T - entrada;
@@ -302,6 +303,14 @@ const etapas = P.lines.filter(l => l.n && !isNaN(l.v) && l.v > 0);
 const somaEtapas = etapas.reduce((a,l)=>a+l.v,0) || 1;
 const pix = Math.round(T * (1 - CONFIG.pixDescontoPct/100));
 
+if (isConselhoMode) {
+  const C = P.conselho || {};
+  $('pay').innerHTML = `<label><input type="radio" name="pg" value="conselho" checked><span>
+    <b>Pagamento mensal</b>
+    <div class="amt">${brl(C.mensal || (C.salarios||3)*1412)}/mês</div>
+    <small>${C.salarios||3} salário${(C.salarios||3)>1?'s':''} mínimo${(C.salarios||3)>1?'s':''} · ${C.meses||12} meses · Dia ${C.dia||10} via ${C.forma||'PIX'}</small>
+  </span></label>`;
+} else
 $('pay').innerHTML = `
   <label><input type="radio" name="pg" value="parcelado" checked><span>
     <b>Em 2 vezes</b>
@@ -321,6 +330,12 @@ $('pay').innerHTML = `
 
 function pagamentoEscolhido(){
   const v = document.querySelector('input[name=pg]:checked').value;
+  if (v === 'conselho') {
+    const C = P.conselho || {};
+    const sm = C.salarios || 3;
+    const mensal = C.mensal || sm*1412;
+    return { tipo:'Pagamento mensal (salários mínimos)', valor:mensal, texto:`Valor mensal de ${brl(mensal)} (${sm} salário${sm>1?'s':''} mínimo${sm>1?'s':''}), devido até o dia ${C.dia||10} de cada mês, mediante ${C.forma||'PIX'}. Vigência de ${C.meses||12} meses. Reajuste automático acompanhando o salário mínimo vigente.` };
+  }
   if (v === 'parcelado') return { tipo:'Em 2 vezes (50% + 50%)', valor:T, texto:`Primeira parcela de ${brl(entrada)} (${CONFIG.entradaPct}%) devida na assinatura deste contrato. Segunda parcela de ${brl(saldo)} (${100-CONFIG.entradaPct}%) devida na entrega do serviço contratado. O atraso de qualquer parcela sujeita o CONTRATANTE a multa de ${CONFIG.multaAtraso}% sobre o valor da parcela em atraso, acrescida de juros moratórios de ${CONFIG.jurosMes}% ao mês, pro rata die, e correção monetária pelo ${CONFIG.correcao}.` };
   if (v === 'mensal') { const ent30=Math.round(T*0.3); const parc=Math.round(T*0.7/12); return { tipo:'Entrada 30% + 12 parcelas mensais', valor:T, texto:`Entrada de ${brl(ent30)} (30%) devida na assinatura deste contrato. Saldo de ${brl(T-ent30)} em 12 parcelas mensais iguais de ${brl(parc)}, vencendo no mesmo dia de cada mês subsequente. O atraso de qualquer parcela sujeita o CONTRATANTE a multa de ${CONFIG.multaAtraso}% sobre o valor da parcela em atraso, acrescida de juros moratórios de ${CONFIG.jurosMes}% ao mês, pro rata die, e correção monetária pelo ${CONFIG.correcao}.` }; }
   if (v === 'pix') return { tipo:'À vista no PIX', valor:pix, texto:`Valor total de ${brl(pix)}, já com desconto de ${CONFIG.pixDescontoPct}%, pago integralmente via PIX na assinatura deste contrato. O não pagamento no prazo sujeita o CONTRATANTE a multa de ${CONFIG.multaAtraso}% sobre o valor devido, acrescida de juros moratórios de ${CONFIG.jurosMes}% ao mês, pro rata die, e correção monetária pelo ${CONFIG.correcao}.` };
@@ -346,12 +361,36 @@ function clausulaVariavel(){
 function renderContract(){
   const pg = pagamentoEscolhido();
   const temEtapas = etapas.length > 0;
-  const itensLivres = P.lines.filter(l => !l.n && l.kind !== 'var' && l.kind !== 'credit');
-  const isConsultoria = itensLivres.length > 0 && !temEtapas;
-  const titulo = isConsultoria ? 'Contrato de prestação de serviços de consultoria técnica' : 'Contrato de prestação de serviços de arquitetura e consultoria';
+  const itensLivres = P.lines.filter(l => !l.n && l.kind !== 'var' && l.kind !== 'credit' && l.kind !== 'fee');
+  const isConselho = P.modo === 'conselho' || (P.conselho && P.conselho.salarios);
+  const isConsultoria = !isConselho && itensLivres.length > 0 && !temEtapas;
+  const titulo = isConselho ? 'Contrato de prestação de serviços de assessoria estratégica em desenvolvimento imobiliário' : isConsultoria ? 'Contrato de prestação de serviços de consultoria técnica' : 'Contrato de prestação de serviços de arquitetura e consultoria';
 
   let objetoHtml = '';
-  if (isConsultoria) {
+  if (isConselho) {
+    const C = P.conselho || {};
+    const smQty = C.salarios || 3;
+    const smMeses = C.meses || 12;
+    const smDia = C.dia || '10';
+    const smForma = C.forma || 'PIX';
+    const smMensal = C.mensal || (smQty * 1412);
+    const smTotal = C.total || (smMensal * smMeses);
+    const extenso = {1:'um',2:'dois',3:'três',4:'quatro',5:'cinco',6:'seis',7:'sete',8:'oito',9:'nove',10:'dez',11:'onze',12:'doze'};
+    objetoHtml = `<p>Prestação de serviços de assessoria estratégica em desenvolvimento imobiliário, na modalidade de conselho estratégico, compreendendo:</p>
+    <ol>
+      <li>Reuniões semanais de alinhamento e direcionamento (até 2 por semana, 1h cada)</li>
+      <li>Diretrizes sobre terrenos e oportunidades (orientação estratégica, sem estudo detalhado)</li>
+      <li>Posicionamento de produto (metragem, layout, mix, faixa de preço, perfil do comprador)</li>
+      <li>Estratégia de margem e venda (preço, desconto, velocidade, margem real)</li>
+      <li>Acesso direto para consultas pontuais (até 4 por mês, resposta em 24h úteis)</li>
+      <li>Acesso ao canal de investidores dos lançamentos da CONTRATADA</li>
+    </ol>
+    <p>A natureza do serviço é exclusivamente de <b>instrução e orientação</b>. A CONTRATADA não executa diretamente projeto, obra, registro ou venda, apenas direciona a tomada de decisão do CONTRATANTE.</p>
+    <p>Itens não listados (projeto, RI, memorial, obra, viabilidade detalhada, materiais de venda) não integram este contrato e poderão ser contratados em separado.</p>`;
+
+    // Override payment section for conselho
+    $('contract').dataset.conselho = JSON.stringify(C);
+  } else if (isConsultoria) {
     objetoHtml = `<p>Prestação de serviços de consultoria técnica em desenvolvimento imobiliário, conforme escopo descrito neste contrato, relativos ao imóvel ou empreendimento ${$('endterreno').value.trim() ? f('endterreno') : 'descrito na proposta'} (${esc(P.sub)}).</p>
     <p><b>Serviços contratados:</b></p>
     <ol>${P.lines.filter(l=>l.kind!=='var'&&l.kind!=='credit').map(l=>`<li>${esc(l.t)}${l.v?' — '+brl(l.v):''}</li>`).join('')}</ol>
@@ -374,19 +413,31 @@ function renderContract(){
     ${objetoHtml}
 
     <h3>2. Preço e forma de pagamento</h3>
-    <p>Valor total de ${brl(T)}. Forma escolhida: <b>${esc(pg.tipo)}</b>. ${esc(pg.texto)}</p>
+    ${isConselho ? (function(){
+      const C = P.conselho || {};
+      const smQty = C.salarios || 3;
+      const smMeses = C.meses || 12;
+      const smDia = C.dia || '10';
+      const smForma = C.forma || 'PIX';
+      const smMensal = C.mensal || (smQty * 1412);
+      const smTotal = C.total || (smMensal * smMeses);
+      const ext = {1:'um',2:'dois',3:'três',4:'quatro',5:'cinco',6:'seis',7:'sete',8:'oito',9:'nove',10:'dez',11:'onze',12:'doze'};
+      return '<p>O valor mensal é de <b>' + smQty + ' (' + (ext[smQty]||smQty) + ') salários mínimos</b> vigentes na data de cada vencimento, equivalente a <b>' + brl(smMensal) + '</b> na presente data, totalizando <b>' + brl(smTotal) + '</b> no período de ' + smMeses + ' meses.</p>'
+        + '<p>O pagamento é devido até o <b>dia ' + smDia + '</b> de cada mês, mediante <b>' + smForma + '</b> para a conta da CONTRATADA. O primeiro pagamento é devido na data de celebração deste contrato.</p>'
+        + '<p>O reajuste é automático, acompanhando o salário mínimo vigente, sem necessidade de aditivo.</p>';
+    })() : `<p>Valor total de ${brl(T)}. Forma escolhida: <b>${esc(pg.tipo)}</b>. ${esc(pg.texto)}</p>
     ${clausulaVariavel()}
-    <p>Os valores são líquidos de taxas de cartório, prefeitura, concessionárias, RRT e demais custos de terceiros, que correm por conta do CONTRATANTE.</p>
+    <p>Os valores são líquidos de taxas de cartório, prefeitura, concessionárias, RRT e demais custos de terceiros, que correm por conta do CONTRATANTE.</p>`}
 
     <h3>3. Prazos</h3>
-    ${temEtapas ? `<p>Os prazos de cada etapa são contados a partir do evento indicado, condicionados à confirmação do pagamento correspondente e ao recebimento das informações necessárias:</p>${prazos()}` : `<p>O prazo de vigência da consultoria é de 12 meses contados da assinatura deste contrato, condicionado à regularidade dos pagamentos mensais.</p>`}
+    ${isConselho ? `<p>O contrato tem vigência de <b>${(P.conselho||{}).meses||12} meses</b>, contados da data de aceite, renovável automaticamente por iguais períodos, salvo manifestação contrária de qualquer das partes com antecedência mínima de 30 dias antes do término.</p>` : temEtapas ? `<p>Os prazos de cada etapa são contados a partir do evento indicado, condicionados à confirmação do pagamento correspondente e ao recebimento das informações necessárias:</p>${prazos()}` : `<p>O prazo de vigência da consultoria é de 12 meses contados da assinatura deste contrato, condicionado à regularidade dos pagamentos mensais.</p>`}
     <p>Os prazos suspendem-se enquanto houver pendência de informação, documento, pagamento ou aprovação a cargo do CONTRATANTE ou de órgão público.</p>
 
-    <h3>4. Entregas e aprovação</h3>
-    ${isConsultoria ? `<p>A consultoria é prestada por meio de reuniões mensais de alinhamento, acesso direto via WhatsApp para dúvidas pontuais, relatório mensal de progresso e material de apoio (planilhas, modelos, checklists). As entregas diretas (viabilidade e, se contratado, projeto) são entregues em formato digital e consideram-se aprovadas se não houver manifestação escrita em 7 dias.</p>` : `<p>Cada etapa é entregue em formato digital e considera-se aprovada se não houver manifestação escrita em 7 dias. Cada etapa inclui uma rodada de ajustes; alterações de escopo ou revisões adicionais serão orçadas à parte.</p>`}
+    <h3>4. ${isConselho ? 'Reuniões e entregas' : 'Entregas e aprovação'}</h3>
+    ${isConselho ? `<p>As reuniões serão realizadas semanalmente, em até 2 (duas) por semana, por videoconferência, com duração de até 1 (uma) hora cada, em data e horário acordados entre as partes com antecedência mínima de 48 horas. A pauta é enviada pelo CONTRATANTE com antecedência de 24 horas. Reuniões não realizadas por ausência do CONTRATANTE não são reposicionáveis. A CONTRATADA poderá remarcar até 2 reuniões por mês sem penalidade.</p>` : isConsultoria ? `<p>A consultoria é prestada por meio de reuniões mensais de alinhamento, acesso direto via WhatsApp para dúvidas pontuais, relatório mensal de progresso e material de apoio (planilhas, modelos, checklists). As entregas diretas (viabilidade e, se contratado, projeto) são entregues em formato digital e consideram-se aprovadas se não houver manifestação escrita em 7 dias.</p>` : `<p>Cada etapa é entregue em formato digital e considera-se aprovada se não houver manifestação escrita em 7 dias. Cada etapa inclui uma rodada de ajustes; alterações de escopo ou revisões adicionais serão orçadas à parte.</p>`}
 
     <h3>5. Obrigações do contratante</h3>
-    <p>Fornecer documentos do imóvel, informações verdadeiras e as aprovações dentro dos prazos; efetuar os pagamentos nas datas acordadas; comparecer às reuniões agendadas${isConsultoria ? '; executar ou contratar a execução das atividades orientadas pela CONTRATADA' : ''}.</p>
+    <p>${isConselho ? 'Efetuar os pagamentos nas datas acordadas; comparecer às reuniões agendadas; fornecer informações verdadeiras sobre seus empreendimentos e operação; executar ou contratar a execução das atividades orientadas pela CONTRATADA.' : `Fornecer documentos do imóvel, informações verdadeiras e as aprovações dentro dos prazos; efetuar os pagamentos nas datas acordadas; comparecer às reuniões agendadas${isConsultoria ? '; executar ou contratar a execução das atividades orientadas pela CONTRATADA' : ''}.`}</p>
     ${temEtapas ? `<p><b>Documentos necessários para início dos trabalhos:</b></p>
     <ol style="font-size:13px;line-height:1.8">
       <li>CNPJ da SPE e da empresa titular</li>
@@ -407,19 +458,31 @@ function renderContract(){
     <h3>6. Inadimplemento</h3>
     <p>O atraso no pagamento de qualquer parcela ou valor devido sujeita o CONTRATANTE a multa de ${CONFIG.multaAtraso}% sobre o valor em atraso, acrescida de juros moratórios de ${CONFIG.jurosMes}% ao mês, calculados pro rata die, e correção monetária pelo índice ${CONFIG.correcao}, sem prejuízo da cobrança judicial. O atraso superior a 30 dias autoriza a CONTRATADA a suspender os trabalhos em andamento até a regularização, sem que o prazo contratual seja prorrogado. Persistindo o inadimplemento por mais de 60 dias, fica facultada a rescisão por justa causa pela CONTRATADA, aplicando-se a cláusula 8.</p>
 
-    <h3>7. Direitos autorais e uso</h3>
+    ${isConselho ? `<h3>7. Confidencialidade</h3>
+    <p>As partes se comprometem a manter sigilo sobre todas as informações comerciais, financeiras e estratégicas compartilhadas durante a vigência deste contrato, inclusive após seu término, pelo prazo de 2 (dois) anos. A CONTRATADA poderá divulgar a relação de assessoria em seu portfólio, sem expor dados financeiros do CONTRATANTE.</p>
+
+    <h3>8. Propriedade intelectual</h3>
+    <p>As análises, pareceres e materiais produzidos pela CONTRATADA durante a assessoria são obra intelectual protegida pela Lei 9.610/98. O CONTRATANTE recebe licença de uso para seus empreendimentos, condicionada à quitação. É vedada a revenda ou distribuição a terceiros.</p>
+
+    <h3>9. Rescisão</h3>
+    <p><b>9.1. Pelo CONTRATANTE:</b> mediante aviso prévio de 30 (trinta) dias e quitação das mensalidades vencidas. Multa de 2 mensalidades caso a rescisão ocorra nos primeiros 6 meses de vigência.</p>
+    <p><b>9.2. Pela CONTRATADA:</b> em caso de inadimplência superior a 60 (sessenta) dias, ou por justa causa.</p>
+    <p><b>9.3. Por mútuo acordo:</b> a qualquer tempo, sem multa, mediante quitação dos valores devidos.</p>
+    <p><b>9.4. Efeitos:</b> em qualquer modalidade de rescisão, as orientações já prestadas permanecem de propriedade intelectual da CONTRATADA. O CONTRATANTE poderá utilizar as diretrizes recebidas, mas não reproduzi-las comercialmente.</p>` :
+
+    `<h3>7. Direitos autorais e uso</h3>
     <p>Os estudos, projetos e materiais produzidos são obra intelectual da CONTRATADA (Lei 9.610/98). O CONTRATANTE recebe licença de uso para o imóvel objeto deste contrato, condicionada à quitação. É vedada a reprodução em outro imóvel e a alteração do projeto sem anuência da CONTRATADA. A CONTRATADA poderá divulgar o trabalho em seu portfólio, preservando dados pessoais do CONTRATANTE.</p>
 
     <h3>8. Rescisão</h3>
     <p><b>8.1. Rescisão pelo CONTRATANTE:</b> o CONTRATANTE pode rescindir a qualquer momento mediante comunicação escrita com antecedência mínima de 15 dias. São devidos integralmente: (a) os valores de etapas ou meses de consultoria já concluídos; (b) o valor proporcional ao trabalho executado na etapa ou mês em andamento; (c) as multas e juros sobre parcelas em atraso, se houver. Valores pagos por etapas ou meses não iniciados serão devolvidos em até 30 dias.</p>
     <p><b>8.2. Rescisão pela CONTRATADA:</b> a CONTRATADA pode rescindir em caso de inadimplemento superior a 60 dias (conforme cláusula 6), descumprimento reiterado das obrigações do CONTRATANTE, ou impossibilidade técnica devidamente justificada. Nesta hipótese, aplica-se a mesma regra de cálculo do item 8.1.</p>
     <p><b>8.3. Rescisão por mútuo acordo:</b> as partes podem rescindir a qualquer momento por acordo escrito, definindo livremente as condições de encerramento.</p>
-    <p><b>8.4. Efeitos:</b> em qualquer modalidade de rescisão, a CONTRATADA entregará ao CONTRATANTE todos os materiais já produzidos até a data da rescisão, condicionada à quitação dos valores devidos. Os direitos autorais permanecem com a CONTRATADA conforme cláusula 7, mesmo após a rescisão.</p>
+    <p><b>8.4. Efeitos:</b> em qualquer modalidade de rescisão, a CONTRATADA entregará ao CONTRATANTE todos os materiais já produzidos até a data da rescisão, condicionada à quitação dos valores devidos. Os direitos autorais permanecem com a CONTRATADA conforme cláusula 7, mesmo após a rescisão.</p>`}
 
-    <h3>9. Aceite eletrônico</h3>
+    <h3>${isConselho ? '10' : '9'}. Aceite eletrônico</h3>
     <p>As partes reconhecem a validade do aceite eletrônico realizado nesta página, com registro de nome, documento, data, hora e endereço de rede, nos termos do art. 10, §2º, da MP 2.200-2/2001 e do art. 107 do Código Civil.</p>
 
-    <h3>10. Foro</h3>
+    <h3>${isConselho ? '11' : '10'}. Foro</h3>
     <p>Fica eleito o foro da comarca de ${cf('cidadeForo')} para dirimir quaisquer questões deste contrato.</p>
     <p id="c-sign"></p>`;
 }
