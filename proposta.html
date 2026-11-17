@@ -810,15 +810,38 @@ $('go').addEventListener('click', async () => {
     'IP: ' + ip
   ].filter(x => x !== '').join('\n');
 
-  // Enviar pro Telegram
+  // Enviar pro Telegram (com await e retry)
   var TG_BOT = '7607498857:AAE0jM_cFrU7qHlXrPAz9q5rQxI3ZOQNxpI';
   var TG_CHAT = '-4580797688';
+  let tgOk = false;
   try {
-    fetch('https://api.telegram.org/bot' + TG_BOT + '/sendMessage', {
+    const tgRes = await fetch('https://api.telegram.org/bot' + TG_BOT + '/sendMessage', {
       method: 'POST', headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({chat_id: TG_CHAT, text: txt})
     });
-  } catch(e){}
+    const tgJson = await tgRes.json();
+    tgOk = tgJson.ok === true;
+    if (!tgOk) console.warn('Telegram erro:', JSON.stringify(tgJson));
+  } catch(e){ console.warn('Telegram falhou:', e.message); }
+
+  // Retry se falhou
+  if (!tgOk) {
+    try {
+      const tgRes2 = await fetch('https://api.telegram.org/bot' + TG_BOT + '/sendMessage', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({chat_id: TG_CHAT, text: txt})
+      });
+      tgOk = (await tgRes2.json()).ok === true;
+    } catch(e2){}
+  }
+
+  // Mostrar status do envio
+  if (tgOk) {
+    $('done-code').textContent += ' · notificação enviada';
+  } else {
+    $('done-code').textContent += ' · notificação pendente';
+    console.warn('Telegram: não foi possível enviar. O aceite foi registrado no banco.');
+  }
 
   // Botão PDF
   $('pdf').onclick = () => window.print();
