@@ -174,6 +174,18 @@ tr:last-child td{border-bottom:0}tr:hover td{background:rgba(106,35,38,.015)}
 
 <script>
 const API='/api/painel';let SENHA='',PROPOSTAS=[],RASCUNHOS=[];
+// Conexão direta com o banco (não depende das APIs do Vercel para salvar)
+const SB='https://mooghvkrendiiwhxynkd.supabase.co';
+const SBK='sb_publishable_eRt9feUOHeFOSZjIbfDrJw_ieFaA6Dx';
+const SBH={apikey:SBK,Authorization:'Bearer '+SBK,'Content-Type':'application/json',Prefer:'return=minimal'};
+async function sbPatch(codigo,campos){
+  const r=await fetch(SB+'/rest/v1/propostas?codigo=eq.'+encodeURIComponent(codigo),{method:'PATCH',headers:SBH,body:JSON.stringify(campos)});
+  if(!r.ok)throw new Error('HTTP '+r.status);
+}
+async function salvarConselho(){
+  try{await sbPatch(CURRENT.codigo,{conselho_data:CURRENT.conselho_data});}
+  catch(e){alert('Erro ao salvar no banco: '+e.message);}
+}
 const brl=v=>v?'R$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:0}):'-';
 const dh=d=>d?new Date(d).toLocaleString('pt-BR'):'-';
 const dd=d=>d?new Date(d).toLocaleDateString('pt-BR'):'-';
@@ -223,10 +235,8 @@ const DOCS_CLIENTE=['CNPJ da SPE','Dados sócios/admin','Registro terreno','Cert
 function entrar(){
   SENHA=document.getElementById('senha').value.trim();
   if(!SENHA){document.getElementById('login-err').textContent='Digite a senha';return;}
-  fetch(API+'?acao=stats&senha='+SENHA).then(r=>r.json()).then(j=>{
-    if(j.error){document.getElementById('login-err').textContent='Senha incorreta';return;}
-    document.body.classList.add('auth');sessionStorage.setItem('ps',SENHA);carregarTudo();
-  }).catch(()=>{document.getElementById('login-err').textContent='Erro de conexão';});
+  if(SENHA!=='isa2026'){document.getElementById('login-err').textContent='Senha incorreta';return;}
+  document.body.classList.add('auth');sessionStorage.setItem('ps',SENHA);carregarTudo();
 }
 function sair(){sessionStorage.removeItem('ps');document.body.classList.remove('auth');SENHA='';}
 (function(){const s=sessionStorage.getItem('ps');if(s){SENHA=s;document.body.classList.add('auth');carregarTudo();}})();
@@ -238,10 +248,21 @@ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',function
 }));
 
 async function carregarTudo(){
-  const prop=await(await fetch(API+'?acao=listar&senha='+SENHA)).json();
-  PROPOSTAS=prop.propostas||[];renderPropostas(PROPOSTAS);
+  try{
+    const r=await fetch(SB+'/rest/v1/propostas?order=aceito_em.desc&limit=200',{headers:{apikey:SBK,Authorization:'Bearer '+SBK}});
+    const lista=await r.json();
+    PROPOSTAS=Array.isArray(lista)?lista:[];
+  }catch(e){
+    document.getElementById('tabela-propostas').innerHTML='<div class="empty">Erro ao carregar do banco: '+esc(e.message)+'</div>';
+    PROPOSTAS=[];
+  }
+  renderPropostas(PROPOSTAS);
   renderStatsEFluxo();
-  try{const rasc=await(await fetch(API+'?acao=rascunhos&senha='+SENHA)).json();RASCUNHOS=rasc.rascunhos||[];renderRascunhos(RASCUNHOS);}catch(e){}
+  try{
+    const r2=await fetch(SB+'/rest/v1/rascunhos?order=created_at.desc&limit=50',{headers:{apikey:SBK,Authorization:'Bearer '+SBK}});
+    const l2=await r2.json();
+    RASCUNHOS=Array.isArray(l2)?l2:[];renderRascunhos(RASCUNHOS);
+  }catch(e){}
 }
 
 // ======= FLUXO DE CAIXA =======
@@ -352,11 +373,15 @@ async function abrirDetalhe(i){
   if(!CURRENT.etapas)CURRENT.etapas=[];
   if(!CURRENT.docs_cliente)CURRENT.docs_cliente=[];
   if(!CURRENT.conselho_data)CURRENT.conselho_data={reunioes:[],decisoes:[],parcelas:[],documentos:[]};
-  // Carregar dados do conselho do servidor
+  // Carregar dados frescos do conselho direto do banco
   try{
-    const r=await fetch(`/api/conselho?acao=admin_ver&codigo=${CURRENT.codigo}&senha=${SENHA}`);
-    const j=await r.json();
-    if(j.conselho)CURRENT.conselho_data=j.conselho;
+    const r=await fetch(SB+'/rest/v1/propostas?codigo=eq.'+encodeURIComponent(CURRENT.codigo)+'&select=conselho_data,previsoes,pagamentos',{headers:{apikey:SBK,Authorization:'Bearer '+SBK}});
+    const arr=await r.json();
+    if(arr&&arr[0]){
+      if(arr[0].conselho_data)CURRENT.conselho_data=arr[0].conselho_data;
+      if(arr[0].previsoes)CURRENT.previsoes=arr[0].previsoes;
+      if(arr[0].pagamentos)CURRENT.pagamentos=arr[0].pagamentos;
+    }
   }catch(e){}
   renderDetalhe();
   document.getElementById('modal-bg').classList.add('open');
@@ -628,58 +653,75 @@ function renderDetalhe(){
   document.getElementById('m-body').innerHTML=html;
 }
 
-// Funções do conselho
+// Funções do conselho (gravam direto no banco)
+function cd(){CURRENT.conselho_data=CURRENT.conselho_data||{};const c=CURRENT.conselho_data;c.reunioes=c.reunioes||[];c.decisoes=c.decisoes||[];c.parcelas=c.parcelas||[];c.documentos=c.documentos||[];c.tarefas=c.tarefas||[];return c;}
+function atualizaProxima(c){
+  const prox=(c.reunioes||[]).filter(r=>r.status==='agendada').sort((a,b)=>a.data>b.data?1:-1)[0];
+  c.proxima_reuniao=prox?{data:prox.data,hora:prox.hora}:null;
+}
 async function agendarReuniao(){
   const data=prompt('Data da reunião (AAAA-MM-DD):');
   if(!data)return;
   const hora=prompt('Horário (ex: 10:00):','10:00');
   const pauta=prompt('Pauta (opcional):','');
-  await fetch(`/api/conselho?acao=add_reuniao&codigo=${CURRENT.codigo}&senha=${SENHA}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data,hora,pauta})});
-  // Recarregar
-  const r=await(await fetch(`/api/conselho?acao=admin_ver&codigo=${CURRENT.codigo}&senha=${SENHA}`)).json();
-  if(r.conselho)CURRENT.conselho_data=r.conselho;
-  renderDetalhe();
+  const c=cd();
+  c.reunioes.push({id:Date.now(),data,hora:hora||'10:00',status:'agendada',pauta:pauta||'',resumo:'',decisoes:[],local:'Vídeo'});
+  atualizaProxima(c);
+  await salvarConselho();renderDetalhe();
 }
 async function realizarReuniao(id){
   const resumo=prompt('Resumo da reunião:');
   const decisoesStr=prompt('Decisões tomadas (separe por ; ):','');
   const decisoes=decisoesStr?decisoesStr.split(';').map(d=>d.trim()).filter(d=>d):[];
-  await fetch(`/api/conselho?acao=update_reuniao&codigo=${CURRENT.codigo}&senha=${SENHA}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,status:'realizada',resumo,decisoes})});
-  const r=await(await fetch(`/api/conselho?acao=admin_ver&codigo=${CURRENT.codigo}&senha=${SENHA}`)).json();
-  if(r.conselho)CURRENT.conselho_data=r.conselho;
-  renderDetalhe();
+  const c=cd();
+  const r=c.reunioes.find(x=>x.id===id);
+  if(!r)return;
+  r.status='realizada';r.resumo=resumo||'';r.decisoes=decisoes;
+  decisoes.forEach(d=>c.decisoes.push({texto:d,data:r.data,reuniao_id:id,created:new Date().toISOString()}));
+  atualizaProxima(c);
+  await salvarConselho();renderDetalhe();
 }
 async function cancelarReuniao(id){
   if(!confirm('Cancelar esta reunião?'))return;
-  await fetch(`/api/conselho?acao=update_reuniao&codigo=${CURRENT.codigo}&senha=${SENHA}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,status:'cancelada'})});
-  const r=await(await fetch(`/api/conselho?acao=admin_ver&codigo=${CURRENT.codigo}&senha=${SENHA}`)).json();
-  if(r.conselho)CURRENT.conselho_data=r.conselho;
-  renderDetalhe();
+  const c=cd();
+  const r=c.reunioes.find(x=>x.id===id);
+  if(!r)return;
+  r.status='cancelada';
+  atualizaProxima(c);
+  await salvarConselho();renderDetalhe();
 }
 async function gerarParcelas(){
   const meses=+prompt('Quantos meses?','12');
   const valor=+prompt('Valor mensal (R$):','2824');
   const dia=+prompt('Dia do vencimento:','10');
   if(!meses||!valor)return;
-  await fetch(`/api/conselho?acao=gerar_parcelas&codigo=${CURRENT.codigo}&senha=${SENHA}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({meses,valor_mensal:valor,dia_vencimento:dia})});
-  const r=await(await fetch(`/api/conselho?acao=admin_ver&codigo=${CURRENT.codigo}&senha=${SENHA}`)).json();
-  if(r.conselho)CURRENT.conselho_data=r.conselho;
-  renderDetalhe();
+  const c=cd();
+  c.parcelas=[];
+  const inicio=new Date(CURRENT.aceito_em||new Date().toISOString());
+  for(let i=0;i<meses;i++){
+    const venc=new Date(inicio);
+    venc.setMonth(venc.getMonth()+i);
+    venc.setDate(dia||10);
+    c.parcelas.push({numero:i+1,vencimento:venc.toISOString().slice(0,10),valor,status:'pendente',pago_em:null});
+  }
+  await salvarConselho();renderDetalhe();
 }
 async function marcarPaga(numero){
-  await fetch(`/api/conselho?acao=registrar_pagamento&codigo=${CURRENT.codigo}&senha=${SENHA}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({numero})});
-  const r=await(await fetch(`/api/conselho?acao=admin_ver&codigo=${CURRENT.codigo}&senha=${SENHA}`)).json();
-  if(r.conselho)CURRENT.conselho_data=r.conselho;
-  renderDetalhe();
+  const c=cd();
+  const p=c.parcelas.find(x=>x.numero===numero);
+  if(!p)return;
+  const quando=prompt('Data em que o pagamento caiu (AAAA-MM-DD):',new Date().toISOString().slice(0,10));
+  if(!quando)return;
+  p.status='paga';p.pago_em=quando;
+  await salvarConselho();renderDetalhe();carregarTudo();
 }
 async function addDiretriz(){
   const titulo=prompt('Título da diretriz:');
   if(!titulo)return;
   const descricao=prompt('Descrição (opcional):','');
-  await fetch(`/api/conselho?acao=add_documento&codigo=${CURRENT.codigo}&senha=${SENHA}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({titulo,descricao,tipo:'diretriz'})});
-  const r=await(await fetch(`/api/conselho?acao=admin_ver&codigo=${CURRENT.codigo}&senha=${SENHA}`)).json();
-  if(r.conselho)CURRENT.conselho_data=r.conselho;
-  renderDetalhe();
+  const c=cd();
+  c.documentos.push({id:Date.now(),titulo,descricao:descricao||'',tipo:'diretriz',data:new Date().toISOString().slice(0,10)});
+  await salvarConselho();renderDetalhe();
 }
 async function addTarefa(){
   const titulo=prompt('Título da tarefa:');
@@ -690,42 +732,39 @@ async function addTarefa(){
   const prazo=prompt('Prazo (AAAA-MM-DD, ou vazio):','');
   const checklistStr=prompt('Checklist (separe itens por ; ou vazio):','');
   const checklist=checklistStr?checklistStr.split(';').map(s=>s.trim()).filter(s=>s):[];
-  await fetch(`/api/conselho?acao=add_tarefa&codigo=${CURRENT.codigo}&senha=${SENHA}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({titulo,descricao,prioridade,responsavel,prazo,checklist})});
-  const r=await(await fetch(`/api/conselho?acao=admin_ver&codigo=${CURRENT.codigo}&senha=${SENHA}`)).json();
-  if(r.conselho)CURRENT.conselho_data=r.conselho;
-  renderDetalhe();
+  const c=cd();
+  c.tarefas.push({id:Date.now(),titulo,descricao:descricao||'',status:'pendente',prioridade:prioridade||'normal',responsavel:responsavel||'isabella',prazo:prazo||'',criada_em:new Date().toISOString().slice(0,10),concluida_em:null,checklist:checklist.map(item=>({item,feito:false}))});
+  await salvarConselho();renderDetalhe();
 }
 async function concluirTarefa(id){
-  await fetch(`/api/conselho?acao=update_tarefa&codigo=${CURRENT.codigo}&senha=${SENHA}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,status:'concluida'})});
-  const r=await(await fetch(`/api/conselho?acao=admin_ver&codigo=${CURRENT.codigo}&senha=${SENHA}`)).json();
-  if(r.conselho)CURRENT.conselho_data=r.conselho;
-  renderDetalhe();
+  const c=cd();
+  const t=c.tarefas.find(x=>x.id===id);
+  if(!t)return;
+  t.status='concluida';t.concluida_em=new Date().toISOString().slice(0,10);
+  await salvarConselho();renderDetalhe();
 }
 async function removeTarefa(id){
   if(!confirm('Remover esta tarefa?'))return;
-  await fetch(`/api/conselho?acao=remove_tarefa&codigo=${CURRENT.codigo}&senha=${SENHA}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});
-  const r=await(await fetch(`/api/conselho?acao=admin_ver&codigo=${CURRENT.codigo}&senha=${SENHA}`)).json();
-  if(r.conselho)CURRENT.conselho_data=r.conselho;
-  renderDetalhe();
+  const c=cd();
+  c.tarefas=c.tarefas.filter(t=>t.id!==id);
+  await salvarConselho();renderDetalhe();
 }
 async function toggleTarefaCheck(tarefaId,ci,val){
-  const cd=CURRENT.conselho_data||{};
-  const tarefa=(cd.tarefas||[]).find(t=>t.id===tarefaId);
+  const c=cd();
+  const tarefa=c.tarefas.find(t=>t.id===tarefaId);
   if(!tarefa)return;
   tarefa.checklist[ci].feito=val;
-  await fetch(`/api/conselho?acao=update_tarefa&codigo=${CURRENT.codigo}&senha=${SENHA}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:tarefaId,checklist:tarefa.checklist})});
-  renderDetalhe();
+  await salvarConselho();renderDetalhe();
 }
 async function addTarefaCheckItem(tarefaId){
   const item=prompt('Novo item do checklist:');
   if(!item)return;
-  const cd=CURRENT.conselho_data||{};
-  const tarefa=(cd.tarefas||[]).find(t=>t.id===tarefaId);
+  const c=cd();
+  const tarefa=c.tarefas.find(t=>t.id===tarefaId);
   if(!tarefa)return;
   tarefa.checklist=tarefa.checklist||[];
   tarefa.checklist.push({item,feito:false});
-  await fetch(`/api/conselho?acao=update_tarefa&codigo=${CURRENT.codigo}&senha=${SENHA}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:tarefaId,checklist:tarefa.checklist})});
-  renderDetalhe();
+  await salvarConselho();renderDetalhe();
 }
 
 function toggleCheck(ei,ci,val){CURRENT.etapas[ei].checklist[ci].feito=val;renderDetalhe();}
@@ -843,11 +882,15 @@ async function salvarTudo(){
   }
   document.getElementById('d-msg').textContent='Salvando...';
   try{
-    await fetch(API+'?acao=atualizar&senha='+SENHA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const campos={status:body.status,notas:body.notas,etapas:body.etapas,docs_cliente:body.docs_cliente,pagamentos:body.pagamentos,previsoes:body.previsoes};
+    if(body.etapa_atual)campos.etapa_atual=body.etapa_atual;
+    if(body.cliente_nome)campos.cliente_nome=body.cliente_nome;
+    if(body.proposta_titulo)campos.proposta_titulo=body.proposta_titulo;
+    await sbPatch(body.codigo,campos);
     document.getElementById('d-msg').textContent='Salvo!';
     setTimeout(()=>{document.getElementById('d-msg').textContent='';},2000);
     carregarTudo();
-  }catch(e){document.getElementById('d-msg').textContent='Erro ao salvar';}
+  }catch(e){document.getElementById('d-msg').textContent='Erro ao salvar: '+e.message;}
 }
 
 // ======= NOVA PROPOSTA =======
@@ -874,7 +917,7 @@ async function salvarNova(){
   const docs=(tipo==='empreendimento'||tipo==='casa')?DOCS_CLIENTE.map(item=>({item,feito:false})):[];
   const dataAceite=document.getElementById('n-data').value?new Date(document.getElementById('n-data').value+'T12:00:00').toISOString():new Date().toISOString();
   try{
-    const r=await fetch(API+'?acao=criar&senha='+SENHA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    const r=await fetch(SB+'/rest/v1/propostas',{method:'POST',headers:SBH,body:JSON.stringify({
       codigo,aceito_em:dataAceite,cliente_nome:nome,cliente_doc:document.getElementById('n-doc').value.trim(),
       cliente_email:document.getElementById('n-email').value.trim(),
       cliente_whatsapp:document.getElementById('n-tel').value.trim(),
@@ -885,10 +928,9 @@ async function salvarNova(){
       notas:document.getElementById('n-notas').value.trim(),
       etapas:etapas,docs_cliente:docs,ip:'manual',
     })});
-    const j=await r.json();
-    if(j.ok){document.getElementById('n-msg').textContent='Salvo!';setTimeout(()=>{fecharNova();carregarTudo();},600);}
-    else{document.getElementById('n-msg').textContent='Erro: '+(j.error||'');}
-  }catch(e){document.getElementById('n-msg').textContent='Erro de conexão.';}
+    if(r.ok){document.getElementById('n-msg').textContent='Salvo!';setTimeout(()=>{fecharNova();carregarTudo();},600);}
+    else{const t=await r.text();document.getElementById('n-msg').textContent='Erro: '+t.slice(0,160);}
+  }catch(e){document.getElementById('n-msg').textContent='Erro de conexão: '+e.message;}
 }
 </script>
 </body>
