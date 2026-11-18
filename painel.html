@@ -611,31 +611,39 @@ function renderDetalhe(){
       pendentes.forEach(t=>{
         const totalCk=t.checklist?t.checklist.length:0;
         const feitosCk=t.checklist?t.checklist.filter(c=>c.feito).length:0;
-        const prioColors={alta:'#9C3B2E',normal:'var(--v)',baixa:'var(--soft)'};
-        html+=`<div style="border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:6px;font-size:12px">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <b>${esc(t.titulo)}</b>
-            <div style="display:flex;gap:4px">
-              <span class="badge" style="background:${prioColors[t.prioridade]||'var(--v)'};color:#fff;font-size:10px">${t.prioridade||'normal'}</span>
+        html+=`<div style="border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:8px;font-size:12px;background:#fff">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+            <input value="${esc(t.titulo||'')}" placeholder="Título da tarefa" onchange="setTarefaCampo(${t.id},'titulo',this.value)" style="flex:1;border:none;border-bottom:1px dashed var(--line);font:inherit;font-size:13px;font-weight:600;padding:4px 2px;background:transparent">
+            <div style="display:flex;gap:4px;align-items:center">
+              <select onchange="setTarefaCampo(${t.id},'prioridade',this.value)" style="padding:3px 6px;border:1px solid var(--line);border-radius:6px;font:inherit;font-size:11px">
+                <option value="alta"${t.prioridade==='alta'?' selected':''}>Alta</option>
+                <option value="normal"${!t.prioridade||t.prioridade==='normal'?' selected':''}>Normal</option>
+                <option value="baixa"${t.prioridade==='baixa'?' selected':''}>Baixa</option>
+              </select>
               <button class="btn sm" onclick="concluirTarefa(${t.id})" style="font-size:10px;padding:2px 8px;background:var(--green)">Concluir</button>
               <button onclick="removeTarefa(${t.id})" style="background:none;border:none;color:var(--soft);cursor:pointer;font-size:14px">&times;</button>
             </div>
           </div>
-          ${t.descricao?'<div style="color:var(--soft);margin-top:3px">'+esc(t.descricao)+'</div>':''}
-          <div style="display:flex;gap:10px;margin-top:4px;color:var(--soft);font-size:11px">
-            ${t.responsavel?'<span>'+esc(t.responsavel)+'</span>':''}
-            ${t.prazo?'<span>Prazo: '+esc(t.prazo)+'</span>':''}
-            ${totalCk?'<span>'+feitosCk+'/'+totalCk+'</span>':''}
+          <textarea placeholder="Tópicos e anotações (vá preenchendo ao longo do conselho)" onchange="setTarefaCampo(${t.id},'descricao',this.value)" style="width:100%;margin-top:8px;padding:8px;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:12px;min-height:46px;resize:vertical;color:var(--soft)">${esc(t.descricao||'')}</textarea>
+          <div style="display:flex;gap:8px;margin-top:6px;align-items:center;flex-wrap:wrap;font-size:11px;color:var(--soft)">
+            <span>Responsável <input value="${esc(t.responsavel||'')}" onchange="setTarefaCampo(${t.id},'responsavel',this.value)" style="width:90px;padding:3px 6px;border:1px solid var(--line);border-radius:6px;font:inherit;font-size:11px"></span>
+            <span>Prazo <input type="date" value="${esc(t.prazo||'')}" onchange="setTarefaCampo(${t.id},'prazo',this.value)" style="padding:3px 6px;border:1px solid var(--line);border-radius:6px;font:inherit;font-size:11px"></span>
+            ${totalCk?'<span>'+feitosCk+'/'+totalCk+' itens</span>':''}
+          </div>
+          <div style="margin-top:8px;border-top:1px solid var(--line);padding-top:6px">`;
+        (t.checklist||[]).forEach((c,ci)=>{
+          html+=`<div style="display:flex;align-items:center;gap:6px;padding:2px 0">
+            <input type="checkbox" ${c.feito?'checked':''} onchange="toggleTarefaCheck(${t.id},${ci},this.checked)" style="accent-color:var(--v)">
+            <input value="${esc(c.item)}" onchange="editTarefaCheckItem(${t.id},${ci},this.value)" style="flex:1;border:none;background:transparent;font:inherit;font-size:12px;padding:2px;${c.feito?'text-decoration:line-through;color:var(--soft)':''}">
+            <button onclick="removeTarefaCheckItem(${t.id},${ci})" style="background:none;border:none;color:var(--soft);cursor:pointer;font-size:13px;opacity:.5">&times;</button>
           </div>`;
-        if(t.checklist&&t.checklist.length){
-          html+='<div style="margin-top:6px;border-top:1px solid var(--line);padding-top:4px">';
-          t.checklist.forEach((c,ci)=>{
-            html+=`<div style="display:flex;align-items:center;gap:6px;padding:2px 0"><input type="checkbox" ${c.feito?'checked':''} onchange="toggleTarefaCheck(${t.id},${ci},this.checked)" style="accent-color:var(--v)"><span style="${c.feito?'text-decoration:line-through;color:var(--soft)':''}">${esc(c.item)}</span></div>`;
-          });
-          html+=`<button onclick="addTarefaCheckItem(${t.id})" style="background:none;border:none;color:var(--v);cursor:pointer;font-size:11px;padding:2px 0;margin-top:2px">+ item</button>`;
-          html+='</div>';
-        }
-        html+='</div>';
+        });
+        html+=`<div style="display:flex;gap:6px;margin-top:4px">
+            <input id="novo-item-${t.id}" placeholder="Novo item... (Enter adiciona)" onkeydown="if(event.key==='Enter')addItemInline(${t.id})" style="flex:1;padding:5px 8px;border:1px dashed var(--line);border-radius:6px;font:inherit;font-size:12px">
+            <button class="btn sm sec" onclick="addItemInline(${t.id})" style="font-size:11px;padding:3px 10px">+ item</button>
+          </div>
+          </div>
+        </div>`;
       });
       if(concluidas.length){
         html+=`<details style="margin-top:4px"><summary style="font-size:11px;color:var(--soft);cursor:pointer;padding:4px 0">${concluidas.length} concluída${concluidas.length>1?'s':''}</summary>`;
@@ -749,17 +757,43 @@ async function addDiretriz(){
   await salvarConselho();renderDetalhe();
 }
 async function addTarefa(){
-  const titulo=prompt('Título da tarefa:');
-  if(!titulo)return;
-  const descricao=prompt('Descrição (opcional):','');
-  const prioridade=prompt('Prioridade (alta, normal, baixa):','normal');
-  const responsavel=prompt('Responsável (isabella ou nome do cliente):','isabella');
-  const prazo=prompt('Prazo (AAAA-MM-DD, ou vazio):','');
-  const checklistStr=prompt('Checklist (separe itens por ; ou vazio):','');
-  const checklist=checklistStr?checklistStr.split(';').map(s=>s.trim()).filter(s=>s):[];
+  // Cria a tarefa vazia e você preenche direto no card, ao longo do conselho
   const c=cd();
-  c.tarefas.push({id:Date.now(),titulo,descricao:descricao||'',status:'pendente',prioridade:prioridade||'normal',responsavel:responsavel||'isabella',prazo:prazo||'',criada_em:new Date().toISOString().slice(0,10),concluida_em:null,checklist:checklist.map(item=>({item,feito:false}))});
+  c.tarefas.push({id:Date.now(),titulo:'',descricao:'',status:'pendente',prioridade:'normal',responsavel:'isabella',prazo:'',criada_em:new Date().toISOString().slice(0,10),concluida_em:null,checklist:[]});
   await salvarConselho();renderDetalhe();
+  setTimeout(()=>{const inputs=document.querySelectorAll('input[placeholder="Título da tarefa"]');if(inputs.length)inputs[inputs.length-1].focus();},100);
+}
+async function setTarefaCampo(id,campo,val){
+  const c=cd();
+  const t=c.tarefas.find(x=>x.id===id);
+  if(!t)return;
+  t[campo]=val;
+  await salvarConselho();
+}
+async function editTarefaCheckItem(id,ci,val){
+  const c=cd();
+  const t=c.tarefas.find(x=>x.id===id);
+  if(!t||!t.checklist[ci])return;
+  t.checklist[ci].item=val;
+  await salvarConselho();
+}
+async function removeTarefaCheckItem(id,ci){
+  const c=cd();
+  const t=c.tarefas.find(x=>x.id===id);
+  if(!t)return;
+  t.checklist.splice(ci,1);
+  await salvarConselho();renderDetalhe();
+}
+async function addItemInline(id){
+  const inp=document.getElementById('novo-item-'+id);
+  if(!inp||!inp.value.trim())return;
+  const c=cd();
+  const t=c.tarefas.find(x=>x.id===id);
+  if(!t)return;
+  t.checklist=t.checklist||[];
+  t.checklist.push({item:inp.value.trim(),feito:false});
+  await salvarConselho();renderDetalhe();
+  setTimeout(()=>{const n=document.getElementById('novo-item-'+id);if(n)n.focus();},100);
 }
 async function concluirTarefa(id){
   const c=cd();
