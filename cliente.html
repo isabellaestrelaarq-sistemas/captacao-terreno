@@ -67,6 +67,8 @@
 .reuniao .decisao{font-size:13px;padding:5px 0;border-bottom:1px solid var(--line);display:flex;gap:8px}
 .reuniao .decisao::before{content:"→";color:var(--v);font-weight:600}
 .tarefa-card{border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:8px}
+details.tarefa-card summary::-webkit-details-marker{display:none}
+details.tarefa-card[open] summary span:last-child span:last-child{transform:rotate(180deg);display:inline-block}
 .msg-box{background:rgba(240,214,170,.12);border-radius:10px;padding:14px;font-size:13px;color:var(--soft);text-align:center;margin-top:14px}
 .voltar{display:block;text-align:center;color:var(--v);font-size:13px;margin-top:20px;cursor:pointer;text-decoration:none}
 @media(max-width:480px){.wrap{padding:20px 14px}.card{padding:18px}.stats{grid-template-columns:repeat(3,1fr)}}
@@ -328,26 +330,40 @@ function renderTarefas(tarefas){
   const pend=tarefas.filter(t=>t.status!=='concluida');
   const conc=tarefas.filter(t=>t.status==='concluida');
   let h='';
+  const cardTarefa=(t,done)=>{
+    const prio={alta:'var(--red)',normal:'var(--v)',baixa:'var(--soft)'};
+    const ckT=t.checklist?t.checklist.length:0;
+    const ckF=t.checklist?t.checklist.filter(c=>c.feito).length:0;
+    let h=`<details class="tarefa-card" style="padding:0;overflow:hidden${done?';border-color:var(--green);opacity:.8':''}">
+      <summary style="list-style:none;cursor:pointer;padding:14px;display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <span style="display:flex;flex-direction:column;gap:2px;flex:1">
+          <b style="font-size:14px;${done?'text-decoration:line-through':''}">${esc(t.titulo||'Tarefa')}</b>
+          <span style="font-size:11px;color:var(--soft)">${done?'Concluída'+(t.concluida_em?' em '+fmtData(t.concluida_em):''):(ckT?ckF+'/'+ckT+' itens feitos':'Toque para ver detalhes')}${t.prazo&&!done?' · prazo '+fmtData(t.prazo):''}</span>
+        </span>
+        <span style="display:flex;gap:6px;align-items:center">
+          ${done?'<span class="badge concluida">concluída</span>':`<span class="badge" style="background:${prio[t.prioridade]||'var(--v)'};color:#fff">${t.prioridade||'normal'}</span>`}
+          <span style="color:var(--soft);font-size:12px">&#9662;</span>
+        </span>
+      </summary>
+      <div style="padding:0 14px 14px">`;
+    if(t.descricao)h+=`<div style="font-size:12px;color:var(--soft);white-space:pre-line;padding:10px;background:rgba(106,35,38,.03);border-radius:8px">${esc(t.descricao)}</div>`;
+    if(t.responsavel)h+=`<div style="font-size:11px;color:var(--soft);margin-top:6px">Responsável: ${esc(t.responsavel)}</div>`;
+    if(t.checklist&&t.checklist.length){
+      h+='<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--line)">';
+      t.checklist.forEach(c=>{h+=`<div style="padding:3px 0;font-size:12px;${c.feito?'color:var(--green)':''}"><span style="margin-right:6px">${c.feito?'&#10003;':'&#9675;'}</span>${esc(c.item)}</div>`;});
+      h+='</div>';
+    }
+    if(!t.descricao&&!(t.checklist&&t.checklist.length))h+=`<div style="font-size:12px;color:var(--soft)">Sem detalhes ainda.</div>`;
+    h+='</div></details>';
+    return h;
+  };
   if(pend.length){
     h+='<div style="margin-bottom:10px"><b style="font-size:11px;color:var(--soft);text-transform:uppercase">Pendentes ('+pend.length+')</b></div>';
-    pend.forEach(t=>{
-      const prio={alta:'var(--red)',normal:'var(--v)',baixa:'var(--soft)'};
-      const ckT=t.checklist?t.checklist.length:0;
-      const ckF=t.checklist?t.checklist.filter(c=>c.feito).length:0;
-      h+=`<div class="tarefa-card"><div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:14px">${esc(t.titulo)}</b><span class="badge" style="background:${prio[t.prioridade]||'var(--v)'};color:#fff">${t.prioridade||'normal'}</span></div>`;
-      if(t.descricao)h+=`<div style="font-size:12px;color:var(--soft);margin-top:4px">${esc(t.descricao)}</div>`;
-      h+=`<div style="display:flex;gap:10px;margin-top:6px;font-size:11px;color:var(--soft)">${t.responsavel?'<span>'+esc(t.responsavel)+'</span>':''}${t.prazo?'<span>Prazo: '+fmtData(t.prazo)+'</span>':''}${ckT?'<span>'+ckF+'/'+ckT+' itens</span>':''}</div>`;
-      if(t.checklist&&t.checklist.length){
-        h+='<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--line)">';
-        t.checklist.forEach(c=>{h+=`<div style="padding:3px 0;font-size:12px;${c.feito?'color:var(--green)':''}"><span style="margin-right:6px">${c.feito?'&#10003;':'&#9675;'}</span>${esc(c.item)}</div>`;});
-        h+='</div>';
-      }
-      h+='</div>';
-    });
+    pend.forEach(t=>{h+=cardTarefa(t,false);});
   }
   if(conc.length){
-    h+=`<div style="margin:14px 0"><b style="font-size:11px;color:var(--soft);text-transform:uppercase">Concluídas (${conc.length})</b></div>`;
-    conc.forEach(t=>{h+=`<div style="border:1px solid var(--green);border-radius:10px;padding:12px;margin-bottom:6px;opacity:.7"><div style="display:flex;justify-content:space-between"><span style="text-decoration:line-through;font-size:13px">${esc(t.titulo)}</span><span class="badge concluida">concluída</span></div>${t.concluida_em?'<div style="font-size:11px;color:var(--soft);margin-top:2px">'+fmtData(t.concluida_em)+'</div>':''}</div>`;});
+    h+=`<div style="margin:14px 0 10px"><b style="font-size:11px;color:var(--soft);text-transform:uppercase">Concluídas (${conc.length})</b></div>`;
+    conc.forEach(t=>{h+=cardTarefa(t,true);});
   }
   el.innerHTML=h;
 }
