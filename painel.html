@@ -478,7 +478,11 @@ function renderDetalhe(){
   html+=`<div style="margin-top:18px;display:flex;justify-content:space-between;align-items:center"><b style="font-size:12px;color:var(--soft);text-transform:uppercase;letter-spacing:.04em">Documentos do cliente${p.docs_cliente&&p.docs_cliente.length?' ('+p.docs_cliente.filter(d=>d.feito).length+'/'+p.docs_cliente.length+')':''}</b><button class="btn sm sec" onclick="addDocItem()" style="font-size:11px">+ Doc</button></div>`;
   if(p.docs_cliente&&p.docs_cliente.length){
     p.docs_cliente.forEach((d,di)=>{
-      html+=`<div class="check-item${d.feito?' done':''}" style="display:flex;justify-content:space-between"><div style="display:flex;align-items:center;gap:8px"><input type="checkbox" ${d.feito?'checked':''} onchange="toggleDoc(${di},this.checked)"><span>${esc(d.item)}</span></div><button onclick="removeDocItem(${di})" style="background:none;border:none;color:var(--soft);cursor:pointer;font-size:14px;padding:2px 6px;opacity:.5">&times;</button></div>`;
+      html+=`<div class="check-item${d.feito?' done':''}" style="display:block">
+        <div style="display:flex;justify-content:space-between"><div style="display:flex;align-items:center;gap:8px"><input type="checkbox" ${d.feito?'checked':''} onchange="toggleDoc(${di},this.checked)"><span>${esc(d.item)}</span></div>
+        <span style="display:flex;gap:2px"><button onclick="notaDoc(${di})" title="Anotar observação para o cliente" style="background:none;border:none;color:${d.nota?'#9C3B2E':'var(--soft)'};cursor:pointer;font-size:13px;padding:2px 6px">&#9998;</button><button onclick="removeDocItem(${di})" style="background:none;border:none;color:var(--soft);cursor:pointer;font-size:14px;padding:2px 6px;opacity:.5">&times;</button></span></div>
+        ${d.nota?`<div style="font-size:11px;color:#9C3B2E;background:rgba(156,59,46,.06);border-radius:6px;padding:4px 8px;margin:4px 0 2px 26px">${esc(d.nota)}</div>`:''}
+      </div>`;
     });
   }
 
@@ -886,6 +890,15 @@ function addDocItem(){
   renderDetalhe();
 }
 function removeDocItem(di){CURRENT.docs_cliente.splice(di,1);renderDetalhe();}
+async function notaDoc(di){
+  const d=CURRENT.docs_cliente[di];
+  if(!d)return;
+  const nota=prompt('Observação para o cliente sobre "'+d.item+'" (deixe vazio para limpar):',d.nota||'');
+  if(nota===null)return;
+  d.nota=nota.trim();
+  renderDetalhe();
+  salvarTudo();
+}
 function setEtapaPago(ei,val){CURRENT.etapas[ei].pago=val;renderDetalhe();}
 function setEtapaValor(ei,val){CURRENT.etapas[ei].v=val;}
 
