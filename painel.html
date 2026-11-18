@@ -658,7 +658,7 @@ function renderDetalhe(){
       if(concluidas.length){
         html+=`<details style="margin-top:4px"><summary style="font-size:11px;color:var(--soft);cursor:pointer;padding:4px 0">${concluidas.length} concluída${concluidas.length>1?'s':''}</summary>`;
         concluidas.forEach(t=>{
-          html+=`<div style="border:1px solid var(--green);border-radius:8px;padding:6px 10px;margin-top:4px;font-size:11px;opacity:.6"><span style="text-decoration:line-through">${esc(t.titulo)}</span> · ${esc(t.concluida_em||'')}</div>`;
+          html+=`<div style="display:flex;justify-content:space-between;align-items:center;border:1px solid var(--green);border-radius:8px;padding:6px 10px;margin-top:4px;font-size:11px;opacity:.75"><span style="text-decoration:line-through">${esc(t.titulo)}</span><span style="display:flex;gap:6px;align-items:center">${esc(t.concluida_em||'')}<button class="btn sm sec" onclick="reabrirTarefa(${t.id})" style="font-size:10px;padding:2px 8px">Reabrir</button></span></div>`;
         });
         html+='</details>';
       }
@@ -820,6 +820,13 @@ async function concluirTarefa(id){
   const t=c.tarefas.find(x=>x.id===id);
   if(!t)return;
   t.status='concluida';t.concluida_em=new Date().toISOString().slice(0,10);
+  await salvarConselho();renderDetalhe();
+}
+async function reabrirTarefa(id){
+  const c=cd();
+  const t=c.tarefas.find(x=>x.id===id);
+  if(!t)return;
+  t.status='pendente';t.concluida_em=null;
   await salvarConselho();renderDetalhe();
 }
 async function removeTarefa(id){
