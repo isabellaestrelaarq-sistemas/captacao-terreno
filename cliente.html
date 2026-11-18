@@ -349,10 +349,21 @@ function renderTarefas(tarefas){
     if(t.responsavel)h+=`<div style="font-size:11px;color:var(--soft);margin-top:6px">Responsável: ${esc(t.responsavel)}</div>`;
     if(t.checklist&&t.checklist.length){
       h+='<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--line)">';
-      t.checklist.forEach(c=>{h+=`<div style="padding:3px 0;font-size:12px;${c.feito?'color:var(--green)':''}"><span style="margin-right:6px">${c.feito?'&#10003;':'&#9675;'}</span>${esc(c.item)}</div>`;});
+      t.checklist.forEach((c,ci)=>{
+        h+=`<label style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;cursor:pointer;${c.feito?'color:var(--green)':''}">
+          <input type="checkbox" ${c.feito?'checked':''} onchange="cliToggleCheck(${t.id},${ci},this.checked)" style="accent-color:var(--v);width:16px;height:16px">
+          <span style="${c.feito?'text-decoration:line-through':''}">${esc(c.item)}</span>
+        </label>`;
+      });
       h+='</div>';
     }
     if(!t.descricao&&!(t.checklist&&t.checklist.length))h+=`<div style="font-size:12px;color:var(--soft)">Sem detalhes ainda.</div>`;
+    if(!done){
+      h+=`<button onclick="cliConcluirTarefa(${t.id})" style="margin-top:10px;padding:8px 18px;border:none;border-radius:20px;background:var(--green);color:#fff;font:inherit;font-size:12px;font-weight:600;cursor:pointer">Marcar tarefa como concluída</button>`;
+    }else{
+      h+=`<button onclick="cliReabrirTarefa(${t.id})" style="margin-top:10px;padding:6px 14px;border:1px solid var(--line);border-radius:20px;background:none;color:var(--soft);font:inherit;font-size:11px;cursor:pointer">Reabrir tarefa</button>`;
+    }
+    h+='<div id="t-msg-'+t.id+'" style="font-size:11px;color:var(--soft);margin-top:6px"></div>';
     h+='</div></details>';
     return h;
   };
@@ -379,6 +390,37 @@ function renderReunioes(reunioes){
     if(r.decisoes&&r.decisoes.length){h+=`<div style="margin-top:8px"><b style="font-size:12px;color:var(--soft)">Decisões:</b>`;r.decisoes.forEach(d=>{if(d)h+=`<div class="decisao">${esc(d)}</div>`;});h+='</div>';}
     h+='</div>';return h;
   }).join('');
+}
+
+// A equipe do cliente pode marcar itens e concluir tarefas
+async function cliSalvarConselho(tid,texto){
+  const msg=document.getElementById('t-msg-'+tid);
+  try{
+    const r=await fetch(SB+'/rest/v1/propostas?codigo=eq.'+encodeURIComponent(CODIGO),{method:'PATCH',headers:{apikey:SBK,Authorization:'Bearer '+SBK,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({conselho_data:PROP.conselho_data})});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    if(msg)msg.textContent=texto||'Salvo.';
+  }catch(e){if(msg)msg.textContent='Erro ao salvar: '+e.message;}
+}
+function cliAchaTarefa(tid){return ((PROP.conselho_data||{}).tarefas||[]).find(t=>t.id===tid);}
+async function cliToggleCheck(tid,ci,val){
+  const t=cliAchaTarefa(tid);
+  if(!t||!t.checklist[ci])return;
+  t.checklist[ci].feito=val;
+  await cliSalvarConselho(tid,'Atualizado.');
+}
+async function cliConcluirTarefa(tid){
+  const t=cliAchaTarefa(tid);
+  if(!t)return;
+  t.status='concluida';t.concluida_em=new Date().toISOString().slice(0,10);
+  await cliSalvarConselho(tid,'');
+  renderTarefas(PROP.conselho_data.tarefas);
+}
+async function cliReabrirTarefa(tid){
+  const t=cliAchaTarefa(tid);
+  if(!t)return;
+  t.status='pendente';t.concluida_em=null;
+  await cliSalvarConselho(tid,'');
+  renderTarefas(PROP.conselho_data.tarefas);
 }
 
 function renderDecisoes(decisoes){
