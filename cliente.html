@@ -141,15 +141,95 @@ async function buscar(){
     abrirDireto(lista[0]);
   }catch(e){document.getElementById('err').textContent='Erro de conexão.';}
 }
+function progressoProj(p){
+  let total=0,feitos=0;
+  (p.etapas||[]).forEach(e=>{(e.checklist||[]).forEach(c=>{total++;if(c.feito)feitos++;});});
+  return total?Math.round(feitos/total*100):0;
+}
 function mostrarLista(){
   const lista=window._LISTA||[];
   document.getElementById('err').textContent='';
   document.getElementById('login-box').style.display='none';
   document.getElementById('portal').style.display='block';
   document.getElementById('h-sub').textContent=lista[0]?.cliente_nome?lista[0].cliente_nome.split(' - ')[0]:'';
-  document.getElementById('portal').innerHTML='<div class="card"><h2>Seus projetos</h2>'+lista.map((p,i)=>
-    `<div style="padding:12px 14px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;cursor:pointer" onclick="abrirProposta(${i})"><b>${esc(p.proposta_titulo||'Proposta')}</b><br><small style="color:var(--soft)">${esc(p.codigo)} · <span class="badge ${esc(p.status||'aceita')}">${esc(p.status||'aceita')}</span></small></div>`
-  ).join('')+'</div><a class="voltar" onclick="location.reload()">Sair</a>';
+  const hoje=new Date().toISOString().slice(0,10);
+  let h='';
+
+  // Juntar dados de todos os projetos
+  let proxReuniao=null,proxReuniaoProj='';
+  let tarefasPend=0,docsPend=0,atrasadas=0;
+  let proxParcela=null;
+  const avisos=[];
+  lista.forEach((p,i)=>{
+    const c=p.conselho_data||{};
+    (c.reunioes||[]).filter(r=>r.status==='agendada'&&r.data>=hoje).forEach(r=>{
+      if(!proxReuniao||r.data<proxReuniao.data){proxReuniao=r;proxReuniaoProj=p.proposta_titulo;}
+    });
+    (c.tarefas||[]).forEach(t=>{if(t.status!=='concluida')tarefasPend++;});
+    (p.docs_cliente||[]).forEach(d=>{
+      if(!d.feito)docsPend++;
+      if(d.nota)avisos.push({proj:i,titulo:p.proposta_titulo,texto:d.item+': '+d.nota});
+    });
+    (c.parcelas||[]).forEach(pc=>{
+      if(pc.status==='pendente'){
+        if(pc.vencimento<hoje){atrasadas++;avisos.push({proj:i,titulo:p.proposta_titulo,texto:'Parcela '+pc.numero+' venceu em '+fmtData(pc.vencimento)});}
+        else if(!proxParcela||pc.vencimento<proxParcela.vencimento)proxParcela=pc;
+      }
+    });
+  });
+
+  // Próxima reunião
+  if(proxReuniao){
+    h+=`<div class="next-meeting"><div class="label">Próxima reunião · ${esc(proxReuniaoProj)}</div><div class="data">${fmtData(proxReuniao.data)}</div><div class="hora">às ${esc(proxReuniao.hora||'10:00')}${proxReuniao.local?' · '+esc(proxReuniao.local):''}</div>`;
+    if(proxReuniao.link)h+=`<a href="${esc(proxReuniao.link)}" target="_blank" style="display:inline-block;margin-top:12px;padding:10px 22px;border-radius:24px;background:var(--ch);color:var(--dk);font-weight:600;font-size:13px;text-decoration:none">Entrar na reunião</a>`;
+    if(proxReuniao.pauta)h+=`<div style="margin-top:10px;font-size:12px;color:rgba(240,214,170,.7)"><b>Pauta:</b> ${esc(proxReuniao.pauta)}</div>`;
+    h+=`</div>`;
+  }
+
+  // Resumo geral
+  h+='<div class="stats">';
+  h+=`<div class="scard"><div class="n">${lista.length}</div><div class="l">Projetos</div></div>`;
+  h+=`<div class="scard"><div class="n">${tarefasPend}</div><div class="l">Tarefas pendentes</div></div>`;
+  h+=`<div class="scard"><div class="n" style="${docsPend?'color:var(--red)':''}">${docsPend}</div><div class="l">Docs a enviar</div></div>`;
+  if(atrasadas)h+=`<div class="scard"><div class="n" style="color:var(--red)">${atrasadas}</div><div class="l">Parcela atrasada</div></div>`;
+  h+='</div>';
+
+  // Precisamos de você
+  if(avisos.length){
+    h+=`<div class="card" style="border-color:rgba(156,59,46,.35)"><h3 style="color:var(--red)">Precisamos de você</h3>`;
+    avisos.slice(0,6).forEach(a=>{
+      h+=`<div style="padding:7px 0;border-bottom:1px solid var(--line);font-size:13px;cursor:pointer" onclick="abrirProposta(${a.proj})"><b style="font-size:11px;color:var(--soft)">${esc(a.titulo)}</b><br>${esc(a.texto)}</div>`;
+    });
+    h+=`</div>`;
+  }
+
+  // Próximo vencimento
+  if(proxParcela){
+    h+=`<div class="card"><h3>Próximo vencimento</h3><div class="info-row"><span class="lbl">Parcela ${proxParcela.numero} · ${fmtData(proxParcela.vencimento)}</span><span class="val" style="font-family:Fraunces;color:var(--v)">${brl(proxParcela.valor)}</span></div></div>`;
+  }
+
+  // Projetos
+  h+='<div class="card"><h2>Seus projetos</h2>'+lista.map((p,i)=>{
+    const pct=progressoProj(p);
+    const c=p.conselho_data||{};
+    const tp=(c.tarefas||[]).filter(t=>t.status!=='concluida').length;
+    const dp=(p.docs_cliente||[]).filter(d=>!d.feito).length;
+    const pend=[];
+    if(tp)pend.push(tp+' tarefa'+(tp>1?'s':''));
+    if(dp)pend.push(dp+' doc'+(dp>1?'s':''));
+    return `<div style="padding:14px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;cursor:pointer" onclick="abrirProposta(${i})">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b>${esc(p.proposta_titulo||'Proposta')}</b><span class="badge ${esc(p.status||'aceita')}">${esc(p.status||'aceita')}</span></div>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
+        <div style="flex:1;height:6px;background:var(--line);border-radius:3px;overflow:hidden"><div style="width:${pct}%;height:100%;background:${pct===100?'var(--green)':'var(--v)'}"></div></div>
+        <small style="color:var(--soft)">${pct}%</small>
+      </div>
+      ${pend.length?`<small style="color:var(--soft);display:block;margin-top:6px">Pendente: ${pend.join(' · ')}</small>`:''}
+    </div>`;
+  }).join('')+'</div><a class="voltar" onclick="location.reload()">Sair</a>';
+  if(window._LOGIN_CPF&&lista[0]&&lista[0].cliente_doc){
+    h+=`<a class="voltar" style="font-size:12px;opacity:.7" onclick="PROP=window._LISTA[0];cliTrocarSenha()">Trocar senha de acesso</a>`;
+  }
+  document.getElementById('portal').innerHTML=h;
 }
 function abrirProposta(i){abrirDireto(window._LISTA[i]);}
 function abrirDireto(prop){
