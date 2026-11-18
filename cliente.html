@@ -34,6 +34,14 @@
 .mini-item{padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin-bottom:6px;cursor:pointer;transition:all .15s ease;background:var(--card)}
 .mini-item:hover{border-color:var(--v);background:rgba(106,35,38,.02)}
 .chip{display:inline-block;font-size:10px;color:var(--soft);background:rgba(209,176,160,.15);border-radius:10px;padding:2px 8px}
+.sec-head{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.icon-tile{width:40px;height:40px;min-width:40px;border-radius:12px;background:linear-gradient(135deg,#6A2326,#7B2D30);color:var(--ch);display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(106,35,38,.2)}
+.icon-tile.red{background:linear-gradient(135deg,#9C3B2E,#B0473A);color:#fff}
+.icon-tile.green{background:linear-gradient(135deg,#5F6B52,#6F7B60);color:#fff}
+.icon-tile.sand{background:linear-gradient(135deg,#D1B0A0,#E0C4B4);color:var(--v)}
+.sec-title{font-family:"Fraunces",serif;font-size:17px;font-weight:500;color:var(--v);line-height:1.2}
+.sec-sub{font-size:11px;color:var(--soft);margin-top:2px}
+.proj-tile{width:40px;height:40px;min-width:40px;border-radius:12px;background:rgba(106,35,38,.07);color:var(--v);display:flex;align-items:center;justify-content:center}
 .next-meeting{background:var(--dk);border-radius:14px;padding:22px;margin-bottom:18px;color:#fff}
 .next-meeting .label{font-size:11px;color:rgba(240,214,170,.5);text-transform:uppercase;letter-spacing:.06em}
 .next-meeting .data{font-family:"Fraunces",serif;font-size:24px;color:var(--ch);margin:6px 0 4px}
@@ -148,6 +156,25 @@ async function buscar(){
     abrirDireto(lista[0]);
   }catch(e){document.getElementById('err').textContent='Erro de conexão.';}
 }
+// Ícones (SVG inline)
+const IC={
+  tarefa:'<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>',
+  doc:'<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>',
+  money:'<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v12"/><path d="M15.5 9.5c0-1.2-1.6-2-3.5-2s-3.5.8-3.5 2 1.2 1.8 3.5 2 3.5 1 3.5 2.2-1.6 2-3.5 2-3.5-.8-3.5-2"/></svg>',
+  predio:'<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-4h6v4"/><line x1="9" y1="10" x2="9" y2="12"/><line x1="15" y1="10" x2="15" y2="12"/></svg>',
+  alerta:'<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+  mesa:'<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="3"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/></svg>',
+};
+function tipoProjeto(titulo){
+  const t=(titulo||'').toLowerCase();
+  if(t.includes('conselho'))return{label:'Conselho',icon:IC.mesa};
+  if(t.includes('incorpora')||t.includes('registro'))return{label:'Incorporação',icon:IC.doc};
+  if(t.includes('consultoria'))return{label:'Consultoria',icon:IC.mesa};
+  return{label:'Empreendimento',icon:IC.predio};
+}
+function secHead(icon,cls,titulo,sub){
+  return `<div class="sec-head"><div class="icon-tile ${cls||''}">${icon}</div><div><div class="sec-title">${titulo}</div>${sub?`<div class="sec-sub">${sub}</div>`:''}</div></div>`;
+}
 function progressoProj(p){
   let total=0,feitos=0;
   (p.etapas||[]).forEach(e=>{(e.checklist||[]).forEach(c=>{total++;if(c.feito)feitos++;});});
@@ -203,7 +230,8 @@ function mostrarLista(){
 
   // Precisamos de você
   if(avisos.length){
-    h+=`<div class="card" style="border-color:rgba(156,59,46,.35)"><h3 style="color:var(--red)">Precisamos de você</h3>`;
+    h+=`<div class="card" style="border-color:rgba(156,59,46,.35);background:linear-gradient(180deg,rgba(156,59,46,.03),transparent)">`;
+    h+=secHead(IC.alerta,'red','Precisamos de você','Pendências que dependem da sua equipe');
     avisos.slice(0,6).forEach(a=>{
       h+=`<div class="mini-item" onclick="abrirProposta(${a.proj},'documentos')"><span class="chip">${esc(a.titulo)}</span><div style="font-size:13px;margin-top:4px">${esc(a.texto)}</div></div>`;
     });
@@ -214,7 +242,8 @@ function mostrarLista(){
   const todasTarefas=[];
   lista.forEach((p,i)=>{((p.conselho_data||{}).tarefas||[]).forEach(t=>{if(t.status!=='concluida')todasTarefas.push({t,proj:i,titulo:p.proposta_titulo});});});
   if(todasTarefas.length){
-    h+=`<div class="card" id="dash-tarefas"><h3>Suas tarefas</h3>`;
+    h+=`<div class="card" id="dash-tarefas">`;
+    h+=secHead(IC.tarefa,'','Suas tarefas','O que está em andamento com a sua equipe');
     todasTarefas.forEach(x=>{
       const ckT=x.t.checklist?x.t.checklist.length:0;
       const ckF=x.t.checklist?x.t.checklist.filter(c=>c.feito).length:0;
@@ -236,7 +265,8 @@ function mostrarLista(){
   // Documentos a enviar (por projeto, com os nomes)
   const docsPorProj=lista.map((p,i)=>({i,titulo:p.proposta_titulo,itens:(p.docs_cliente||[]).filter(d=>!d.feito)})).filter(x=>x.itens.length);
   if(docsPorProj.length){
-    h+=`<div class="card" id="dash-docs"><h3>Documentos a enviar</h3>`;
+    h+=`<div class="card" id="dash-docs">`;
+    h+=secHead(IC.doc,'sand','Documentos a enviar','Anexe pela aba Documentos e marque na lista');
     docsPorProj.forEach(x=>{
       const mostra=x.itens.slice(0,4);
       h+=`<div class="mini-item" onclick="abrirProposta(${x.i},'documentos')">
@@ -250,11 +280,13 @@ function mostrarLista(){
 
   // Próximo vencimento
   if(proxParcela){
-    h+=`<div class="card" style="cursor:pointer" onclick="abrirProposta(${lista.findIndex(p=>((p.conselho_data||{}).parcelas||[]).length)},'financeiro')"><h3>Próximo vencimento</h3><div class="info-row"><span class="lbl">Parcela ${proxParcela.numero} · ${fmtData(proxParcela.vencimento)}</span><span class="val" style="font-family:Fraunces;color:var(--v)">${brl(proxParcela.valor)}</span></div></div>`;
+    h+=`<div class="card" style="cursor:pointer" onclick="abrirProposta(${lista.findIndex(p=>((p.conselho_data||{}).parcelas||[]).length)},'financeiro')">`;
+    h+=secHead(IC.money,'green','Próximo vencimento','Toque para ver o financeiro completo');
+    h+=`<div class="info-row" style="border:0"><span class="lbl">Parcela ${proxParcela.numero} · ${fmtData(proxParcela.vencimento)}</span><span class="val" style="font-family:Fraunces;font-size:18px;color:var(--v)">${brl(proxParcela.valor)}</span></div></div>`;
   }
 
   // Projetos
-  h+='<div class="card" id="dash-projetos"><h2>Seus projetos</h2>'+lista.map((p,i)=>{
+  h+='<div class="card" id="dash-projetos">'+secHead(IC.predio,'','Seus projetos','Toque num projeto para ver etapas, documentos e mais')+lista.map((p,i)=>{
     const pct=progressoProj(p);
     const c=p.conselho_data||{};
     const tp=(c.tarefas||[]).filter(t=>t.status!=='concluida').length;
@@ -262,14 +294,21 @@ function mostrarLista(){
     const pend=[];
     if(tp)pend.push(tp+' tarefa'+(tp>1?'s':''));
     if(dp)pend.push(dp+' doc'+(dp>1?'s':''));
+    const tipo=tipoProjeto(p.proposta_titulo);
     return `<div class="proj-card" onclick="abrirProposta(${i})">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b>${esc(p.proposta_titulo||'Proposta')}</b><span class="badge ${esc(p.status||'aceita')}">${esc(p.status||'aceita')}</span></div>
-      <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
-        <div style="flex:1;height:6px;background:var(--line);border-radius:3px;overflow:hidden"><div style="width:${pct}%;height:100%;background:${pct===100?'var(--green)':'var(--v)'};transition:width .4s ease"></div></div>
-        <small style="color:var(--soft)">${pct}%</small>
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <div class="proj-tile">${tipo.icon}</div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b style="font-size:14px">${esc(p.proposta_titulo||'Proposta')}</b><span class="badge ${esc(p.status||'aceita')}">${esc(p.status||'aceita')}</span></div>
+          <span class="chip" style="margin-top:4px">${tipo.label}</span>
+          <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
+            <div style="flex:1;height:6px;background:var(--line);border-radius:3px;overflow:hidden"><div style="width:${pct}%;height:100%;background:${pct===100?'var(--green)':'var(--v)'};transition:width .4s ease"></div></div>
+            <small style="color:var(--soft)">${pct}%</small>
+          </div>
+          ${pend.length?`<small style="color:var(--soft);display:block;margin-top:6px">Pendente: ${pend.join(' · ')}</small>`:''}
+          <div style="font-size:11px;color:var(--v);margin-top:6px;font-weight:600">Abrir projeto &rarr;</div>
+        </div>
       </div>
-      ${pend.length?`<small style="color:var(--soft);display:block;margin-top:6px">Pendente: ${pend.join(' · ')}</small>`:''}
-      <div style="font-size:11px;color:var(--v);margin-top:6px">Abrir projeto &rarr;</div>
     </div>`;
   }).join('')+'</div><a class="voltar" onclick="location.reload()">Sair</a>';
   if(window._LOGIN_CPF&&lista[0]&&lista[0].cliente_doc){
