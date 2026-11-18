@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Acompanhe seu projeto — Isabella Estrela</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--v:#6A2326;--ch:#F0D6AA;--dk:#1A0F10;--bg:#FAF9F6;--soft:#73504F;--line:rgba(209,176,160,.25);--card:#fff;--green:#5F6B52}
+*{box-sizing:border-box;margin:0}
+body{font-family:"IBM Plex Sans",sans-serif;background:var(--bg);color:var(--dk);font-size:14px}
+.header{background:linear-gradient(135deg,#6A2326,#7B2D30);padding:32px 28px;text-align:center}
+.header .brand{font-size:11px;color:rgba(240,214,170,.5);letter-spacing:.12em;text-transform:uppercase}
+.header h1{font-family:"Fraunces",serif;font-size:24px;font-weight:300;color:var(--ch);margin-top:8px}
+.wrap{max-width:640px;margin:0 auto;padding:32px 20px}
+
+/* Busca */
+.busca-box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:28px;text-align:center;margin-bottom:28px}
+.busca-box p{color:var(--soft);font-size:13px;margin-bottom:16px}
+.busca-box input{width:100%;padding:14px 18px;border:1px solid var(--line);border-radius:10px;font:inherit;font-size:16px;text-align:center}
+.busca-box input:focus{outline:2px solid var(--v);border-color:var(--v)}
+.busca-box button{padding:14px 32px;border:none;border-radius:28px;background:var(--v);color:var(--ch);font:inherit;font-weight:600;cursor:pointer;margin-top:14px}
+.busca-box .err{color:#9C3B2E;font-size:13px;margin-top:10px}
+
+/* Resultado */
+.resultado{display:none}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px;margin-bottom:16px}
+.card h2{font-family:"Fraunces",serif;font-size:20px;font-weight:300;color:var(--v);margin-bottom:4px}
+.card .sub{color:var(--soft);font-size:13px;margin-bottom:16px}
+.info-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
+.info-row:last-child{border-bottom:0}
+.info-row .lbl{color:var(--soft)}
+.info-row .val{font-weight:500}
+.total-card{background:var(--v);border-radius:14px;padding:22px;display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.total-card .lbl{font-family:"Fraunces",serif;color:var(--ch);font-size:15px}
+.total-card .val{font-family:"Fraunces",serif;color:#fff;font-size:28px;font-weight:300}
+
+/* Status */
+.status-badge{display:inline-block;padding:5px 14px;border-radius:16px;font-size:13px;font-weight:500}
+.status-badge.aceita{background:rgba(240,214,170,.3);color:#8F6841}
+.status-badge.paga{background:rgba(95,107,82,.15);color:#3D5230}
+.status-badge.andamento{background:rgba(106,35,38,.1);color:#6A2326}
+.status-badge.concluida{background:rgba(95,107,82,.25);color:#2A4020}
+
+/* Etapas timeline */
+.timeline{position:relative;padding-left:28px}
+.timeline::before{content:'';position:absolute;left:9px;top:4px;bottom:4px;width:2px;background:var(--line)}
+.etapa{position:relative;margin-bottom:20px}
+.etapa .dot{position:absolute;left:-28px;top:2px;width:20px;height:20px;border-radius:50%;background:var(--line);display:flex;align-items:center;justify-content:center}
+.etapa .dot.done{background:var(--green)}
+.etapa .dot.done::after{content:'';width:8px;height:8px;background:#fff;border-radius:50%}
+.etapa .dot.current{background:var(--v);box-shadow:0 0 0 4px rgba(106,35,38,.15)}
+.etapa .dot.current::after{content:'';width:8px;height:8px;background:var(--ch);border-radius:50%}
+.etapa h3{font-size:14px;font-weight:500;margin-bottom:2px}
+.etapa .desc{font-size:12px;color:var(--soft)}
+.etapa .valor{font-family:"Fraunces",serif;font-size:14px;color:var(--v)}
+
+.msg-box{background:rgba(240,214,170,.15);border-radius:10px;padding:16px;font-size:13px;color:var(--soft);text-align:center;margin-top:16px}
+
+.voltar{display:block;text-align:center;color:var(--v);font-size:13px;margin-top:20px;cursor:pointer;text-decoration:none}
+
+@media(max-width:480px){.wrap{padding:20px 14px}.card{padding:18px}}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="brand">ISABELLA ESTRELA</div>
+  <h1>Acompanhe seu projeto</h1>
+</div>
+<div class="wrap">
+  <div class="busca-box" id="busca-box">
+    <p>Digite o código da sua proposta (ex.: MO-A1B2C3) ou seu CPF/CNPJ</p>
+    <input type="text" id="codigo" placeholder="MO-XXXXXX ou CPF" autofocus>
+    <br>
+    <button onclick="buscar()">Consultar</button>
+    <div class="err" id="err"></div>
+  </div>
+
+  <div class="resultado" id="resultado"></div>
+</div>
+
+<script>
+const API = '/api/painel';
+const brl = v => v ? 'R$ ' + Number(v).toLocaleString('pt-BR',{minimumFractionDigits:0}) : '-';
+const dataHora = d => d ? new Date(d).toLocaleString('pt-BR') : '-';
+const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+// Auto-preencher se veio com hash
+const hash = location.hash.slice(1);
+if (hash) { document.getElementById('codigo').value = hash; setTimeout(buscar, 300); }
+
+document.getElementById('codigo').addEventListener('keydown', e => { if(e.key==='Enter') buscar(); });
+
+async function buscar() {
+  const input = document.getElementById('codigo').value.trim();
+  if (!input) { document.getElementById('err').textContent = 'Digite o código ou CPF'; return; }
+
+  document.getElementById('err').textContent = 'Consultando...';
+
+  const isCpf = input.replace(/\D/g,'').length >= 11;
+  const param = isCpf ? 'cpf=' + input.replace(/\D/g,'') : 'codigo=' + input;
+
+  try {
+    const r = await fetch(`${API}?acao=cliente&${param}`);
+    const j = await r.json();
+
+    if (!j.ok || !j.propostas || j.propostas.length === 0) {
+      document.getElementById('err').textContent = 'Nenhuma proposta encontrada com esse código ou CPF.';
+      return;
+    }
+
+    document.getElementById('err').textContent = '';
+    document.getElementById('busca-box').style.display = 'none';
+    renderResultado(j.propostas);
+  } catch (e) {
+    document.getElementById('err').textContent = 'Erro de conexão. Tente novamente.';
+  }
+}
+
+function renderResultado(propostas) {
+  const el = document.getElementById('resultado');
+  el.style.display = 'block';
+
+  el.innerHTML = propostas.map(p => {
+    const status = p.status || 'aceita';
+    const statusLabels = {aceita:'Proposta aceita',paga:'Pagamento confirmado',andamento:'Em andamento',concluida:'Concluído',cancelada:'Cancelada'};
+
+    // Etapas
+    let etapasHtml = '';
+    if (p.etapas && p.etapas.length) {
+      const stMap = {entregue:'done',andamento:'current',pendente:''};
+      const stLabel = {entregue:'Concluída',andamento:'Em andamento',pendente:'Aguardando'};
+      const stColor = {entregue:'var(--green)',andamento:'var(--v)',pendente:'var(--soft)'};
+      etapasHtml = '<div class="card"><h2>Etapas do projeto</h2><div class="sub">Acompanhe o progresso do seu trabalho</div><div class="timeline">' +
+        p.etapas.map(e => {
+          const st = e.status || 'pendente';
+          const dotClass = stMap[st] || '';
+          let checkHtml = '';
+          if (e.checklist && e.checklist.length && st !== 'pendente') {
+            const feitos = e.checklist.filter(c=>c.feito).length;
+            checkHtml = '<div style="margin-top:6px;padding-left:4px;font-size:12px;color:var(--soft)">' +
+              e.checklist.map(c => '<div style="padding:2px 0;'+(c.feito?'color:var(--green)':'')+'"><span style="margin-right:6px">'+(c.feito?'&#10003;':'&#9675;')+'</span>' + esc(c.item) + '</div>').join('') +
+              '<div style="margin-top:4px;font-size:11px;color:var(--soft)">' + feitos + '/' + e.checklist.length + ' itens concluídos</div></div>';
+          }
+          return '<div class="etapa"><div class="dot ' + dotClass + '"></div><h3>' + esc(e.n) + '. ' + esc(e.t) + '</h3>' +
+            '<div class="desc" style="color:' + stColor[st] + '">' + stLabel[st] + (e.entrega && st==='entregue' ? ' em ' + esc(e.entrega) : '') + '</div>' +
+            checkHtml + '</div>';
+        }).join('') + '</div></div>';
+    }
+
+    return '<div class="card"><h2>' + esc(p.titulo || 'Sua proposta') + '</h2><div class="sub">' + esc(p.resumo || '') + '</div>' +
+      '<div class="info-row"><span class="lbl">Status</span><span class="val"><span class="status-badge ' + status + '">' + (statusLabels[status] || status) + '</span></span></div>' +
+      '<div class="info-row"><span class="lbl">Aceito em</span><span class="val">' + dataHora(p.aceito_em) + '</span></div>' +
+      '<div class="info-row"><span class="lbl">Código</span><span class="val">' + esc(p.codigo) + '</span></div>' +
+      '<div class="info-row"><span class="lbl">Pagamento</span><span class="val">' + esc(p.pagamento) + '</span></div></div>' +
+      '<div class="total-card"><span class="lbl">Valor total</span><span class="val">' + brl(p.total) + '</span></div>' +
+      etapasHtml +
+      '<div class="msg-box">Dúvidas sobre o seu projeto? A Isabella entrará em contato com você nos próximos passos.</div>';
+  }).join('<hr style="border:0;border-top:1px solid var(--line);margin:24px 0">') +
+    '<a class="voltar" onclick="document.getElementById(\'busca-box\').style.display=\'block\';document.getElementById(\'resultado\').style.display=\'none\';">Consultar outro código</a>';
+}
+</script>
+</body>
+</html>
