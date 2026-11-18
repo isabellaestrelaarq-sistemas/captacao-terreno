@@ -101,6 +101,10 @@ module.exports = async (req, res) => {
     if (d.notas !== undefined) campos.notas = d.notas;
     if (d.etapas !== undefined) campos.etapas = d.etapas;
     if (d.docs_cliente !== undefined) campos.docs_cliente = d.docs_cliente;
+    if (d.pagamentos !== undefined) campos.pagamentos = d.pagamentos;
+    if (d.previsoes !== undefined) campos.previsoes = d.previsoes;
+    if (d.cliente_nome) campos.cliente_nome = d.cliente_nome;
+    if (d.proposta_titulo) campos.proposta_titulo = d.proposta_titulo;
     const r = await sb(`propostas?codigo=eq.${d.codigo}`, 'PATCH', campos);
     return res.json({ ok: true, atualizado: r });
   }
