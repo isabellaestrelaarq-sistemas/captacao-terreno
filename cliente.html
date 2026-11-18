@@ -80,9 +80,11 @@
 </div>
 <div class="wrap">
   <div class="login-box" id="login-box">
-    <p>Digite o código da sua proposta (ex.: MO-A1B2C3) ou seu CPF/CNPJ</p>
-    <input type="text" id="codigo" placeholder="MO-XXXXXX ou CPF" autofocus>
-    <br><button onclick="buscar()">Consultar</button>
+    <p>Digite seu CPF/CNPJ ou o código da proposta (ex.: MO-A1B2C3)</p>
+    <input type="text" id="codigo" placeholder="CPF/CNPJ ou MO-XXXXXX" autofocus>
+    <br><input type="password" id="senha-cli" placeholder="Senha de acesso" style="margin-top:10px">
+    <div style="font-size:11px;color:var(--soft);margin-top:6px">A senha é fornecida pela Isabella. Entrando pelo código da proposta, não precisa de senha.</div>
+    <br><button onclick="buscar()">Entrar</button>
     <div class="err" id="err"></div>
   </div>
   <div class="portal" id="portal"></div>
@@ -116,24 +118,34 @@ async function buscar(){
   const filtro=isCpf?'cliente_doc=eq.'+input.replace(/\D/g,''):'codigo=eq.'+encodeURIComponent(codigoLimpo);
   try{
     // Buscar direto no banco
-    const sel='codigo,cliente_nome,proposta_titulo,proposta_resumo,total_fixo,pagamento_tipo,status,aceito_em,etapas,docs_cliente,conselho_data,arquivos';
+    const sel='codigo,cliente_nome,proposta_titulo,proposta_resumo,total_fixo,pagamento_tipo,status,aceito_em,etapas,docs_cliente,conselho_data,arquivos,cliente_senha';
     const r=await fetch(`${SB}/rest/v1/propostas?${filtro}&select=${sel}&order=aceito_em.desc`,{headers:SBH});
     const lista=await r.json();
     if(!Array.isArray(lista)||!lista.length){document.getElementById('err').textContent='Nenhuma proposta encontrada.';return;}
 
-    // Se CPF com mais de uma proposta, mostrar seletor
-    if(lista.length>1){
-      document.getElementById('err').textContent='';
-      document.getElementById('login-box').style.display='none';
-      document.getElementById('portal').style.display='block';
-      document.getElementById('portal').innerHTML='<div class="card"><h2>Seus projetos</h2>'+lista.map((p,i)=>
-        `<div style="padding:12px 14px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;cursor:pointer" onclick="abrirProposta(${i})"><b>${esc(p.proposta_titulo||'Proposta')}</b><br><small style="color:var(--soft)">${esc(p.codigo)} · ${brl(p.total_fixo)}</small></div>`
-      ).join('')+'</div><a class="voltar" onclick="location.reload()">Voltar</a>';
-      window._LISTA=lista;
-      return;
+    // Entrando por CPF/CNPJ: se o cliente tem senha definida, exigir
+    if(isCpf){
+      const senhaDef=(lista.find(p=>p.cliente_senha&&p.cliente_senha.trim())||{}).cliente_senha;
+      if(senhaDef){
+        const digitada=(document.getElementById('senha-cli').value||'').trim();
+        if(digitada!==senhaDef.trim()){document.getElementById('err').textContent='Senha incorreta. Peça a senha de acesso à Isabella.';return;}
+      }
     }
+
+    window._LISTA=lista;
+    if(lista.length>1){mostrarLista();return;}
     abrirDireto(lista[0]);
   }catch(e){document.getElementById('err').textContent='Erro de conexão.';}
+}
+function mostrarLista(){
+  const lista=window._LISTA||[];
+  document.getElementById('err').textContent='';
+  document.getElementById('login-box').style.display='none';
+  document.getElementById('portal').style.display='block';
+  document.getElementById('h-sub').textContent=lista[0]?.cliente_nome?lista[0].cliente_nome.split(' - ')[0]:'';
+  document.getElementById('portal').innerHTML='<div class="card"><h2>Seus projetos</h2>'+lista.map((p,i)=>
+    `<div style="padding:12px 14px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;cursor:pointer" onclick="abrirProposta(${i})"><b>${esc(p.proposta_titulo||'Proposta')}</b><br><small style="color:var(--soft)">${esc(p.codigo)} · ${brl(p.total_fixo)} · <span class="badge ${esc(p.status||'aceita')}">${esc(p.status||'aceita')}</span></small></div>`
+  ).join('')+'</div><a class="voltar" onclick="location.reload()">Sair</a>';
 }
 function abrirProposta(i){abrirDireto(window._LISTA[i]);}
 function abrirDireto(prop){
@@ -157,7 +169,11 @@ function render(p, c){
 
   // Próxima reunião (se tiver)
   if(c&&c.proxima_reuniao){
-    html+=`<div class="next-meeting"><div class="label">Próxima reunião</div><div class="data">${fmtData(c.proxima_reuniao.data)}</div><div class="hora">às ${c.proxima_reuniao.hora||'10:00'} · por vídeo</div></div>`;
+    const proxR=(c.reunioes||[]).filter(r=>r.status==='agendada').sort((a,b)=>a.data>b.data?1:-1)[0]||{};
+    html+=`<div class="next-meeting"><div class="label">Próxima reunião</div><div class="data">${fmtData(c.proxima_reuniao.data)}</div><div class="hora">às ${c.proxima_reuniao.hora||'10:00'}${proxR.local?' · '+esc(proxR.local):''}</div>`;
+    if(proxR.link)html+=`<a href="${esc(proxR.link)}" target="_blank" style="display:inline-block;margin-top:12px;padding:10px 22px;border-radius:24px;background:var(--ch);color:var(--dk);font-weight:600;font-size:13px;text-decoration:none">Entrar na reunião</a>`;
+    if(proxR.pauta)html+=`<div style="margin-top:10px;font-size:12px;color:rgba(240,214,170,.7)"><b>Pauta:</b> ${esc(proxR.pauta)}</div>`;
+    html+=`</div>`;
   }
 
   // Stats
@@ -205,7 +221,11 @@ function render(p, c){
   }
 
   html+=`<div class="msg-box">Dúvidas sobre o seu projeto? A Isabella entrará em contato com você nos próximos passos.</div>`;
-  html+=`<a class="voltar" onclick="document.getElementById('login-box').style.display='block';document.getElementById('portal').style.display='none';document.getElementById('h-sub').textContent='';">Consultar outro código</a>`;
+  if(window._LISTA&&window._LISTA.length>1){
+    html+=`<a class="voltar" onclick="mostrarLista()">&larr; Meus projetos</a>`;
+  }else{
+    html+=`<a class="voltar" onclick="document.getElementById('login-box').style.display='block';document.getElementById('portal').style.display='none';document.getElementById('h-sub').textContent='';">Sair</a>`;
+  }
 
   el.innerHTML=html;
 
@@ -339,6 +359,7 @@ function renderReunioes(reunioes){
   el.innerHTML=sorted.map(r=>{
     let h=`<div class="reuniao"><div class="topo"><span class="dt">${fmtData(r.data)} às ${r.hora||''}</span><span class="badge ${r.status}">${r.status}</span></div>`;
     if(r.pauta)h+=`<div style="font-size:13px;color:var(--soft)"><b>Pauta:</b> ${esc(r.pauta)}</div>`;
+    if(r.status==='agendada'&&r.link)h+=`<div style="margin-top:6px"><a href="${esc(r.link)}" target="_blank" style="color:var(--v);font-size:13px;font-weight:600">Entrar na reunião &rarr;</a></div>`;
     if(r.resumo)h+=`<div class="resumo"><b>Resumo:</b> ${esc(r.resumo)}</div>`;
     if(r.decisoes&&r.decisoes.length){h+=`<div style="margin-top:8px"><b style="font-size:12px;color:var(--soft)">Decisões:</b>`;r.decisoes.forEach(d=>{if(d)h+=`<div class="decisao">${esc(d)}</div>`;});h+='</div>';}
     h+='</div>';return h;
