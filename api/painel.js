@@ -1,142 +1,928 @@
-// API: /api/painel
-// Backend centralizado do painel. Todas as consultas passam por aqui.
-// Ações: listar propostas, buscar cliente, atualizar status, criar proposta manual
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel — Isabella Estrela</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--v:#6A2326;--ch:#F0D6AA;--dk:#1A0F10;--bg:#FAF9F6;--soft:#73504F;--line:rgba(209,176,160,.25);--card:#fff;--green:#5F6B52;--greenL:rgba(95,107,82,.12);--greenD:#3D5230}
+*{box-sizing:border-box;margin:0}body{font-family:"IBM Plex Sans",sans-serif;background:var(--bg);color:var(--dk);font-size:14px}
+.login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.login-box{background:var(--dk);border-radius:16px;padding:40px;max-width:360px;width:100%;text-align:center}
+.login-box h1{font-family:"Fraunces",serif;color:var(--ch);font-size:22px;font-weight:300;margin-bottom:24px}
+.login-box input{width:100%;padding:14px;border:1px solid rgba(240,214,170,.2);border-radius:10px;background:rgba(255,255,255,.06);color:#fff;font:inherit;text-align:center;font-size:16px}
+.login-box input:focus{outline:2px solid var(--ch);border-color:var(--ch)}
+.login-box button{width:100%;padding:14px;border:none;border-radius:28px;background:var(--ch);color:var(--dk);font:inherit;font-weight:600;cursor:pointer;margin-top:14px}
+.login-box .err{color:#E8A0A0;font-size:13px;margin-top:10px}
+.app{display:none}body.auth .login{display:none}body.auth .app{display:block}
+.topbar{background:linear-gradient(135deg,#6A2326,#7B2D30);padding:20px 28px;display:flex;justify-content:space-between;align-items:center}
+.topbar h1{font-family:"Fraunces",serif;font-size:20px;font-weight:300;color:var(--ch)}
+.topbar .acts{display:flex;gap:8px}
+.topbar button{background:none;border:1px solid rgba(240,214,170,.3);color:var(--ch);padding:8px 16px;border-radius:20px;cursor:pointer;font:inherit;font-size:12px}
+.wrap{max-width:1100px;margin:0 auto;padding:24px 20px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:24px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+.stat .n{font-family:"Fraunces",serif;font-size:28px;color:var(--v)}
+.stat .l{font-size:11px;color:var(--soft);margin-top:3px}
+.tabs{display:flex;gap:0;border-bottom:2px solid var(--line);margin-bottom:18px}
+.tab{padding:10px 18px;cursor:pointer;font-size:13px;color:var(--soft);border-bottom:2px solid transparent;margin-bottom:-2px;font-weight:500}
+.tab.active{color:var(--v);border-bottom-color:var(--v)}
+.section{display:none}.section.active{display:block}
+table{width:100%;border-collapse:separate;border-spacing:0;background:var(--card);border-radius:12px;overflow:hidden;border:1px solid var(--line)}
+th{background:var(--v);color:var(--ch);padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.04em;font-weight:500;white-space:nowrap}
+td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top;font-size:13px}
+tr:last-child td{border-bottom:0}tr:hover td{background:rgba(106,35,38,.015)}
+.badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:500}
+.badge.aceita{background:rgba(240,214,170,.3);color:#8F6841}
+.badge.paga{background:var(--greenL);color:var(--greenD)}
+.badge.andamento{background:rgba(106,35,38,.1);color:var(--v)}
+.badge.concluida{background:rgba(95,107,82,.25);color:#2A4020}
+.badge.cancelada{background:rgba(156,59,46,.1);color:#9C3B2E}
+.empty{text-align:center;padding:48px;color:var(--soft)}
+.valor{font-family:"Fraunces",serif;font-size:15px;color:var(--v);white-space:nowrap}
+.search input{width:100%;padding:10px 14px;border:1px solid var(--line);border-radius:10px;font:inherit;background:var(--card)}
+.search input:focus{outline:2px solid var(--v);border-color:var(--v)}
+.btn{padding:9px 18px;border:none;border-radius:20px;background:var(--v);color:var(--ch);font:inherit;font-size:13px;font-weight:500;cursor:pointer}
+.btn.sec{background:var(--bg);color:var(--dk);border:1px solid var(--line)}
+.btn.sm{padding:6px 12px;font-size:12px}
+.btn.green{background:var(--green);color:#fff}
 
-const SB = 'https://mooghvkrendiiwhxynkd.supabase.co';
-const SK = 'sb_publishable_eRt9feUOHeFOSZjIbfDrJw_ieFaA6Dx';
-const SENHA = 'isa2026';
+/* Modal */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(26,15,16,.5);z-index:100;overflow-y:auto;padding:20px}
+.modal-bg.open{display:flex;justify-content:center;align-items:flex-start}
+.modal{background:var(--card);border-radius:16px;max-width:720px;width:100%;margin:20px auto}
+.modal-header{background:var(--v);color:var(--ch);padding:18px 24px;border-radius:16px 16px 0 0;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:2}
+.modal-header h2{font-family:"Fraunces",serif;font-size:18px;font-weight:300}
+.modal-close{background:none;border:none;color:var(--ch);font-size:24px;cursor:pointer}
+.modal-body{padding:24px}
+.mrow{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px}
+.mrow .lbl{color:var(--soft)}.mrow .val{font-weight:500;text-align:right;max-width:60%}
 
-async function sb(path, method, body) {
-  const h = { apikey: SK, Authorization: `Bearer ${SK}`, 'Content-Type': 'application/json' };
-  if (method === 'POST') h['Prefer'] = 'return=representation';
-  if (method === 'PATCH') h['Prefer'] = 'return=representation';
-  const opts = { method: method || 'GET', headers: h };
-  if (body) opts.body = JSON.stringify(body);
-  const r = await fetch(`${SB}/rest/v1/${path}`, opts);
-  return r.json();
+/* Etapas */
+.etapa-card{border:1px solid var(--line);border-radius:10px;margin-bottom:10px;overflow:hidden}
+.etapa-head{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;cursor:pointer;gap:10px}
+.etapa-head:hover{background:rgba(106,35,38,.015)}
+.etapa-head .num{font-family:"Fraunces",serif;color:var(--v);font-size:15px;min-width:24px}
+.etapa-head .titulo{flex:1;font-weight:500;font-size:13px}
+.etapa-head .meta{display:flex;gap:8px;align-items:center;font-size:11px}
+.etapa-body{display:none;padding:0 14px 14px;border-top:1px solid var(--line)}
+.etapa-card.open .etapa-body{display:block}
+.check-item{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(209,176,160,.1);font-size:13px}
+.check-item:last-child{border-bottom:0}
+.check-item input{accent-color:var(--v);width:16px;height:16px;cursor:pointer}
+.check-item.done span{text-decoration:line-through;color:var(--soft)}
+.etapa-dates{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.etapa-dates label{font-size:11px;color:var(--soft)}
+.etapa-dates input,.etapa-dates select{padding:6px 8px;border:1px solid var(--line);border-radius:6px;font:inherit;font-size:12px}
+.prog-bar{height:4px;background:var(--line);border-radius:2px;overflow:hidden;width:60px}
+.prog-fill{height:100%;background:var(--green);border-radius:2px;transition:width .3s}
+
+/* Nova proposta */
+.form-grid{display:grid;gap:10px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.form-field label{font-size:11px;color:var(--soft);display:block;margin-bottom:3px}
+.form-field input,.form-field select,.form-field textarea{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:13px}
+.form-field textarea{min-height:50px;resize:vertical}
+@media(max-width:768px){.stats{grid-template-columns:1fr 1fr}table{display:block;overflow-x:auto}th,td{padding:8px;font-size:12px}.form-row{grid-template-columns:1fr}.modal{margin:10px}}
+</style>
+</head>
+<body>
+<div class="login">
+  <div class="login-box">
+    <h1>Isabella Estrela</h1>
+    <input type="password" id="senha" placeholder="Senha do painel" autofocus>
+    <button onclick="entrar()">Entrar</button>
+    <div class="err" id="login-err"></div>
+  </div>
+</div>
+<div class="app">
+  <div class="topbar">
+    <h1>Painel</h1>
+    <div class="acts"><button onclick="abrirNova()">+ Nova proposta</button><button onclick="sair()">Sair</button></div>
+  </div>
+  <div class="wrap">
+    <div class="stats" id="stats"></div>
+    <div class="tabs">
+      <div class="tab active" data-tab="propostas">Propostas aceitas</div>
+      <div class="tab" data-tab="fluxo">Fluxo de caixa</div>
+      <div class="tab" data-tab="rascunhos">Links enviados</div>
+    </div>
+    <div class="section active" id="sec-propostas">
+      <div class="search" style="margin-bottom:14px"><input type="text" id="busca" placeholder="Buscar por nome, código, título..."></div>
+      <div id="tabela-propostas"></div>
+    </div>
+    <div class="section" id="sec-fluxo"><div id="tabela-fluxo"></div></div>
+    <div class="section" id="sec-rascunhos"><div id="tabela-rascunhos"></div></div>
+  </div>
+</div>
+
+<!-- MODAL DETALHE -->
+<div class="modal-bg" id="modal-bg" onclick="if(event.target===this)fecharModal()">
+  <div class="modal">
+    <div class="modal-header"><h2 id="m-titulo">Detalhe</h2><button class="modal-close" onclick="fecharModal()">&times;</button></div>
+    <div class="modal-body" id="m-body"></div>
+  </div>
+</div>
+
+<!-- MODAL NOVA PROPOSTA -->
+<div class="modal-bg" id="nova-bg" onclick="if(event.target===this)fecharNova()">
+  <div class="modal">
+    <div class="modal-header"><h2>Cadastrar proposta</h2><button class="modal-close" onclick="fecharNova()">&times;</button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-row">
+          <div class="form-field"><label>Nome do cliente *</label><input type="text" id="n-nome"></div>
+          <div class="form-field"><label>CPF/CNPJ</label><input type="text" id="n-doc"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-field"><label>E-mail</label><input type="email" id="n-email"></div>
+          <div class="form-field"><label>WhatsApp</label><input type="tel" id="n-tel"></div>
+        </div>
+        <div class="form-field"><label>Endereço</label><input type="text" id="n-end"></div>
+        <div class="form-row">
+          <div class="form-field"><label>Título da proposta *</label><input type="text" id="n-titulo" placeholder="ex.: Empreendimento Aurora Top"></div>
+          <div class="form-field"><label>Valor total (R$) *</label><input type="number" id="n-valor" placeholder="55000"></div>
+        </div>
+        <div class="form-field"><label>Resumo</label><input type="text" id="n-resumo" placeholder="ex.: Terreno 1.026 m² · 24 un"></div>
+        <div class="form-row" style="grid-template-columns:1fr 1fr 1fr">
+          <div class="form-field"><label>Pagamento</label><select id="n-pag"><option>Mensal (SM)</option><option>50% + 50%</option><option>PIX à vista</option><option>Entrada + parcelas</option></select></div>
+          <div class="form-field"><label>Status</label><select id="n-status"><option value="aceita">Aceita</option><option value="paga">Paga</option><option value="andamento">Em andamento</option><option value="concluida">Concluída</option></select></div>
+          <div class="form-field"><label>Data do aceite</label><input type="date" id="n-data"></div>
+        </div>
+        <div class="form-field"><label>Tipo de projeto (define as etapas)</label>
+          <select id="n-tipo">
+            <option value="empreendimento">Empreendimento (Raio-X → Projeto → RI → 3D → Material → Lançamento)</option>
+            <option value="consultoria">Consultoria de incorporação (SM mensal)</option>
+            <option value="conselho">Conselho estratégico (SM mensal)</option>
+            <option value="casa">Uma casa</option>
+            <option value="consultoria_video">Consultoria por vídeo (30 min)</option>
+            <option value="custom">Personalizado (sem etapas pré-definidas)</option>
+          </select>
+        </div>
+        <div class="form-field"><label>Código da proposta (se já tem)</label><input type="text" id="n-codigo" placeholder="MO-XXXXXX (vazio = gerar novo)"></div>
+        <div class="form-field"><label>Notas</label><textarea id="n-notas" placeholder="Observações internas"></textarea></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:16px;align-items:center">
+        <button class="btn" onclick="salvarNova()">Salvar proposta</button>
+        <button class="btn sec" onclick="fecharNova()">Cancelar</button>
+        <span id="n-msg" style="font-size:13px;color:var(--soft)"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API='/api/painel';let SENHA='',PROPOSTAS=[],RASCUNHOS=[];
+// Conexão direta com o banco (não depende das APIs do Vercel para salvar)
+const SB='https://mooghvkrendiiwhxynkd.supabase.co';
+const SBK='sb_publishable_eRt9feUOHeFOSZjIbfDrJw_ieFaA6Dx';
+const SBH={apikey:SBK,Authorization:'Bearer '+SBK,'Content-Type':'application/json',Prefer:'return=minimal'};
+async function sbPatch(codigo,campos){
+  const r=await fetch(SB+'/rest/v1/propostas?codigo=eq.'+encodeURIComponent(codigo),{method:'PATCH',headers:SBH,body:JSON.stringify(campos)});
+  if(!r.ok)throw new Error('HTTP '+r.status);
 }
+async function salvarConselho(){
+  try{await sbPatch(CURRENT.codigo,{conselho_data:CURRENT.conselho_data});}
+  catch(e){alert('Erro ao salvar no banco: '+e.message);}
+}
+const brl=v=>v?'R$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:0}):'-';
+const dh=d=>d?new Date(d).toLocaleString('pt-BR'):'-';
+const dd=d=>d?new Date(d).toLocaleDateString('pt-BR'):'-';
+const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
-module.exports = async (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-senha');
-  if (req.method === 'OPTIONS') return res.status(200).end();
-
-  const senha = req.query.senha || req.headers['x-senha'];
-  const acao = req.query.acao || 'listar';
-
-  // Área do cliente (sem senha)
-  if (acao === 'cliente') {
-    const codigo = req.query.codigo || '';
-    const cpf = req.query.cpf || '';
-    if (!codigo && !cpf) return res.status(400).json({ error: 'Informe codigo ou cpf' });
-
-    let filtro = '';
-    if (codigo) filtro = `codigo=eq.${codigo}`;
-    else filtro = `cliente_doc=eq.${cpf.replace(/\D/g,'')}`;
-
-    const propostas = await sb(`propostas?${filtro}&order=aceito_em.desc`);
-    // Limpar dados sensíveis
-    const limpo = (propostas || []).map(p => ({
-      codigo: p.codigo,
-      titulo: p.proposta_titulo,
-      resumo: p.proposta_resumo,
-      total: p.total_fixo,
-      pagamento: p.pagamento_tipo,
-      aceito_em: p.aceito_em,
-      status: p.status || 'aceita',
-      etapas: p.etapas,
-      etapa_atual: p.etapa_atual,
-      progresso: p.progresso,
-    }));
-    return res.json({ ok: true, propostas: limpo });
-  }
-
-  // Tudo abaixo requer senha (painel admin)
-  if (senha !== SENHA) return res.status(401).json({ error: 'Senha incorreta' });
-
-  if (acao === 'listar') {
-    const propostas = await sb('propostas?order=aceito_em.desc&limit=100');
-    return res.json({ ok: true, propostas: propostas || [] });
-  }
-
-  if (acao === 'rascunhos') {
-    const rascunhos = await sb('rascunhos?order=created_at.desc&limit=50');
-    return res.json({ ok: true, rascunhos: rascunhos || [] });
-  }
-
-  if (acao === 'criar' && req.method === 'POST') {
-    const d = req.body;
-    if (!d.cliente_nome || !d.proposta_titulo || !d.total_fixo) {
-      return res.status(400).json({ error: 'nome, título e valor são obrigatórios' });
-    }
-    const r = await sb('propostas', 'POST', {
-      codigo: d.codigo || 'MO-MANUAL',
-      aceito_em: d.aceito_em || new Date().toISOString(),
-      ip: d.ip || 'manual',
-      cliente_nome: d.cliente_nome,
-      cliente_doc: d.cliente_doc || '',
-      cliente_email: d.cliente_email || '',
-      cliente_whatsapp: d.cliente_whatsapp || '',
-      cliente_endereco: d.cliente_endereco || '',
-      proposta_titulo: d.proposta_titulo,
-      proposta_resumo: d.proposta_resumo || '',
-      total_fixo: d.total_fixo,
-      pagamento_tipo: d.pagamento_tipo || '',
-      status: d.status || 'aceita',
-      notas: d.notas || '',
-      etapas: d.etapas || null,
-      docs_cliente: d.docs_cliente || null,
-    });
-    return res.json({ ok: true, criado: r });
-  }
-
-  if (acao === 'atualizar' && req.method === 'POST') {
-    const d = req.body;
-    if (!d.codigo) return res.status(400).json({ error: 'codigo obrigatório' });
-    const campos = {};
-    if (d.status) campos.status = d.status;
-    if (d.etapa_atual) campos.etapa_atual = d.etapa_atual;
-    if (d.progresso !== undefined) campos.progresso = d.progresso;
-    if (d.notas !== undefined) campos.notas = d.notas;
-    if (d.etapas !== undefined) campos.etapas = d.etapas;
-    if (d.docs_cliente !== undefined) campos.docs_cliente = d.docs_cliente;
-    if (d.pagamentos !== undefined) campos.pagamentos = d.pagamentos;
-    if (d.previsoes !== undefined) campos.previsoes = d.previsoes;
-    if (d.cliente_nome) campos.cliente_nome = d.cliente_nome;
-    if (d.proposta_titulo) campos.proposta_titulo = d.proposta_titulo;
-    const r = await sb(`propostas?codigo=eq.${d.codigo}`, 'PATCH', campos);
-    return res.json({ ok: true, atualizado: r });
-  }
-
-  if (acao === 'stats') {
-    const todas = await sb('propostas?select=total_fixo,aceito_em,status,pagamento_tipo');
-    const agora = new Date();
-    const mes = agora.getMonth();
-    const ano = agora.getFullYear();
-    const total = (todas || []).reduce((a, p) => a + (p.total_fixo || 0), 0);
-    const esteMes = (todas || []).filter(p => {
-      if (!p.aceito_em) return false;
-      const d = new Date(p.aceito_em);
-      return d.getMonth() === mes && d.getFullYear() === ano;
-    });
-    const totalMes = esteMes.reduce((a, p) => a + (p.total_fixo || 0), 0);
-    return res.json({
-      ok: true,
-      total_propostas: (todas || []).length,
-      valor_total: total,
-      propostas_mes: esteMes.length,
-      valor_mes: totalMes,
-      por_status: contarPor(todas, 'status'),
-      por_pagamento: contarPor(todas, 'pagamento_tipo'),
-    });
-  }
-
-  return res.status(400).json({ error: 'acao inválida' });
+// Templates de etapas por tipo
+const TEMPLATES={
+  empreendimento:[
+    {n:'1',t:'Raio-X da Decisão',checklist:['Levantamento zoneamento','Conferir matrícula','Verificar restrições','Mapear público-alvo','Preços venda/aluguel região','Veredito escrito']},
+    {n:'2',t:'Estudo de Viabilidade',checklist:['Volumetria','Tipologias e mix','Quadro de áreas preliminar','Custo de construção','VGV por unidade e total','Cronograma macro','Cenários comparados','Margem e retorno']},
+    {n:'3',t:'Projeto Básico',checklist:['Estudo preliminar','Implantação','Plantas baixas','Cortes e fachadas preliminares']},
+    {n:'4',t:'Projeto Legal',checklist:['Pranchas da prefeitura','Emitir RRT','Protocolar na prefeitura','Acompanhar exigências até licença']},
+    {n:'5',t:'Memoriais e RI',checklist:['Memorial descritivo','Quadros NBR 12.721','Memorial de incorporação (art. 32)','Minuta convenção condomínio','Coordenação com cartório até registro']},
+    {n:'6',t:'Projeções 3D',checklist:['Perspectiva fachada','Perspectiva implantação','Ambientes internos','Vistas aéreas']},
+    {n:'7',t:'Material de Divulgação',checklist:['Plantas humanizadas por tipologia','Book de vendas (PDF)','Textos comerciais','Kit do corretor','Tabela de preços']},
+    {n:'8',t:'Lançamento e Vendas',checklist:['Estratégia de lançamento','Definir corretores e comissão','Stand/ponto de atendimento','Campanha pré-lançamento','Evento de lançamento','Relatórios semanais','Apuração variável mensal']},
+  ],
+  casa:[
+    {n:'1',t:'Raio-X da Decisão',checklist:['Levantamento zoneamento','Conferir matrícula','Restrições','Veredito']},
+    {n:'2',t:'Estudo de Viabilidade',checklist:['Programa de necessidades','Custo estimado','Cronograma']},
+    {n:'3',t:'Projeto Básico',checklist:['Estudo preliminar','Plantas baixas','Fachadas']},
+    {n:'4',t:'Projeto Legal',checklist:['Pranchas prefeitura','RRT','Protocolar','Licença']},
+    {n:'5',t:'Projeções 3D',checklist:['Fachada','Ambientes internos']},
+    {n:'6',t:'Material de Venda',checklist:['Plantas humanizadas','Imagens realistas','Book']},
+  ],
+  consultoria:[
+    {n:'1',t:'Alinhamento inicial',checklist:['Reunião de briefing','Levantamento de dados do projeto','Definição de escopo e metas']},
+    {n:'2',t:'Análise do projeto',checklist:['Análise de zoneamento','Análise de público','Análise de tipologia','Relatório com recomendações']},
+    {n:'3',t:'Direcionamento de produto',checklist:['Definição de mix','Metragem e layout','Faixa de preço','Perfil do comprador']},
+    {n:'4',t:'Acompanhamento de etapas',checklist:['Relatório mensal 1','Relatório mensal 2','Relatório mensal 3','Relatório mensal 4','Relatório mensal 5','Relatório mensal 6']},
+  ],
+  conselho:[
+    {n:'1',t:'Onboarding',checklist:['Reunião inicial de alinhamento','Levantamento do portfólio atual','Mapeamento de oportunidades']},
+    {n:'2',t:'Estratégia',checklist:['Posicionamento de marca','Definição de público-alvo','Estratégia de preço e margem']},
+    {n:'3',t:'Acompanhamento contínuo',checklist:['Reuniões semanais','Análise de terrenos novos','Diretrizes por projeto','Acesso canal investidores']},
+  ],
+  consultoria_video:[
+    {n:'1',t:'Consultoria por vídeo',checklist:['Sessão de 30 minutos realizada','Resumo enviado ao cliente']},
+  ],
+  custom:[],
 };
 
-function contarPor(arr, campo) {
-  const c = {};
-  (arr || []).forEach(p => { const v = p[campo] || 'sem status'; c[v] = (c[v] || 0) + 1; });
-  return c;
+// Documentos do cliente (padrão para empreendimento)
+const DOCS_CLIENTE=['CNPJ da SPE','Dados sócios/admin','Registro terreno','Certidão ônus','Planta arquitetura','Licença construção','RRT/ARTs','Nome SPE','Acabamentos','Cód. condomínio','Quadro áreas/frações','Valor vendas'];
+
+// Login
+function entrar(){
+  SENHA=document.getElementById('senha').value.trim();
+  if(!SENHA){document.getElementById('login-err').textContent='Digite a senha';return;}
+  fetch(API+'?acao=stats&senha='+SENHA).then(r=>r.json()).then(j=>{
+    if(j.error){document.getElementById('login-err').textContent='Senha incorreta';return;}
+    document.body.classList.add('auth');sessionStorage.setItem('ps',SENHA);carregarTudo();
+  }).catch(()=>{document.getElementById('login-err').textContent='Erro de conexão';});
 }
+function sair(){sessionStorage.removeItem('ps');document.body.classList.remove('auth');SENHA='';}
+(function(){const s=sessionStorage.getItem('ps');if(s){SENHA=s;document.body.classList.add('auth');carregarTudo();}})();
+document.getElementById('senha').addEventListener('keydown',e=>{if(e.key==='Enter')entrar();});
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',function(){
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));
+  this.classList.add('active');document.getElementById('sec-'+this.dataset.tab).classList.add('active');
+}));
+
+async function carregarTudo(){
+  const prop=await(await fetch(API+'?acao=listar&senha='+SENHA)).json();
+  PROPOSTAS=prop.propostas||[];renderPropostas(PROPOSTAS);
+  renderStatsEFluxo();
+  try{const rasc=await(await fetch(API+'?acao=rascunhos&senha='+SENHA)).json();RASCUNHOS=rasc.rascunhos||[];renderRascunhos(RASCUNHOS);}catch(e){}
+}
+
+// ======= FLUXO DE CAIXA =======
+// Junta todas as entradas previstas e recebidas:
+// parcelas do conselho + previsões de recebimento + pagamentos registrados
+function coletarFluxo(){
+  const itens=[];
+  PROPOSTAS.forEach(p=>{
+    if(p.status==='cancelada')return;
+    const quem=p.cliente_nome||p.codigo;
+    ((p.conselho_data||{}).parcelas||[]).forEach(pc=>{
+      if(pc.status==='paga')itens.push({data:pc.pago_em||pc.vencimento,valor:+pc.valor||0,tipo:'recebido',desc:`Parcela ${pc.numero} · ${quem}`});
+      else itens.push({data:pc.vencimento,valor:+pc.valor||0,tipo:'previsto',desc:`Parcela ${pc.numero} · ${quem}`});
+    });
+    (p.previsoes||[]).forEach(pv=>{
+      if(pv.recebido)itens.push({data:pv.recebido_em||pv.data,valor:+pv.valor||0,tipo:'recebido',desc:`${pv.descricao||'Previsão'} · ${quem}`});
+      else itens.push({data:pv.data,valor:+pv.valor||0,tipo:'previsto',desc:`${pv.descricao||'Previsão'} · ${quem}`});
+    });
+    (p.pagamentos||[]).forEach(pg=>{
+      itens.push({data:pg.data,valor:+pg.valor||0,tipo:'recebido',desc:`${pg.obs||pg.forma||'Pagamento'} · ${quem}`});
+    });
+  });
+  return itens;
+}
+function renderStatsEFluxo(){
+  const itens=coletarFluxo();
+  const mesAtual=new Date().toISOString().slice(0,7);
+  const contratado=PROPOSTAS.filter(p=>p.status!=='cancelada').reduce((a,p)=>a+(+p.total_fixo||0),0);
+  const recebidoMes=itens.filter(i=>i.tipo==='recebido'&&(i.data||'').slice(0,7)===mesAtual).reduce((a,i)=>a+i.valor,0);
+  const previstoMes=itens.filter(i=>i.tipo==='previsto'&&(i.data||'').slice(0,7)===mesAtual).reduce((a,i)=>a+i.valor,0);
+  document.getElementById('stats').innerHTML=
+    `<div class="stat"><div class="n">${PROPOSTAS.length}</div><div class="l">Propostas</div></div>`+
+    `<div class="stat"><div class="n">${brl(contratado)}</div><div class="l">Valor contratado</div></div>`+
+    `<div class="stat"><div class="n" style="color:var(--green)">${brl(recebidoMes)}</div><div class="l">Recebido no mês</div></div>`+
+    `<div class="stat"><div class="n">${brl(previstoMes)}</div><div class="l">A receber no mês</div></div>`;
+
+  // Tabela mês a mês (12 meses a partir do mês atual, mais o que ficou pra trás)
+  const porMes={};
+  const semData=[];
+  itens.forEach(i=>{
+    const m=(i.data||'').slice(0,7);
+    if(!m){semData.push(i);return;}
+    porMes[m]=porMes[m]||{previsto:0,recebido:0,itens:[]};
+    porMes[m][i.tipo]+=i.valor;
+    porMes[m].itens.push(i);
+  });
+  const meses=Object.keys(porMes).sort();
+  const nomeMes=m=>{const[a,mm]=m.split('-');return['','jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'][+mm]+'/'+a.slice(2);};
+  const hoje=new Date().toISOString().slice(0,10);
+  let html='';
+  if(!meses.length&&!semData.length){
+    html='<div class="empty">Nenhum recebimento previsto ainda. Abra uma proposta e adicione previsões de recebimento, ou gere as parcelas do conselho.</div>';
+  }else{
+    let acumulado=0;
+    html='<table><thead><tr><th>Mês</th><th>Previsto</th><th>Recebido</th><th>Acumulado</th><th></th></tr></thead><tbody>';
+    meses.forEach(m=>{
+      const d=porMes[m];
+      acumulado+=d.recebido+(m>=mesAtual?d.previsto:0);
+      const atrasado=m<mesAtual&&d.previsto>0;
+      html+=`<tr style="cursor:pointer" onclick="document.getElementById('fx-${m}').style.display=document.getElementById('fx-${m}').style.display==='none'?'':'none'">
+        <td><b>${nomeMes(m)}</b>${m===mesAtual?' <span class="badge" style="background:var(--v);color:#fff;font-size:10px">atual</span>':''}</td>
+        <td style="color:${atrasado?'#9C3B2E':'inherit'}">${d.previsto?brl(d.previsto):'-'}${atrasado?' <small>(atrasado)</small>':''}</td>
+        <td style="color:var(--green)">${d.recebido?brl(d.recebido):'-'}</td>
+        <td class="valor">${brl(acumulado)}</td>
+        <td><small style="color:var(--soft)">${d.itens.length} item${d.itens.length>1?'s':''} ▾</small></td>
+      </tr>
+      <tr id="fx-${m}" style="display:none"><td colspan="5" style="background:#FDFCFA;padding:8px 14px">${
+        d.itens.sort((a,b)=>(a.data||'')>(b.data||'')?1:-1).map(i=>`<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px dashed var(--line)">
+          <span>${esc(i.data||'')} · ${esc(i.desc)}</span>
+          <b style="color:${i.tipo==='recebido'?'var(--green)':i.data<hoje?'#9C3B2E':'inherit'}">${i.tipo==='recebido'?'✓ ':''}${brl(i.valor)}</b>
+        </div>`).join('')
+      }</td></tr>`;
+    });
+    html+='</tbody></table>';
+    if(semData.length){
+      const soma=semData.reduce((a,i)=>a+i.valor,0);
+      html+=`<div style="margin-top:10px;padding:10px 14px;border:1px dashed var(--line);border-radius:8px;font-size:12px;color:var(--soft)">Sem data definida: <b>${brl(soma)}</b> (${semData.map(i=>esc(i.desc)).join(', ')}). Abra a proposta e defina a data prevista.</div>`;
+    }
+  }
+  document.getElementById('tabela-fluxo').innerHTML=html;
+}
+function badgeStatus(s){return'<span class="badge '+(s||'aceita')+'">'+(s||'aceita')+'</span>';}
+function progresso(etapas){
+  if(!etapas||!etapas.length)return'';
+  let total=0,feitos=0;
+  etapas.forEach(e=>{if(e.checklist)e.checklist.forEach(c=>{total++;if(c.feito)feitos++;});});
+  const pct=total?Math.round(feitos/total*100):0;
+  return`<div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div><span style="font-size:11px;color:var(--soft)">${pct}%</span>`;
+}
+function renderPropostas(lista){
+  if(!lista.length){document.getElementById('tabela-propostas').innerHTML='<div class="empty">Nenhuma proposta aceita ainda.</div>';return;}
+  document.getElementById('tabela-propostas').innerHTML='<table><thead><tr><th>Cliente</th><th>Proposta</th><th>Valor</th><th>Status</th><th>Progresso</th><th>Data</th><th>Código</th></tr></thead><tbody>'+lista.map((p,i)=>'<tr style="cursor:pointer" onclick="abrirDetalhe('+i+')"><td><b>'+esc(p.cliente_nome||'-')+'</b><br><small>'+esc(p.cliente_doc||'')+'</small></td><td>'+esc(p.proposta_titulo||'-')+'<br><small>'+esc(p.proposta_resumo||'')+'</small></td><td class="valor">'+brl(p.total_fixo)+'</td><td>'+badgeStatus(p.status)+'</td><td style="display:flex;gap:6px;align-items:center">'+progresso(p.etapas)+'</td><td><small>'+dd(p.aceito_em)+'</small></td><td><small>'+esc(p.codigo||'-')+'</small></td></tr>').join('')+'</tbody></table>';
+}
+function renderRascunhos(lista){
+  if(!lista.length){document.getElementById('tabela-rascunhos').innerHTML='<div class="empty">Nenhum link gerado.</div>';return;}
+  document.getElementById('tabela-rascunhos').innerHTML='<table><thead><tr><th>Código</th><th>Cliente</th><th>Proposta</th><th>Valor</th><th>Gerado</th><th>Link</th></tr></thead><tbody>'+lista.map(r=>{const d=r.dados||{};return'<tr><td><small>'+esc(r.codigo)+'</small></td><td>'+esc(d.clienteNome||'-')+'</td><td>'+esc(d.title||'-')+'</td><td class="valor">'+brl(d.total)+'</td><td><small>'+dd(r.created_at)+'</small></td><td><a href="/proposta.html#'+esc(r.codigo)+'" target="_blank" style="color:var(--v);font-size:12px">Abrir</a></td></tr>';}).join('')+'</tbody></table>';
+}
+document.getElementById('busca').addEventListener('input',function(){
+  const q=this.value.toLowerCase().trim();
+  if(!q){renderPropostas(PROPOSTAS);return;}
+  renderPropostas(PROPOSTAS.filter(p=>(p.cliente_nome||'').toLowerCase().includes(q)||(p.codigo||'').toLowerCase().includes(q)||(p.proposta_titulo||'').toLowerCase().includes(q)||(p.cliente_doc||'').includes(q)));
+});
+
+// ======= DETALHE COM ETAPAS =======
+let CURRENT=null,CURRENT_IDX=-1;
+async function abrirDetalhe(i){
+  CURRENT_IDX=i;CURRENT=JSON.parse(JSON.stringify(PROPOSTAS[i]));
+  if(!CURRENT.etapas)CURRENT.etapas=[];
+  if(!CURRENT.docs_cliente)CURRENT.docs_cliente=[];
+  if(!CURRENT.conselho_data)CURRENT.conselho_data={reunioes:[],decisoes:[],parcelas:[],documentos:[]};
+  // Carregar dados frescos do conselho direto do banco
+  try{
+    const r=await fetch(SB+'/rest/v1/propostas?codigo=eq.'+encodeURIComponent(CURRENT.codigo)+'&select=conselho_data,previsoes,pagamentos',{headers:{apikey:SBK,Authorization:'Bearer '+SBK}});
+    const arr=await r.json();
+    if(arr&&arr[0]){
+      if(arr[0].conselho_data)CURRENT.conselho_data=arr[0].conselho_data;
+      if(arr[0].previsoes)CURRENT.previsoes=arr[0].previsoes;
+      if(arr[0].pagamentos)CURRENT.pagamentos=arr[0].pagamentos;
+    }
+  }catch(e){}
+  renderDetalhe();
+  document.getElementById('modal-bg').classList.add('open');
+}
+function fecharModal(){document.getElementById('modal-bg').classList.remove('open');}
+
+function renderDetalhe(){
+  const p=CURRENT;
+  document.getElementById('m-titulo').textContent=p.proposta_titulo||'Detalhe';
+
+  // Info do cliente (nome e título editáveis)
+  let html='<div style="margin-bottom:18px">';
+  html+=`<div class="mrow"><span class="lbl">Cliente</span><input id="d-nome" value="${esc(p.cliente_nome||'')}" style="flex:1;padding:6px 10px;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:13px;font-weight:600"></div>`;
+  html+=`<div class="mrow"><span class="lbl">Título</span><input id="d-titulo" value="${esc(p.proposta_titulo||'')}" style="flex:1;padding:6px 10px;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:13px"></div>`;
+  [['CPF/CNPJ',p.cliente_doc],['E-mail',p.cliente_email],['WhatsApp',p.cliente_whatsapp],['Endereço',p.cliente_endereco]].forEach(r=>{
+    if(r[1])html+=`<div class="mrow"><span class="lbl">${esc(r[0])}</span><span class="val">${esc(r[1])}</span></div>`;
+  });
+  html+=`<div class="mrow"><span class="lbl">Valor total</span><span class="val valor" style="font-size:18px">${brl(p.total_fixo)}</span></div>`;
+  html+=`<div class="mrow"><span class="lbl">Pagamento</span><span class="val">${esc(p.pagamento_tipo||'-')}</span></div>`;
+  html+=`<div class="mrow"><span class="lbl">Aceito em</span><span class="val">${dh(p.aceito_em)}</span></div>`;
+  html+=`<div class="mrow"><span class="lbl">Código</span><span class="val">${esc(p.codigo)}</span></div>`;
+  html+='</div>';
+
+  // Status + notas
+  html+=`<div style="display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;align-items:center">
+    <select id="d-status" style="padding:8px 12px;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:13px">
+      <option value="aceita"${p.status==='aceita'?' selected':''}>Aceita</option>
+      <option value="paga"${p.status==='paga'?' selected':''}>Paga</option>
+      <option value="andamento"${p.status==='andamento'?' selected':''}>Em andamento</option>
+      <option value="concluida"${p.status==='concluida'?' selected':''}>Concluída</option>
+      <option value="cancelada"${p.status==='cancelada'?' selected':''}>Cancelada</option>
+    </select>
+    <button class="btn sm" onclick="salvarTudo()">Salvar tudo</button>
+    <span id="d-msg" style="font-size:12px;color:var(--green)"></span>
+  </div>`;
+
+  // ETAPAS
+  html+='<div style="margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px"><b style="font-size:12px;color:var(--soft);text-transform:uppercase;letter-spacing:.04em">Etapas do projeto</b><div style="display:flex;gap:6px">';
+  html+='<button class="btn sm sec" onclick="addEtapa()" style="font-size:11px">+ Etapa</button>';
+  html+='<button class="btn sm sec" onclick="aplicarTemplate()" style="font-size:11px">Carregar template</button>';
+  html+='</div></div>';
+
+  if(p.etapas&&p.etapas.length){
+    p.etapas.forEach((e,ei)=>{
+      const total=e.checklist?e.checklist.length:0;
+      const feitos=e.checklist?e.checklist.filter(c=>c.feito).length:0;
+      const pct=total?Math.round(feitos/total*100):0;
+      const st=e.status||'pendente';
+      const stColors={pendente:'var(--soft)',andamento:'var(--v)',entregue:'var(--green)'};
+      html+=`<div class="etapa-card${ei===0?' open':''}" id="ec-${ei}">
+        <div class="etapa-head" onclick="document.getElementById('ec-${ei}').classList.toggle('open')">
+          <span class="num">${esc(e.n||''+(ei+1))}</span>
+          <span class="titulo">${esc(e.t)}</span>
+          <div class="meta">
+            <div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div>
+            <span style="font-size:11px;color:var(--soft)">${feitos}/${total}</span>
+            <span class="badge" style="background:${stColors[st]||'var(--soft)'};color:#fff;font-size:10px">${st}</span>
+            ${e.pago?'<span class="badge" style="background:var(--greenL);color:var(--greenD);font-size:10px">pago</span>':''}
+          </div>
+        </div>
+        <div class="etapa-body">`;
+
+      // Checklist
+      if(e.checklist&&e.checklist.length){
+        e.checklist.forEach((c,ci)=>{
+          html+=`<div class="check-item${c.feito?' done':''}" style="display:flex;justify-content:space-between"><div style="display:flex;align-items:center;gap:8px"><input type="checkbox" ${c.feito?'checked':''} onchange="toggleCheck(${ei},${ci},this.checked)"><span>${esc(c.item)}</span></div><button onclick="removeCheckItem(${ei},${ci})" style="background:none;border:none;color:var(--soft);cursor:pointer;font-size:14px;padding:2px 6px;opacity:.5" title="Remover item">&times;</button></div>`;
+        });
+      }
+      html+=`<div style="margin-top:6px;display:flex;gap:6px"><button class="btn sm sec" onclick="addCheckItem(${ei})" style="font-size:11px;padding:4px 10px">+ item</button><button onclick="removeEtapa(${ei})" style="background:none;border:1px solid rgba(156,59,46,.3);color:#9C3B2E;border-radius:12px;font-size:11px;padding:4px 10px;cursor:pointer">Remover etapa</button></div>`;
+
+      // Controles da etapa
+      html+=`<div class="etapa-dates">
+        <div><label>Status</label><select onchange="setEtapaStatus(${ei},this.value)">
+          <option value="pendente"${st==='pendente'?' selected':''}>Pendente</option>
+          <option value="andamento"${st==='andamento'?' selected':''}>Em andamento</option>
+          <option value="entregue"${st==='entregue'?' selected':''}>Entregue</option>
+        </select></div>
+        <div><label>Início</label><input type="date" value="${e.inicio||''}" onchange="setEtapaData(${ei},'inicio',this.value)"></div>
+        <div><label>Entrega</label><input type="date" value="${e.entrega||''}" onchange="setEtapaData(${ei},'entrega',this.value)"></div>
+        <div><label>Pago</label><select onchange="setEtapaPago(${ei},this.value==='sim')">
+          <option value="nao"${!e.pago?' selected':''}>Não</option>
+          <option value="sim"${e.pago?' selected':''}>Sim</option>
+        </select></div>
+        <div><label>Valor</label><input type="number" value="${e.v||''}" style="width:90px" onchange="setEtapaValor(${ei},+this.value)"></div>
+      </div>`;
+      html+=`</div></div>`;
+    });
+  } else {
+    html+='<div class="empty" style="padding:24px">Sem etapas definidas. Clique em "Aplicar template" acima.</div>';
+  }
+
+  // Documentos do cliente
+  html+=`<div style="margin-top:18px;display:flex;justify-content:space-between;align-items:center"><b style="font-size:12px;color:var(--soft);text-transform:uppercase;letter-spacing:.04em">Documentos do cliente${p.docs_cliente&&p.docs_cliente.length?' ('+p.docs_cliente.filter(d=>d.feito).length+'/'+p.docs_cliente.length+')':''}</b><button class="btn sm sec" onclick="addDocItem()" style="font-size:11px">+ Doc</button></div>`;
+  if(p.docs_cliente&&p.docs_cliente.length){
+    p.docs_cliente.forEach((d,di)=>{
+      html+=`<div class="check-item${d.feito?' done':''}" style="display:flex;justify-content:space-between"><div style="display:flex;align-items:center;gap:8px"><input type="checkbox" ${d.feito?'checked':''} onchange="toggleDoc(${di},this.checked)"><span>${esc(d.item)}</span></div><button onclick="removeDocItem(${di})" style="background:none;border:none;color:var(--soft);cursor:pointer;font-size:14px;padding:2px 6px;opacity:.5">&times;</button></div>`;
+    });
+  }
+
+  // Pagamentos identificados (caixa)
+  const pags=p.pagamentos||[];
+  const totalPago=pags.reduce((a,g)=>a+(+g.valor||0),0);
+  const restante=(+p.total_fixo||0)-totalPago;
+  html+=`<div style="margin-top:18px;padding:14px;border:1px solid var(--line);border-radius:10px;background:#FDFCFA">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <b style="font-size:12px;color:var(--soft);text-transform:uppercase;letter-spacing:.04em">Pagamentos identificados</b>
+      <button class="btn sm" onclick="addPagamento()" style="font-size:11px">+ Registrar pagamento</button>
+    </div>
+    <div style="display:flex;gap:16px;font-size:13px;margin-bottom:8px">
+      <span>Recebido: <b style="color:var(--green)">${brl(totalPago)}</b></span>
+      <span>Restante: <b style="color:${restante>0?'#9C3B2E':'var(--green)'}">${brl(restante)}</b></span>
+    </div>`;
+  if(pags.length){
+    pags.forEach((g,gi)=>{
+      html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;border:1px solid var(--line);border-radius:8px;margin-top:4px;font-size:12px;background:#fff">
+        <span>${esc(g.data||'')} · <b>${brl(+g.valor||0)}</b>${g.forma?' · '+esc(g.forma):''}${g.obs?' · '+esc(g.obs):''}</span>
+        <button onclick="removePagamento(${gi})" style="background:none;border:none;color:var(--soft);cursor:pointer;font-size:14px;padding:2px 6px;opacity:.5" title="Remover">&times;</button>
+      </div>`;
+    });
+  } else {
+    html+=`<div style="font-size:12px;color:var(--soft)">Nenhum pagamento registrado ainda.</div>`;
+  }
+  html+=`</div>`;
+
+  // Previsão de recebimentos (fluxo de caixa)
+  const prevs=p.previsoes||[];
+  html+=`<div style="margin-top:14px;padding:14px;border:1px solid var(--line);border-radius:10px;background:#FDFCFA">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <b style="font-size:12px;color:var(--soft);text-transform:uppercase;letter-spacing:.04em">Previsão de recebimentos</b>
+      <button class="btn sm sec" onclick="addPrevisao()" style="font-size:11px">+ Previsão</button>
+    </div>`;
+  if(prevs.length){
+    prevs.forEach((v,vi)=>{
+      html+=`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 10px;border:1px solid ${v.recebido?'var(--green)':'var(--line)'};border-radius:8px;margin-top:4px;font-size:12px;background:#fff;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:200px">
+          <input type="date" value="${esc(v.data||'')}" onchange="setPrevisaoData(${vi},this.value)" style="padding:4px 6px;border:1px solid var(--line);border-radius:6px;font:inherit;font-size:12px" ${v.recebido?'disabled':''}>
+          <b>${brl(+v.valor||0)}</b>
+          <span style="color:var(--soft)">${esc(v.descricao||'')}</span>
+        </div>
+        <div style="display:flex;gap:4px;align-items:center">
+          ${v.recebido
+            ?`<span class="badge" style="background:var(--greenL);color:var(--green)">recebido ${esc(v.recebido_em||'')}</span>`
+            :`<button class="btn sm" onclick="receberPrevisao(${vi})" style="font-size:10px;padding:3px 8px;background:var(--green)">Recebido</button>`}
+          <button onclick="removePrevisao(${vi})" style="background:none;border:none;color:var(--soft);cursor:pointer;font-size:14px;padding:2px 6px;opacity:.5">&times;</button>
+        </div>
+      </div>`;
+    });
+  } else {
+    html+=`<div style="font-size:12px;color:var(--soft)">Nenhuma previsão. Adicione as datas em que espera receber (entrada, saldo na entrega...). É daqui que sai o fluxo de caixa.</div>`;
+  }
+  html+=`</div>`;
+
+  // Notas
+  html+=`<div style="margin-top:18px"><label style="font-size:12px;color:var(--soft)">Notas internas</label><textarea id="d-notas" style="width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:13px;min-height:60px;resize:vertical;margin-top:4px">${esc(p.notas||'')}</textarea></div>`;
+
+  // Gestão do conselho (se for conselho ou consultoria)
+  const isConselho = (p.proposta_modo==='conselho'||p.proposta_modo==='consultoria'||(p.proposta_titulo||'').toLowerCase().includes('conselho')||(p.proposta_titulo||'').toLowerCase().includes('consultoria'));
+  if(isConselho){
+    html+=`<div style="margin-top:18px;padding-top:16px;border-top:2px solid var(--v)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <b style="font-size:12px;color:var(--v);text-transform:uppercase;letter-spacing:.04em">Gestão do Conselho</b>
+        <a href="/conselho.html#${esc(p.codigo)}" target="_blank" style="font-size:11px;color:var(--v)">Ver como cliente →</a>
+      </div>`;
+
+    // Botões de ação rápida
+    html+=`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
+      <button class="btn sm" onclick="agendarReuniao()">+ Agendar reunião</button>
+      <button class="btn sm sec" onclick="gerarParcelas()">Gerar parcelas</button>
+      <button class="btn sm sec" onclick="addDiretriz()">+ Diretriz</button>
+      <button class="btn sm" onclick="addTarefa()">+ Tarefa</button>
+    </div>`;
+
+    // Próximas reuniões agendadas
+    const cd = CURRENT.conselho_data || {};
+    const reunioes = (cd.reunioes||[]).sort((a,b)=>a.data>b.data?1:-1);
+    const agendadas = reunioes.filter(r=>r.status==='agendada');
+    if(agendadas.length){
+      html+=`<div style="margin-bottom:12px"><b style="font-size:11px;color:var(--soft)">PRÓXIMAS REUNIÕES</b>`;
+      agendadas.forEach(r=>{
+        html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:8px;margin-top:6px;font-size:13px">
+          <span>${esc(r.data)} às ${esc(r.hora||'10:00')}${r.pauta?' · '+esc(r.pauta):''}</span>
+          <div style="display:flex;gap:4px">
+            <button class="btn sm" onclick="realizarReuniao(${r.id})" style="font-size:11px;padding:4px 8px">Realizada</button>
+            <button class="btn sm sec" onclick="cancelarReuniao(${r.id})" style="font-size:11px;padding:4px 8px">Cancelar</button>
+          </div>
+        </div>`;
+      });
+      html+=`</div>`;
+    }
+
+    // Últimas reuniões realizadas
+    const realizadas = reunioes.filter(r=>r.status==='realizada').slice(-3).reverse();
+    if(realizadas.length){
+      html+=`<div style="margin-bottom:12px"><b style="font-size:11px;color:var(--soft)">ÚLTIMAS REUNIÕES</b>`;
+      realizadas.forEach(r=>{
+        html+=`<div style="padding:10px;border:1px solid var(--line);border-radius:8px;margin-top:6px;font-size:12px">
+          <div style="display:flex;justify-content:space-between"><b>${esc(r.data)} às ${esc(r.hora||'')}</b><span class="badge realizada">realizada</span></div>
+          ${r.resumo?'<div style="margin-top:4px;color:var(--soft)">'+esc(r.resumo)+'</div>':''}
+          ${r.decisoes&&r.decisoes.length?'<div style="margin-top:4px">'+r.decisoes.map(d=>'<div style="padding:2px 0;color:var(--v)">→ '+esc(d)+'</div>').join('')+'</div>':''}
+        </div>`;
+      });
+      html+=`</div>`;
+    }
+
+    // Tarefas
+    const tarefas = cd.tarefas || [];
+    const pendentes = tarefas.filter(t=>t.status!=='concluida');
+    const concluidas = tarefas.filter(t=>t.status==='concluida');
+    html+=`<div style="margin-bottom:12px"><b style="font-size:11px;color:var(--soft)">TAREFAS (${pendentes.length} pendentes, ${concluidas.length} concluídas)</b></div>`;
+    if(tarefas.length){
+      pendentes.forEach(t=>{
+        const totalCk=t.checklist?t.checklist.length:0;
+        const feitosCk=t.checklist?t.checklist.filter(c=>c.feito).length:0;
+        const prioColors={alta:'#9C3B2E',normal:'var(--v)',baixa:'var(--soft)'};
+        html+=`<div style="border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:6px;font-size:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <b>${esc(t.titulo)}</b>
+            <div style="display:flex;gap:4px">
+              <span class="badge" style="background:${prioColors[t.prioridade]||'var(--v)'};color:#fff;font-size:10px">${t.prioridade||'normal'}</span>
+              <button class="btn sm" onclick="concluirTarefa(${t.id})" style="font-size:10px;padding:2px 8px;background:var(--green)">Concluir</button>
+              <button onclick="removeTarefa(${t.id})" style="background:none;border:none;color:var(--soft);cursor:pointer;font-size:14px">&times;</button>
+            </div>
+          </div>
+          ${t.descricao?'<div style="color:var(--soft);margin-top:3px">'+esc(t.descricao)+'</div>':''}
+          <div style="display:flex;gap:10px;margin-top:4px;color:var(--soft);font-size:11px">
+            ${t.responsavel?'<span>'+esc(t.responsavel)+'</span>':''}
+            ${t.prazo?'<span>Prazo: '+esc(t.prazo)+'</span>':''}
+            ${totalCk?'<span>'+feitosCk+'/'+totalCk+'</span>':''}
+          </div>`;
+        if(t.checklist&&t.checklist.length){
+          html+='<div style="margin-top:6px;border-top:1px solid var(--line);padding-top:4px">';
+          t.checklist.forEach((c,ci)=>{
+            html+=`<div style="display:flex;align-items:center;gap:6px;padding:2px 0"><input type="checkbox" ${c.feito?'checked':''} onchange="toggleTarefaCheck(${t.id},${ci},this.checked)" style="accent-color:var(--v)"><span style="${c.feito?'text-decoration:line-through;color:var(--soft)':''}">${esc(c.item)}</span></div>`;
+          });
+          html+=`<button onclick="addTarefaCheckItem(${t.id})" style="background:none;border:none;color:var(--v);cursor:pointer;font-size:11px;padding:2px 0;margin-top:2px">+ item</button>`;
+          html+='</div>';
+        }
+        html+='</div>';
+      });
+      if(concluidas.length){
+        html+=`<details style="margin-top:4px"><summary style="font-size:11px;color:var(--soft);cursor:pointer;padding:4px 0">${concluidas.length} concluída${concluidas.length>1?'s':''}</summary>`;
+        concluidas.forEach(t=>{
+          html+=`<div style="border:1px solid var(--green);border-radius:8px;padding:6px 10px;margin-top:4px;font-size:11px;opacity:.6"><span style="text-decoration:line-through">${esc(t.titulo)}</span> · ${esc(t.concluida_em||'')}</div>`;
+        });
+        html+='</details>';
+      }
+    }
+
+    // Parcelas
+    const parcelas = cd.parcelas || [];
+    if(parcelas.length){
+      const pagas=parcelas.filter(p=>p.status==='paga').length;
+      html+=`<div style="margin-bottom:12px"><b style="font-size:11px;color:var(--soft)">PARCELAS (${pagas}/${parcelas.length} pagas)</b>`;
+      parcelas.forEach(p=>{
+        const hoje=new Date().toISOString().slice(0,10);
+        const atrasada=p.status==='pendente'&&p.vencimento<hoje;
+        html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;border:1px solid ${atrasada?'var(--red)':p.status==='paga'?'var(--green)':'var(--line)'};border-radius:8px;margin-top:4px;font-size:12px">
+          <span>Parcela ${p.numero} · ${esc(p.vencimento)} · ${brl(p.valor)}</span>
+          ${p.status==='paga'?'<span class="badge" style="background:var(--greenL);color:var(--green)">paga</span>':'<button class="btn sm" onclick="marcarPaga('+p.numero+')" style="font-size:10px;padding:3px 8px">Marcar paga</button>'}
+        </div>`;
+      });
+      html+=`</div>`;
+    }
+    html+=`</div>`;
+  }
+
+  html+=`<div style="margin-top:16px;display:flex;gap:8px"><button class="btn green" onclick="salvarTudo()">Salvar tudo</button><button class="btn sec" onclick="fecharModal()">Fechar</button></div>`;
+
+  document.getElementById('m-body').innerHTML=html;
+}
+
+// Funções do conselho (gravam direto no banco)
+function cd(){CURRENT.conselho_data=CURRENT.conselho_data||{};const c=CURRENT.conselho_data;c.reunioes=c.reunioes||[];c.decisoes=c.decisoes||[];c.parcelas=c.parcelas||[];c.documentos=c.documentos||[];c.tarefas=c.tarefas||[];return c;}
+function atualizaProxima(c){
+  const prox=(c.reunioes||[]).filter(r=>r.status==='agendada').sort((a,b)=>a.data>b.data?1:-1)[0];
+  c.proxima_reuniao=prox?{data:prox.data,hora:prox.hora}:null;
+}
+async function agendarReuniao(){
+  const data=prompt('Data da reunião (AAAA-MM-DD):');
+  if(!data)return;
+  const hora=prompt('Horário (ex: 10:00):','10:00');
+  const pauta=prompt('Pauta (opcional):','');
+  const c=cd();
+  c.reunioes.push({id:Date.now(),data,hora:hora||'10:00',status:'agendada',pauta:pauta||'',resumo:'',decisoes:[],local:'Vídeo'});
+  atualizaProxima(c);
+  await salvarConselho();renderDetalhe();
+}
+async function realizarReuniao(id){
+  const resumo=prompt('Resumo da reunião:');
+  const decisoesStr=prompt('Decisões tomadas (separe por ; ):','');
+  const decisoes=decisoesStr?decisoesStr.split(';').map(d=>d.trim()).filter(d=>d):[];
+  const c=cd();
+  const r=c.reunioes.find(x=>x.id===id);
+  if(!r)return;
+  r.status='realizada';r.resumo=resumo||'';r.decisoes=decisoes;
+  decisoes.forEach(d=>c.decisoes.push({texto:d,data:r.data,reuniao_id:id,created:new Date().toISOString()}));
+  atualizaProxima(c);
+  await salvarConselho();renderDetalhe();
+}
+async function cancelarReuniao(id){
+  if(!confirm('Cancelar esta reunião?'))return;
+  const c=cd();
+  const r=c.reunioes.find(x=>x.id===id);
+  if(!r)return;
+  r.status='cancelada';
+  atualizaProxima(c);
+  await salvarConselho();renderDetalhe();
+}
+async function gerarParcelas(){
+  const meses=+prompt('Quantos meses?','12');
+  const valor=+prompt('Valor mensal (R$):','2824');
+  const dia=+prompt('Dia do vencimento:','10');
+  if(!meses||!valor)return;
+  const c=cd();
+  c.parcelas=[];
+  const inicio=new Date(CURRENT.aceito_em||new Date().toISOString());
+  for(let i=0;i<meses;i++){
+    const venc=new Date(inicio);
+    venc.setMonth(venc.getMonth()+i);
+    venc.setDate(dia||10);
+    c.parcelas.push({numero:i+1,vencimento:venc.toISOString().slice(0,10),valor,status:'pendente',pago_em:null});
+  }
+  await salvarConselho();renderDetalhe();
+}
+async function marcarPaga(numero){
+  const c=cd();
+  const p=c.parcelas.find(x=>x.numero===numero);
+  if(!p)return;
+  const quando=prompt('Data em que o pagamento caiu (AAAA-MM-DD):',new Date().toISOString().slice(0,10));
+  if(!quando)return;
+  p.status='paga';p.pago_em=quando;
+  await salvarConselho();renderDetalhe();carregarTudo();
+}
+async function addDiretriz(){
+  const titulo=prompt('Título da diretriz:');
+  if(!titulo)return;
+  const descricao=prompt('Descrição (opcional):','');
+  const c=cd();
+  c.documentos.push({id:Date.now(),titulo,descricao:descricao||'',tipo:'diretriz',data:new Date().toISOString().slice(0,10)});
+  await salvarConselho();renderDetalhe();
+}
+async function addTarefa(){
+  const titulo=prompt('Título da tarefa:');
+  if(!titulo)return;
+  const descricao=prompt('Descrição (opcional):','');
+  const prioridade=prompt('Prioridade (alta, normal, baixa):','normal');
+  const responsavel=prompt('Responsável (isabella ou nome do cliente):','isabella');
+  const prazo=prompt('Prazo (AAAA-MM-DD, ou vazio):','');
+  const checklistStr=prompt('Checklist (separe itens por ; ou vazio):','');
+  const checklist=checklistStr?checklistStr.split(';').map(s=>s.trim()).filter(s=>s):[];
+  const c=cd();
+  c.tarefas.push({id:Date.now(),titulo,descricao:descricao||'',status:'pendente',prioridade:prioridade||'normal',responsavel:responsavel||'isabella',prazo:prazo||'',criada_em:new Date().toISOString().slice(0,10),concluida_em:null,checklist:checklist.map(item=>({item,feito:false}))});
+  await salvarConselho();renderDetalhe();
+}
+async function concluirTarefa(id){
+  const c=cd();
+  const t=c.tarefas.find(x=>x.id===id);
+  if(!t)return;
+  t.status='concluida';t.concluida_em=new Date().toISOString().slice(0,10);
+  await salvarConselho();renderDetalhe();
+}
+async function removeTarefa(id){
+  if(!confirm('Remover esta tarefa?'))return;
+  const c=cd();
+  c.tarefas=c.tarefas.filter(t=>t.id!==id);
+  await salvarConselho();renderDetalhe();
+}
+async function toggleTarefaCheck(tarefaId,ci,val){
+  const c=cd();
+  const tarefa=c.tarefas.find(t=>t.id===tarefaId);
+  if(!tarefa)return;
+  tarefa.checklist[ci].feito=val;
+  await salvarConselho();renderDetalhe();
+}
+async function addTarefaCheckItem(tarefaId){
+  const item=prompt('Novo item do checklist:');
+  if(!item)return;
+  const c=cd();
+  const tarefa=c.tarefas.find(t=>t.id===tarefaId);
+  if(!tarefa)return;
+  tarefa.checklist=tarefa.checklist||[];
+  tarefa.checklist.push({item,feito:false});
+  await salvarConselho();renderDetalhe();
+}
+
+function toggleCheck(ei,ci,val){CURRENT.etapas[ei].checklist[ci].feito=val;renderDetalhe();}
+function toggleDoc(di,val){CURRENT.docs_cliente[di].feito=val;}
+function setEtapaStatus(ei,val){CURRENT.etapas[ei].status=val;renderDetalhe();}
+function setEtapaData(ei,campo,val){CURRENT.etapas[ei][campo]=val;}
+function removeCheckItem(ei,ci){CURRENT.etapas[ei].checklist.splice(ci,1);renderDetalhe();}
+function addCheckItem(ei){
+  const item=prompt('Nome do item:');
+  if(!item)return;
+  if(!CURRENT.etapas[ei].checklist)CURRENT.etapas[ei].checklist=[];
+  CURRENT.etapas[ei].checklist.push({item,feito:false});
+  renderDetalhe();
+}
+function removeEtapa(ei){
+  if(!confirm('Remover a etapa "'+CURRENT.etapas[ei].t+'"?'))return;
+  CURRENT.etapas.splice(ei,1);
+  CURRENT.etapas.forEach((e,i)=>e.n=''+(i+1));
+  renderDetalhe();
+}
+function addEtapa(){
+  const nome=prompt('Nome da nova etapa:');
+  if(!nome)return;
+  const n=''+(CURRENT.etapas.length+1);
+  CURRENT.etapas.push({n,t:nome,v:0,status:'pendente',pago:false,inicio:'',entrega:'',checklist:[]});
+  renderDetalhe();
+}
+function addDocItem(){
+  const item=prompt('Nome do documento:');
+  if(!item)return;
+  if(!CURRENT.docs_cliente)CURRENT.docs_cliente=[];
+  CURRENT.docs_cliente.push({item,feito:false});
+  renderDetalhe();
+}
+function removeDocItem(di){CURRENT.docs_cliente.splice(di,1);renderDetalhe();}
+function setEtapaPago(ei,val){CURRENT.etapas[ei].pago=val;renderDetalhe();}
+function setEtapaValor(ei,val){CURRENT.etapas[ei].v=val;}
+
+// Pagamentos identificados
+function addPagamento(){
+  const valor=prompt('Valor recebido (só números, ex: 2824):');
+  if(!valor||isNaN(+valor))return;
+  const data=prompt('Data do pagamento (AAAA-MM-DD):',new Date().toISOString().slice(0,10));
+  if(!data)return;
+  const forma=prompt('Forma (PIX, transferência, boleto...):','PIX');
+  const obs=prompt('Referência (opcional, ex: entrada, parcela 2):','');
+  CURRENT.pagamentos=CURRENT.pagamentos||[];
+  CURRENT.pagamentos.push({data,valor:+valor,forma:forma||'',obs:obs||''});
+  renderDetalhe();
+  salvarTudo();
+}
+function removePagamento(gi){
+  if(!confirm('Remover este pagamento?'))return;
+  CURRENT.pagamentos.splice(gi,1);
+  renderDetalhe();
+  salvarTudo();
+}
+
+// Previsão de recebimentos
+function addPrevisao(){
+  const valor=prompt('Valor previsto (só números, ex: 12100):');
+  if(!valor||isNaN(+valor))return;
+  const data=prompt('Data prevista (AAAA-MM-DD):','');
+  const descricao=prompt('Descrição (ex: Entrada 50%, Saldo na entrega):','');
+  CURRENT.previsoes=CURRENT.previsoes||[];
+  CURRENT.previsoes.push({data:data||'',valor:+valor,descricao:descricao||'',recebido:false});
+  renderDetalhe();
+  salvarTudo();
+}
+function setPrevisaoData(vi,val){CURRENT.previsoes[vi].data=val;salvarTudo();}
+function receberPrevisao(vi){
+  const v=CURRENT.previsoes[vi];
+  const quando=prompt('Data em que o valor caiu (AAAA-MM-DD):',new Date().toISOString().slice(0,10));
+  if(!quando)return;
+  v.recebido=true;v.recebido_em=quando;
+  renderDetalhe();
+  salvarTudo();
+}
+function removePrevisao(vi){
+  if(!confirm('Remover esta previsão?'))return;
+  CURRENT.previsoes.splice(vi,1);
+  renderDetalhe();
+  salvarTudo();
+}
+
+function aplicarTemplate(){
+  const tipo=prompt('Tipo do projeto:\n1 = Empreendimento\n2 = Consultoria de incorporação\n3 = Conselho estratégico\n4 = Uma casa\n5 = Consultoria por vídeo');
+  const map={'1':'empreendimento','2':'consultoria','3':'conselho','4':'casa','5':'consultoria_video'};
+  const tpl=TEMPLATES[map[tipo]||'empreendimento']||[];
+  CURRENT.etapas=tpl.map(e=>({n:e.n,t:e.t,v:0,status:'pendente',pago:false,inicio:'',entrega:'',checklist:e.checklist.map(item=>({item,feito:false}))}));
+  if(map[tipo]==='empreendimento'||map[tipo]==='casa'){
+    CURRENT.docs_cliente=DOCS_CLIENTE.map(item=>({item,feito:false}));
+  }
+  renderDetalhe();
+}
+
+async function salvarTudo(){
+  const body={
+    codigo:CURRENT.codigo,
+    status:document.getElementById('d-status').value,
+    notas:document.getElementById('d-notas').value,
+    etapas:CURRENT.etapas,
+    docs_cliente:CURRENT.docs_cliente,
+    pagamentos:CURRENT.pagamentos||[],
+    previsoes:CURRENT.previsoes||[],
+  };
+  const nomeEl=document.getElementById('d-nome');
+  const tituloEl=document.getElementById('d-titulo');
+  if(nomeEl&&nomeEl.value.trim()){body.cliente_nome=nomeEl.value.trim();CURRENT.cliente_nome=body.cliente_nome;}
+  if(tituloEl&&tituloEl.value.trim()){body.proposta_titulo=tituloEl.value.trim();CURRENT.proposta_titulo=body.proposta_titulo;}
+  // Calcular etapa atual (primeira não entregue)
+  if(CURRENT.etapas&&CURRENT.etapas.length){
+    const atual=CURRENT.etapas.find(e=>e.status!=='entregue');
+    if(atual)body.etapa_atual=atual.n;
+  }
+  document.getElementById('d-msg').textContent='Salvando...';
+  try{
+    const campos={status:body.status,notas:body.notas,etapas:body.etapas,docs_cliente:body.docs_cliente,pagamentos:body.pagamentos,previsoes:body.previsoes};
+    if(body.etapa_atual)campos.etapa_atual=body.etapa_atual;
+    if(body.cliente_nome)campos.cliente_nome=body.cliente_nome;
+    if(body.proposta_titulo)campos.proposta_titulo=body.proposta_titulo;
+    await sbPatch(body.codigo,campos);
+    document.getElementById('d-msg').textContent='Salvo!';
+    setTimeout(()=>{document.getElementById('d-msg').textContent='';},2000);
+    carregarTudo();
+  }catch(e){document.getElementById('d-msg').textContent='Erro ao salvar: '+e.message;}
+}
+
+// ======= NOVA PROPOSTA =======
+function abrirNova(){
+  ['n-nome','n-doc','n-email','n-tel','n-end','n-titulo','n-valor','n-resumo','n-notas','n-codigo'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('n-status').value='aceita';
+  document.getElementById('n-tipo').value='empreendimento';
+  try{document.getElementById('n-data').valueAsDate=new Date();}catch(e){}
+  document.getElementById('n-msg').textContent='';
+  document.getElementById('nova-bg').classList.add('open');
+}
+function fecharNova(){document.getElementById('nova-bg').classList.remove('open');}
+async function salvarNova(){
+  const nome=document.getElementById('n-nome').value.trim();
+  const titulo=document.getElementById('n-titulo').value.trim();
+  const valor=+document.getElementById('n-valor').value||0;
+  if(!nome||!titulo||!valor){document.getElementById('n-msg').textContent='Preencha nome, título e valor.';return;}
+  document.getElementById('n-msg').textContent='Salvando...';
+  let codigo=document.getElementById('n-codigo').value.trim();
+  if(!codigo)codigo='MO-'+Array.from({length:6},()=>'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'[Math.random()*36|0]).join('');
+  const tipo=document.getElementById('n-tipo').value;
+  const tpl=TEMPLATES[tipo]||[];
+  const etapas=tpl.map(e=>({n:e.n,t:e.t,v:0,status:'pendente',pago:false,inicio:'',entrega:'',checklist:e.checklist.map(item=>({item,feito:false}))}));
+  const docs=(tipo==='empreendimento'||tipo==='casa')?DOCS_CLIENTE.map(item=>({item,feito:false})):[];
+  const dataAceite=document.getElementById('n-data').value?new Date(document.getElementById('n-data').value+'T12:00:00').toISOString():new Date().toISOString();
+  try{
+    const r=await fetch(SB+'/rest/v1/propostas',{method:'POST',headers:SBH,body:JSON.stringify({
+      codigo,aceito_em:dataAceite,cliente_nome:nome,cliente_doc:document.getElementById('n-doc').value.trim(),
+      cliente_email:document.getElementById('n-email').value.trim(),
+      cliente_whatsapp:document.getElementById('n-tel').value.trim(),
+      cliente_endereco:document.getElementById('n-end').value.trim(),
+      proposta_titulo:titulo,proposta_resumo:document.getElementById('n-resumo').value.trim(),
+      total_fixo:valor,pagamento_tipo:document.getElementById('n-pag').value,
+      status:document.getElementById('n-status').value,
+      notas:document.getElementById('n-notas').value.trim(),
+      etapas:etapas,docs_cliente:docs,ip:'manual',
+    })});
+    if(r.ok){document.getElementById('n-msg').textContent='Salvo!';setTimeout(()=>{fecharNova();carregarTudo();},600);}
+    else{const t=await r.text();document.getElementById('n-msg').textContent='Erro: '+t.slice(0,160);}
+  }catch(e){document.getElementById('n-msg').textContent='Erro de conexão: '+e.message;}
+}
+</script>
+</body>
+</html>
