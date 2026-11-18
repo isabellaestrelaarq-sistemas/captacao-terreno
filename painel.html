@@ -588,7 +588,7 @@ function renderDetalhe(){
       agendadas.forEach(r=>{
         html+=`<div style="padding:8px 10px;border:1px solid var(--line);border-radius:8px;margin-top:6px;font-size:13px">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
-            <span>${esc(r.data)} às ${esc(r.hora||'10:00')}${r.pauta?' · '+esc(r.pauta):''}</span>
+            <span><b>${esc(r.data)} às ${esc(r.hora||'10:00')}</b></span>
             <div style="display:flex;gap:4px">
               <button class="btn sm sec" onclick="editarPauta(${r.id})" style="font-size:11px;padding:4px 8px">Pauta</button>
               <button class="btn sm sec" onclick="editarLink(${r.id})" style="font-size:11px;padding:4px 8px">Link</button>
@@ -596,6 +596,7 @@ function renderDetalhe(){
               <button class="btn sm sec" onclick="cancelarReuniao(${r.id})" style="font-size:11px;padding:4px 8px">Cancelar</button>
             </div>
           </div>
+          ${r.pauta?`<div style="margin-top:6px;font-size:12px"><b style="font-size:10px;color:var(--soft);text-transform:uppercase;letter-spacing:.04em">Pauta</b>${pautaTopicos(r.pauta).map(t=>`<div style="display:flex;gap:6px;padding:2px 0;color:var(--dk)"><span style="color:var(--v)">&#9656;</span><span>${esc(t)}</span></div>`).join('')}</div>`:`<div style="margin-top:4px;font-size:11px;color:var(--soft)">Sem pauta. Clique em "Pauta" e separe os tópicos por ponto e vírgula.</div>`}
           ${r.link?`<div style="margin-top:4px"><a href="${esc(r.link)}" target="_blank" style="color:var(--v);font-size:12px">${esc(r.link)}</a></div>`:`<div style="margin-top:4px;font-size:11px;color:var(--soft)">Sem link de reunião. Clique em "Link" para adicionar (o cliente vê o botão de entrar).</div>`}
         </div>`;
       });
@@ -729,6 +730,7 @@ async function realizarReuniao(id){
   atualizaProxima(c);
   await salvarConselho();renderDetalhe();
 }
+function pautaTopicos(pauta){return String(pauta||'').split(/;|\n/).map(s=>s.trim()).filter(s=>s);}
 async function editarPauta(id){
   const c=cd();
   const r=c.reunioes.find(x=>x.id===id);
