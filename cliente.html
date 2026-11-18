@@ -120,18 +120,20 @@ async function buscar(){
   const filtro=isCpf?'cliente_doc=eq.'+input.replace(/\D/g,''):'codigo=eq.'+encodeURIComponent(codigoLimpo);
   try{
     // Buscar direto no banco
-    const sel='codigo,cliente_nome,proposta_titulo,proposta_resumo,total_fixo,pagamento_tipo,status,aceito_em,etapas,docs_cliente,conselho_data,arquivos,cliente_senha';
+    const sel='codigo,cliente_nome,cliente_doc,proposta_titulo,proposta_resumo,total_fixo,pagamento_tipo,status,aceito_em,etapas,docs_cliente,conselho_data,arquivos,cliente_senha';
     const r=await fetch(`${SB}/rest/v1/propostas?${filtro}&select=${sel}&order=aceito_em.desc`,{headers:SBH});
     const lista=await r.json();
     if(!Array.isArray(lista)||!lista.length){document.getElementById('err').textContent='Nenhuma proposta encontrada.';return;}
 
     // Entrando por CPF/CNPJ: se o cliente tem senha definida, exigir
+    window._LOGIN_CPF=false;
     if(isCpf){
       const senhaDef=(lista.find(p=>p.cliente_senha&&p.cliente_senha.trim())||{}).cliente_senha;
       if(senhaDef){
         const digitada=(document.getElementById('senha-cli').value||'').trim();
         if(digitada!==senhaDef.trim()){document.getElementById('err').textContent='Senha incorreta. Peça a senha de acesso à Isabella.';return;}
       }
+      window._LOGIN_CPF=true;
     }
 
     window._LISTA=lista;
@@ -226,6 +228,9 @@ function render(p, c){
     html+=`<a class="voltar" onclick="mostrarLista()">&larr; Meus projetos</a>`;
   }else{
     html+=`<a class="voltar" onclick="document.getElementById('login-box').style.display='block';document.getElementById('portal').style.display='none';document.getElementById('h-sub').textContent='';">Sair</a>`;
+  }
+  if(window._LOGIN_CPF&&p.cliente_doc){
+    html+=`<a class="voltar" style="font-size:12px;opacity:.7" onclick="cliTrocarSenha()">Trocar senha de acesso</a>`;
   }
 
   el.innerHTML=html;
@@ -402,6 +407,19 @@ async function cliSalvarConselho(tid,texto){
   }catch(e){if(msg)msg.textContent='Erro ao salvar: '+e.message;}
 }
 function cliAchaTarefa(tid){return ((PROP.conselho_data||{}).tarefas||[]).find(t=>t.id===tid);}
+async function cliTrocarSenha(){
+  const nova=prompt('Nova senha de acesso (mínimo 4 caracteres):');
+  if(nova===null)return;
+  if(nova.trim().length<4){alert('A senha precisa ter pelo menos 4 caracteres.');return;}
+  const confirma=prompt('Digite a nova senha de novo para confirmar:');
+  if(confirma===null)return;
+  if(nova.trim()!==confirma.trim()){alert('As senhas não conferem. Tente de novo.');return;}
+  try{
+    const r=await fetch(SB+'/rest/v1/propostas?cliente_doc=eq.'+encodeURIComponent(PROP.cliente_doc),{method:'PATCH',headers:{apikey:SBK,Authorization:'Bearer '+SBK,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({cliente_senha:nova.trim()})});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    alert('Senha alterada. Use a nova senha no próximo acesso, para todos os seus projetos.');
+  }catch(e){alert('Erro ao trocar a senha: '+e.message);}
+}
 async function cliToggleCheck(tid,ci,val){
   const t=cliAchaTarefa(tid);
   if(!t||!t.checklist[ci])return;
