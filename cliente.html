@@ -146,7 +146,7 @@ function mostrarLista(){
   document.getElementById('portal').style.display='block';
   document.getElementById('h-sub').textContent=lista[0]?.cliente_nome?lista[0].cliente_nome.split(' - ')[0]:'';
   document.getElementById('portal').innerHTML='<div class="card"><h2>Seus projetos</h2>'+lista.map((p,i)=>
-    `<div style="padding:12px 14px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;cursor:pointer" onclick="abrirProposta(${i})"><b>${esc(p.proposta_titulo||'Proposta')}</b><br><small style="color:var(--soft)">${esc(p.codigo)} · ${brl(p.total_fixo)} · <span class="badge ${esc(p.status||'aceita')}">${esc(p.status||'aceita')}</span></small></div>`
+    `<div style="padding:12px 14px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;cursor:pointer" onclick="abrirProposta(${i})"><b>${esc(p.proposta_titulo||'Proposta')}</b><br><small style="color:var(--soft)">${esc(p.codigo)} · <span class="badge ${esc(p.status||'aceita')}">${esc(p.status||'aceita')}</span></small></div>`
   ).join('')+'</div><a class="voltar" onclick="location.reload()">Sair</a>';
 }
 function abrirProposta(i){abrirDireto(window._LISTA[i]);}
@@ -203,7 +203,6 @@ function render(p, c){
     <div class="info-row"><span class="lbl">Pagamento</span><span class="val">${esc(p.pagamento||p.pagamento_tipo||'-')}</span></div>
     <div class="info-row"><span class="lbl">Aceito em</span><span class="val">${fmtData(p.aceito_em)}</span></div>
   </div>`;
-  html+=`<div class="total-card"><span class="lbl">Valor total</span><span class="val">${brl(p.total||p.total_fixo)}</span></div>`;
 
   // Tabs dinâmicas
   let tabs=[];
