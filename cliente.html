@@ -111,8 +111,9 @@ async function buscar(){
   const input=document.getElementById('codigo').value.trim();
   if(!input){document.getElementById('err').textContent='Digite o código ou CPF';return;}
   document.getElementById('err').textContent='Consultando...';
-  const isCpf=input.replace(/\D/g,'').length>=11;
-  const filtro=isCpf?'cliente_doc=eq.'+input.replace(/\D/g,''):'codigo=eq.'+encodeURIComponent(input.toUpperCase());
+  const isCpf=input.replace(/\D/g,'').length>=11&&!/[A-Za-z]/.test(input);
+  const codigoLimpo=input.toUpperCase().replace(/[^A-Z0-9-]/g,'');
+  const filtro=isCpf?'cliente_doc=eq.'+input.replace(/\D/g,''):'codigo=eq.'+encodeURIComponent(codigoLimpo);
   try{
     // Buscar direto no banco
     const sel='codigo,cliente_nome,proposta_titulo,proposta_resumo,total_fixo,pagamento_tipo,status,aceito_em,etapas,docs_cliente,conselho_data,arquivos';
@@ -194,6 +195,7 @@ function render(p, c){
   if(totalDecisoes)tabs.push({id:'decisoes',label:'Decisões'});
   if(totalParcelas)tabs.push({id:'financeiro',label:'Financeiro'});
   if(c&&c.documentos?.length)tabs.push({id:'diretrizes',label:'Diretrizes'});
+  tabs.push({id:'documentos',label:'Documentos'});
 
   if(tabs.length){
     html+='<div class="tabs">';
@@ -214,6 +216,67 @@ function render(p, c){
   if(totalDecisoes)renderDecisoes(c.decisoes);
   if(totalParcelas)renderFinanceiro(c.parcelas);
   if(c&&c.documentos?.length)renderDiretrizes(c.documentos);
+  renderDocumentos();
+}
+
+// ===== DOCUMENTOS: checklist + envio de arquivos =====
+function renderDocumentos(){
+  const el=document.getElementById('sec-documentos');
+  if(!el)return;
+  let h='';
+  // Checklist de documentos necessários
+  const docs=PROP.docs_cliente||[];
+  if(docs.length){
+    const feitos=docs.filter(d=>d.feito).length;
+    h+=`<div class="card"><h3>Documentos necessários (${feitos}/${docs.length})</h3>`;
+    docs.forEach(d=>{
+      h+=`<div style="padding:5px 0;font-size:13px;${d.feito?'color:var(--green)':''}"><span style="margin-right:8px">${d.feito?'&#10003;':'&#9675;'}</span>${esc(d.item)}</div>`;
+    });
+    h+=`</div>`;
+  }
+  // Arquivos enviados
+  const arqs=PROP.arquivos||[];
+  h+=`<div class="card"><h3>Arquivos enviados</h3>`;
+  if(arqs.length){
+    arqs.forEach(a=>{
+      h+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px">
+        <a href="${esc(a.url)}" target="_blank" style="color:var(--v);text-decoration:none;word-break:break-all">&#128196; ${esc(a.nome)}</a>
+        <small style="color:var(--soft);white-space:nowrap;margin-left:10px">${esc(a.data||'')}${a.por?' · '+esc(a.por):''}</small>
+      </div>`;
+    });
+  }else{
+    h+=`<div style="font-size:13px;color:var(--soft)">Nenhum arquivo enviado ainda.</div>`;
+  }
+  h+=`<div style="margin-top:14px;text-align:center">
+    <input type="file" id="up-file" multiple style="display:none" onchange="enviarArquivos(this.files)">
+    <button onclick="document.getElementById('up-file').click()" style="padding:11px 24px;border:none;border-radius:24px;background:var(--v);color:var(--ch);font:inherit;font-weight:600;cursor:pointer">Enviar documento</button>
+    <div id="up-msg" style="font-size:12px;color:var(--soft);margin-top:8px"></div>
+  </div></div>`;
+  el.innerHTML=h;
+}
+async function enviarArquivos(files){
+  if(!files||!files.length)return;
+  const msg=document.getElementById('up-msg');
+  PROP.arquivos=PROP.arquivos||[];
+  for(const f of files){
+    if(f.size>25*1024*1024){msg.textContent=f.name+' passa de 25 MB, envie um arquivo menor.';continue;}
+    msg.textContent='Enviando '+f.name+'...';
+    const nomeLimpo=f.name.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^A-Za-z0-9._-]/g,'_');
+    const caminho=CODIGO+'/'+Date.now()+'-'+nomeLimpo;
+    try{
+      const r=await fetch(SB+'/storage/v1/object/docs/'+caminho,{method:'POST',headers:{apikey:SBK,Authorization:'Bearer '+SBK,'Content-Type':f.type||'application/octet-stream'},body:f});
+      if(!r.ok)throw new Error('HTTP '+r.status);
+      const url=SB+'/storage/v1/object/public/docs/'+caminho;
+      PROP.arquivos.push({nome:f.name,url,data:new Date().toISOString().slice(0,10),por:'cliente'});
+    }catch(e){msg.textContent='Erro ao enviar '+f.name+': '+e.message;return;}
+  }
+  // Gravar a lista na proposta
+  try{
+    const r=await fetch(SB+'/rest/v1/propostas?codigo=eq.'+encodeURIComponent(CODIGO),{method:'PATCH',headers:{apikey:SBK,Authorization:'Bearer '+SBK,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({arquivos:PROP.arquivos})});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    msg.textContent='Enviado com sucesso. A Isabella será notificada.';
+    renderDocumentos();
+  }catch(e){msg.textContent='Erro ao registrar: '+e.message;}
 }
 
 function switchTab(id){
