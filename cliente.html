@@ -254,11 +254,16 @@ function renderDocumentos(){
   const docs=PROP.docs_cliente||[];
   if(docs.length){
     const feitos=docs.filter(d=>d.feito).length;
-    h+=`<div class="card"><h3>Documentos necessários (${feitos}/${docs.length})</h3>`;
-    docs.forEach(d=>{
-      h+=`<div style="padding:5px 0;font-size:13px;${d.feito?'color:var(--green)':''}"><span style="margin-right:8px">${d.feito?'&#10003;':'&#9675;'}</span>${esc(d.item)}</div>`;
+    h+=`<div class="card"><h3>Documentos necessários (${feitos}/${docs.length})</h3>
+    <div style="font-size:11px;color:var(--soft);margin-bottom:8px">Marque cada documento conforme for enviando.</div>`;
+    docs.forEach((d,di)=>{
+      h+=`<label style="display:flex;align-items:flex-start;gap:8px;padding:5px 0;font-size:13px;cursor:pointer;${d.feito?'color:var(--green)':''}">
+        <input type="checkbox" ${d.feito?'checked':''} onchange="cliToggleDoc(${di},this.checked)" style="accent-color:var(--v);width:16px;height:16px;margin-top:1px">
+        <span style="flex:1"><span style="${d.feito?'text-decoration:line-through':''}">${esc(d.item)}</span>
+        ${d.nota?`<span style="display:block;font-size:12px;color:var(--red);margin-top:2px;background:rgba(156,59,46,.06);border-radius:6px;padding:4px 8px">Observação da Isabella: ${esc(d.nota)}</span>`:''}</span>
+      </label>`;
     });
-    h+=`</div>`;
+    h+=`<div id="doc-msg" style="font-size:11px;color:var(--soft);margin-top:6px"></div></div>`;
   }
   // Arquivos enviados
   const arqs=PROP.arquivos||[];
@@ -407,6 +412,17 @@ async function cliSalvarConselho(tid,texto){
   }catch(e){if(msg)msg.textContent='Erro ao salvar: '+e.message;}
 }
 function cliAchaTarefa(tid){return ((PROP.conselho_data||{}).tarefas||[]).find(t=>t.id===tid);}
+async function cliToggleDoc(di,val){
+  const docs=PROP.docs_cliente||[];
+  if(!docs[di])return;
+  docs[di].feito=val;
+  const msg=document.getElementById('doc-msg');
+  try{
+    const r=await fetch(SB+'/rest/v1/propostas?codigo=eq.'+encodeURIComponent(CODIGO),{method:'PATCH',headers:{apikey:SBK,Authorization:'Bearer '+SBK,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({docs_cliente:docs})});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    if(msg)msg.textContent='Atualizado.';
+  }catch(e){if(msg)msg.textContent='Erro ao salvar: '+e.message;}
+}
 async function cliTrocarSenha(){
   const nova=prompt('Nova senha de acesso (mínimo 4 caracteres):');
   if(nova===null)return;
