@@ -399,6 +399,7 @@ function renderDetalhe(){
   [['CPF/CNPJ',p.cliente_doc],['E-mail',p.cliente_email],['WhatsApp',p.cliente_whatsapp],['Endereço',p.cliente_endereco]].forEach(r=>{
     if(r[1])html+=`<div class="mrow"><span class="lbl">${esc(r[0])}</span><span class="val">${esc(r[1])}</span></div>`;
   });
+  html+=`<div class="mrow"><span class="lbl">Acesso do cliente</span><span class="val">${p.cliente_senha?'Senha definida':'Sem senha'} · <a onclick="definirSenhaCliente()" style="color:var(--v);cursor:pointer">${p.cliente_senha?'trocar':'definir'}</a></span></div>`;
   html+=`<div class="mrow"><span class="lbl">Valor total</span><span class="val valor" style="font-size:18px">${brl(p.total_fixo)}</span></div>`;
   html+=`<div class="mrow"><span class="lbl">Pagamento</span><span class="val">${esc(p.pagamento_tipo||'-')}</span></div>`;
   html+=`<div class="mrow"><span class="lbl">Aceito em</span><span class="val">${dh(p.aceito_em)}</span></div>`;
@@ -496,28 +497,33 @@ function renderDetalhe(){
     });
   }
 
-  // Pagamentos identificados (caixa)
-  const pags=p.pagamentos||[];
-  const totalPago=pags.reduce((a,g)=>a+(+g.valor||0),0);
+  // Extrato de recebimentos (automático: parcelas pagas + previsões recebidas + avulsos)
+  const extrato=[];
+  (((p.conselho_data||{}).parcelas)||[]).filter(x=>x.status==='paga').forEach(x=>extrato.push({data:x.pago_em||x.vencimento,valor:+x.valor||0,desc:'Parcela '+x.numero}));
+  (p.previsoes||[]).filter(v=>v.recebido).forEach(v=>extrato.push({data:v.recebido_em||v.data,valor:+v.valor||0,desc:v.descricao||'Previsão'}));
+  (p.pagamentos||[]).forEach((g,gi)=>extrato.push({data:g.data,valor:+g.valor||0,desc:(g.obs||'Avulso')+(g.forma?' · '+g.forma:''),avulsoIdx:gi}));
+  extrato.sort((a,b)=>(a.data||'')>(b.data||'')?1:-1);
+  const totalPago=extrato.reduce((a,g)=>a+g.valor,0);
   const restante=(+p.total_fixo||0)-totalPago;
   html+=`<div style="margin-top:18px;padding:14px;border:1px solid var(--line);border-radius:10px;background:#FDFCFA">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-      <b style="font-size:12px;color:var(--soft);text-transform:uppercase;letter-spacing:.04em">Pagamentos identificados</b>
-      <button class="btn sm" onclick="addPagamento()" style="font-size:11px">+ Registrar pagamento</button>
+      <b style="font-size:12px;color:var(--soft);text-transform:uppercase;letter-spacing:.04em">Recebimentos (extrato)</b>
+      <button class="btn sm sec" onclick="addPagamento()" style="font-size:11px" title="Só para valores fora das parcelas e previsões">+ Pagamento avulso</button>
     </div>
     <div style="display:flex;gap:16px;font-size:13px;margin-bottom:8px">
       <span>Recebido: <b style="color:var(--green)">${brl(totalPago)}</b></span>
       <span>Restante: <b style="color:${restante>0?'#9C3B2E':'var(--green)'}">${brl(restante)}</b></span>
     </div>`;
-  if(pags.length){
-    pags.forEach((g,gi)=>{
+  if(extrato.length){
+    extrato.forEach(g=>{
       html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;border:1px solid var(--line);border-radius:8px;margin-top:4px;font-size:12px;background:#fff">
-        <span>${esc(g.data||'')} · <b>${brl(+g.valor||0)}</b>${g.forma?' · '+esc(g.forma):''}${g.obs?' · '+esc(g.obs):''}</span>
-        <button onclick="removePagamento(${gi})" style="background:none;border:none;color:var(--soft);cursor:pointer;font-size:14px;padding:2px 6px;opacity:.5" title="Remover">&times;</button>
+        <span>${esc(g.data||'')} · <b style="color:var(--green)">${brl(g.valor)}</b> · ${esc(g.desc)}</span>
+        ${g.avulsoIdx!==undefined?`<button onclick="removePagamento(${g.avulsoIdx})" style="background:none;border:none;color:var(--soft);cursor:pointer;font-size:14px;padding:2px 6px;opacity:.5" title="Remover avulso">&times;</button>`:''}
       </div>`;
     });
+    html+=`<div style="font-size:11px;color:var(--soft);margin-top:6px">Soma automática: parcelas pagas + previsões recebidas + avulsos. Dê baixa sempre na parcela ou na previsão; avulso é só para valor fora do combinado.</div>`;
   } else {
-    html+=`<div style="font-size:12px;color:var(--soft)">Nenhum pagamento registrado ainda.</div>`;
+    html+=`<div style="font-size:12px;color:var(--soft)">Nada recebido ainda. Quando o dinheiro cair, use "Marcar paga" na parcela ou "Recebido" na previsão.</div>`;
   }
   html+=`</div>`;
 
@@ -576,13 +582,17 @@ function renderDetalhe(){
     if(agendadas.length){
       html+=`<div style="margin-bottom:12px"><b style="font-size:11px;color:var(--soft)">PRÓXIMAS REUNIÕES</b>`;
       agendadas.forEach(r=>{
-        html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:8px;margin-top:6px;font-size:13px">
-          <span>${esc(r.data)} às ${esc(r.hora||'10:00')}${r.pauta?' · '+esc(r.pauta):''}</span>
-          <div style="display:flex;gap:4px">
-            <button class="btn sm sec" onclick="editarPauta(${r.id})" style="font-size:11px;padding:4px 8px">Pauta</button>
-            <button class="btn sm" onclick="realizarReuniao(${r.id})" style="font-size:11px;padding:4px 8px">Realizada</button>
-            <button class="btn sm sec" onclick="cancelarReuniao(${r.id})" style="font-size:11px;padding:4px 8px">Cancelar</button>
+        html+=`<div style="padding:8px 10px;border:1px solid var(--line);border-radius:8px;margin-top:6px;font-size:13px">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+            <span>${esc(r.data)} às ${esc(r.hora||'10:00')}${r.pauta?' · '+esc(r.pauta):''}</span>
+            <div style="display:flex;gap:4px">
+              <button class="btn sm sec" onclick="editarPauta(${r.id})" style="font-size:11px;padding:4px 8px">Pauta</button>
+              <button class="btn sm sec" onclick="editarLink(${r.id})" style="font-size:11px;padding:4px 8px">Link</button>
+              <button class="btn sm" onclick="realizarReuniao(${r.id})" style="font-size:11px;padding:4px 8px">Realizada</button>
+              <button class="btn sm sec" onclick="cancelarReuniao(${r.id})" style="font-size:11px;padding:4px 8px">Cancelar</button>
+            </div>
           </div>
+          ${r.link?`<div style="margin-top:4px"><a href="${esc(r.link)}" target="_blank" style="color:var(--v);font-size:12px">${esc(r.link)}</a></div>`:`<div style="margin-top:4px;font-size:11px;color:var(--soft)">Sem link de reunião. Clique em "Link" para adicionar (o cliente vê o botão de entrar).</div>`}
         </div>`;
       });
       html+=`</div>`;
@@ -688,9 +698,19 @@ async function agendarReuniao(){
   if(!data)return;
   const hora=prompt('Horário (ex: 10:00):','10:00');
   const pauta=prompt('Pauta (opcional):','');
+  const link=prompt('Link da reunião (Meet/Zoom) ou local (opcional):','');
   const c=cd();
-  c.reunioes.push({id:Date.now(),data,hora:hora||'10:00',status:'agendada',pauta:pauta||'',resumo:'',decisoes:[],local:'Vídeo'});
+  c.reunioes.push({id:Date.now(),data,hora:hora||'10:00',status:'agendada',pauta:pauta||'',resumo:'',decisoes:[],local:'Vídeo',link:(link||'').trim()});
   atualizaProxima(c);
+  await salvarConselho();renderDetalhe();
+}
+async function editarLink(id){
+  const c=cd();
+  const r=c.reunioes.find(x=>x.id===id);
+  if(!r)return;
+  const link=prompt('Link da reunião (Meet/Zoom) ou local:',r.link||'');
+  if(link===null)return;
+  r.link=link.trim();
   await salvarConselho();renderDetalhe();
 }
 async function realizarReuniao(id){
@@ -861,6 +881,20 @@ function addDocItem(){
 function removeDocItem(di){CURRENT.docs_cliente.splice(di,1);renderDetalhe();}
 function setEtapaPago(ei,val){CURRENT.etapas[ei].pago=val;renderDetalhe();}
 function setEtapaValor(ei,val){CURRENT.etapas[ei].v=val;}
+
+// Senha de acesso do cliente (vale para todos os projetos do mesmo CPF/CNPJ)
+async function definirSenhaCliente(){
+  const senha=prompt('Senha de acesso do cliente (vale para todos os projetos dele):',CURRENT.cliente_senha||'');
+  if(senha===null)return;
+  try{
+    const filtro=CURRENT.cliente_doc?'cliente_doc=eq.'+encodeURIComponent(CURRENT.cliente_doc):'codigo=eq.'+encodeURIComponent(CURRENT.codigo);
+    const r=await fetch(SB+'/rest/v1/propostas?'+filtro,{method:'PATCH',headers:SBH,body:JSON.stringify({cliente_senha:senha.trim()})});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    CURRENT.cliente_senha=senha.trim();
+    renderDetalhe();
+    alert(senha.trim()?'Senha definida. Passe ao cliente: ele entra em isaestrela.com.br/cliente.html com o CPF/CNPJ e esta senha.':'Senha removida. O cliente entra só com o CPF/CNPJ.');
+  }catch(e){alert('Erro: '+e.message);}
+}
 
 // Arquivos
 async function uploadArquivos(files){
