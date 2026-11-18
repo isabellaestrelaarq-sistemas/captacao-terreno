@@ -105,12 +105,14 @@ tr:last-child td{border-bottom:0}tr:hover td{background:rgba(106,35,38,.015)}
     <div class="stats" id="stats"></div>
     <div class="tabs">
       <div class="tab active" data-tab="propostas">Propostas aceitas</div>
+      <div class="tab" data-tab="fluxo">Fluxo de caixa</div>
       <div class="tab" data-tab="rascunhos">Links enviados</div>
     </div>
     <div class="section active" id="sec-propostas">
       <div class="search" style="margin-bottom:14px"><input type="text" id="busca" placeholder="Buscar por nome, código, título..."></div>
       <div id="tabela-propostas"></div>
     </div>
+    <div class="section" id="sec-fluxo"><div id="tabela-fluxo"></div></div>
     <div class="section" id="sec-rascunhos"><div id="tabela-rascunhos"></div></div>
   </div>
 </div>
@@ -175,7 +177,7 @@ const API='/api/painel';let SENHA='',PROPOSTAS=[],RASCUNHOS=[];
 const brl=v=>v?'R$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:0}):'-';
 const dh=d=>d?new Date(d).toLocaleString('pt-BR'):'-';
 const dd=d=>d?new Date(d).toLocaleDateString('pt-BR'):'-';
-const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
 // Templates de etapas por tipo
 const TEMPLATES={
@@ -236,15 +238,90 @@ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',function
 }));
 
 async function carregarTudo(){
-  const stats=await(await fetch(API+'?acao=stats&senha='+SENHA)).json();
-  document.getElementById('stats').innerHTML=
-    `<div class="stat"><div class="n">${stats.total_propostas||0}</div><div class="l">Propostas</div></div>`+
-    `<div class="stat"><div class="n">${brl(stats.valor_total)}</div><div class="l">Valor total</div></div>`+
-    `<div class="stat"><div class="n">${stats.propostas_mes||0}</div><div class="l">Este mês</div></div>`+
-    `<div class="stat"><div class="n">${brl(stats.valor_mes)}</div><div class="l">Faturamento mês</div></div>`;
   const prop=await(await fetch(API+'?acao=listar&senha='+SENHA)).json();
   PROPOSTAS=prop.propostas||[];renderPropostas(PROPOSTAS);
+  renderStatsEFluxo();
   try{const rasc=await(await fetch(API+'?acao=rascunhos&senha='+SENHA)).json();RASCUNHOS=rasc.rascunhos||[];renderRascunhos(RASCUNHOS);}catch(e){}
+}
+
+// ======= FLUXO DE CAIXA =======
+// Junta todas as entradas previstas e recebidas:
+// parcelas do conselho + previsões de recebimento + pagamentos registrados
+function coletarFluxo(){
+  const itens=[];
+  PROPOSTAS.forEach(p=>{
+    if(p.status==='cancelada')return;
+    const quem=p.cliente_nome||p.codigo;
+    ((p.conselho_data||{}).parcelas||[]).forEach(pc=>{
+      if(pc.status==='paga')itens.push({data:pc.pago_em||pc.vencimento,valor:+pc.valor||0,tipo:'recebido',desc:`Parcela ${pc.numero} · ${quem}`});
+      else itens.push({data:pc.vencimento,valor:+pc.valor||0,tipo:'previsto',desc:`Parcela ${pc.numero} · ${quem}`});
+    });
+    (p.previsoes||[]).forEach(pv=>{
+      if(pv.recebido)itens.push({data:pv.recebido_em||pv.data,valor:+pv.valor||0,tipo:'recebido',desc:`${pv.descricao||'Previsão'} · ${quem}`});
+      else itens.push({data:pv.data,valor:+pv.valor||0,tipo:'previsto',desc:`${pv.descricao||'Previsão'} · ${quem}`});
+    });
+    (p.pagamentos||[]).forEach(pg=>{
+      itens.push({data:pg.data,valor:+pg.valor||0,tipo:'recebido',desc:`${pg.obs||pg.forma||'Pagamento'} · ${quem}`});
+    });
+  });
+  return itens;
+}
+function renderStatsEFluxo(){
+  const itens=coletarFluxo();
+  const mesAtual=new Date().toISOString().slice(0,7);
+  const contratado=PROPOSTAS.filter(p=>p.status!=='cancelada').reduce((a,p)=>a+(+p.total_fixo||0),0);
+  const recebidoMes=itens.filter(i=>i.tipo==='recebido'&&(i.data||'').slice(0,7)===mesAtual).reduce((a,i)=>a+i.valor,0);
+  const previstoMes=itens.filter(i=>i.tipo==='previsto'&&(i.data||'').slice(0,7)===mesAtual).reduce((a,i)=>a+i.valor,0);
+  document.getElementById('stats').innerHTML=
+    `<div class="stat"><div class="n">${PROPOSTAS.length}</div><div class="l">Propostas</div></div>`+
+    `<div class="stat"><div class="n">${brl(contratado)}</div><div class="l">Valor contratado</div></div>`+
+    `<div class="stat"><div class="n" style="color:var(--green)">${brl(recebidoMes)}</div><div class="l">Recebido no mês</div></div>`+
+    `<div class="stat"><div class="n">${brl(previstoMes)}</div><div class="l">A receber no mês</div></div>`;
+
+  // Tabela mês a mês (12 meses a partir do mês atual, mais o que ficou pra trás)
+  const porMes={};
+  const semData=[];
+  itens.forEach(i=>{
+    const m=(i.data||'').slice(0,7);
+    if(!m){semData.push(i);return;}
+    porMes[m]=porMes[m]||{previsto:0,recebido:0,itens:[]};
+    porMes[m][i.tipo]+=i.valor;
+    porMes[m].itens.push(i);
+  });
+  const meses=Object.keys(porMes).sort();
+  const nomeMes=m=>{const[a,mm]=m.split('-');return['','jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'][+mm]+'/'+a.slice(2);};
+  const hoje=new Date().toISOString().slice(0,10);
+  let html='';
+  if(!meses.length&&!semData.length){
+    html='<div class="empty">Nenhum recebimento previsto ainda. Abra uma proposta e adicione previsões de recebimento, ou gere as parcelas do conselho.</div>';
+  }else{
+    let acumulado=0;
+    html='<table><thead><tr><th>Mês</th><th>Previsto</th><th>Recebido</th><th>Acumulado</th><th></th></tr></thead><tbody>';
+    meses.forEach(m=>{
+      const d=porMes[m];
+      acumulado+=d.recebido+(m>=mesAtual?d.previsto:0);
+      const atrasado=m<mesAtual&&d.previsto>0;
+      html+=`<tr style="cursor:pointer" onclick="document.getElementById('fx-${m}').style.display=document.getElementById('fx-${m}').style.display==='none'?'':'none'">
+        <td><b>${nomeMes(m)}</b>${m===mesAtual?' <span class="badge" style="background:var(--v);color:#fff;font-size:10px">atual</span>':''}</td>
+        <td style="color:${atrasado?'#9C3B2E':'inherit'}">${d.previsto?brl(d.previsto):'-'}${atrasado?' <small>(atrasado)</small>':''}</td>
+        <td style="color:var(--green)">${d.recebido?brl(d.recebido):'-'}</td>
+        <td class="valor">${brl(acumulado)}</td>
+        <td><small style="color:var(--soft)">${d.itens.length} item${d.itens.length>1?'s':''} ▾</small></td>
+      </tr>
+      <tr id="fx-${m}" style="display:none"><td colspan="5" style="background:#FDFCFA;padding:8px 14px">${
+        d.itens.sort((a,b)=>(a.data||'')>(b.data||'')?1:-1).map(i=>`<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px dashed var(--line)">
+          <span>${esc(i.data||'')} · ${esc(i.desc)}</span>
+          <b style="color:${i.tipo==='recebido'?'var(--green)':i.data<hoje?'#9C3B2E':'inherit'}">${i.tipo==='recebido'?'✓ ':''}${brl(i.valor)}</b>
+        </div>`).join('')
+      }</td></tr>`;
+    });
+    html+='</tbody></table>';
+    if(semData.length){
+      const soma=semData.reduce((a,i)=>a+i.valor,0);
+      html+=`<div style="margin-top:10px;padding:10px 14px;border:1px dashed var(--line);border-radius:8px;font-size:12px;color:var(--soft)">Sem data definida: <b>${brl(soma)}</b> (${semData.map(i=>esc(i.desc)).join(', ')}). Abra a proposta e defina a data prevista.</div>`;
+    }
+  }
+  document.getElementById('tabela-fluxo').innerHTML=html;
 }
 function badgeStatus(s){return'<span class="badge '+(s||'aceita')+'">'+(s||'aceita')+'</span>';}
 function progresso(etapas){
@@ -270,10 +347,17 @@ document.getElementById('busca').addEventListener('input',function(){
 
 // ======= DETALHE COM ETAPAS =======
 let CURRENT=null,CURRENT_IDX=-1;
-function abrirDetalhe(i){
+async function abrirDetalhe(i){
   CURRENT_IDX=i;CURRENT=JSON.parse(JSON.stringify(PROPOSTAS[i]));
   if(!CURRENT.etapas)CURRENT.etapas=[];
   if(!CURRENT.docs_cliente)CURRENT.docs_cliente=[];
+  if(!CURRENT.conselho_data)CURRENT.conselho_data={reunioes:[],decisoes:[],parcelas:[],documentos:[]};
+  // Carregar dados do conselho do servidor
+  try{
+    const r=await fetch(`/api/conselho?acao=admin_ver&codigo=${CURRENT.codigo}&senha=${SENHA}`);
+    const j=await r.json();
+    if(j.conselho)CURRENT.conselho_data=j.conselho;
+  }catch(e){}
   renderDetalhe();
   document.getElementById('modal-bg').classList.add('open');
 }
@@ -283,9 +367,11 @@ function renderDetalhe(){
   const p=CURRENT;
   document.getElementById('m-titulo').textContent=p.proposta_titulo||'Detalhe';
 
-  // Info do cliente
+  // Info do cliente (nome e título editáveis)
   let html='<div style="margin-bottom:18px">';
-  [['Cliente',p.cliente_nome],['CPF/CNPJ',p.cliente_doc],['E-mail',p.cliente_email],['WhatsApp',p.cliente_whatsapp],['Endereço',p.cliente_endereco]].forEach(r=>{
+  html+=`<div class="mrow"><span class="lbl">Cliente</span><input id="d-nome" value="${esc(p.cliente_nome||'')}" style="flex:1;padding:6px 10px;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:13px;font-weight:600"></div>`;
+  html+=`<div class="mrow"><span class="lbl">Título</span><input id="d-titulo" value="${esc(p.proposta_titulo||'')}" style="flex:1;padding:6px 10px;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:13px"></div>`;
+  [['CPF/CNPJ',p.cliente_doc],['E-mail',p.cliente_email],['WhatsApp',p.cliente_whatsapp],['Endereço',p.cliente_endereco]].forEach(r=>{
     if(r[1])html+=`<div class="mrow"><span class="lbl">${esc(r[0])}</span><span class="val">${esc(r[1])}</span></div>`;
   });
   html+=`<div class="mrow"><span class="lbl">Valor total</span><span class="val valor" style="font-size:18px">${brl(p.total_fixo)}</span></div>`;
@@ -370,12 +456,276 @@ function renderDetalhe(){
     });
   }
 
+  // Pagamentos identificados (caixa)
+  const pags=p.pagamentos||[];
+  const totalPago=pags.reduce((a,g)=>a+(+g.valor||0),0);
+  const restante=(+p.total_fixo||0)-totalPago;
+  html+=`<div style="margin-top:18px;padding:14px;border:1px solid var(--line);border-radius:10px;background:#FDFCFA">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <b style="font-size:12px;color:var(--soft);text-transform:uppercase;letter-spacing:.04em">Pagamentos identificados</b>
+      <button class="btn sm" onclick="addPagamento()" style="font-size:11px">+ Registrar pagamento</button>
+    </div>
+    <div style="display:flex;gap:16px;font-size:13px;margin-bottom:8px">
+      <span>Recebido: <b style="color:var(--green)">${brl(totalPago)}</b></span>
+      <span>Restante: <b style="color:${restante>0?'#9C3B2E':'var(--green)'}">${brl(restante)}</b></span>
+    </div>`;
+  if(pags.length){
+    pags.forEach((g,gi)=>{
+      html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;border:1px solid var(--line);border-radius:8px;margin-top:4px;font-size:12px;background:#fff">
+        <span>${esc(g.data||'')} · <b>${brl(+g.valor||0)}</b>${g.forma?' · '+esc(g.forma):''}${g.obs?' · '+esc(g.obs):''}</span>
+        <button onclick="removePagamento(${gi})" style="background:none;border:none;color:var(--soft);cursor:pointer;font-size:14px;padding:2px 6px;opacity:.5" title="Remover">&times;</button>
+      </div>`;
+    });
+  } else {
+    html+=`<div style="font-size:12px;color:var(--soft)">Nenhum pagamento registrado ainda.</div>`;
+  }
+  html+=`</div>`;
+
+  // Previsão de recebimentos (fluxo de caixa)
+  const prevs=p.previsoes||[];
+  html+=`<div style="margin-top:14px;padding:14px;border:1px solid var(--line);border-radius:10px;background:#FDFCFA">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <b style="font-size:12px;color:var(--soft);text-transform:uppercase;letter-spacing:.04em">Previsão de recebimentos</b>
+      <button class="btn sm sec" onclick="addPrevisao()" style="font-size:11px">+ Previsão</button>
+    </div>`;
+  if(prevs.length){
+    prevs.forEach((v,vi)=>{
+      html+=`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 10px;border:1px solid ${v.recebido?'var(--green)':'var(--line)'};border-radius:8px;margin-top:4px;font-size:12px;background:#fff;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:200px">
+          <input type="date" value="${esc(v.data||'')}" onchange="setPrevisaoData(${vi},this.value)" style="padding:4px 6px;border:1px solid var(--line);border-radius:6px;font:inherit;font-size:12px" ${v.recebido?'disabled':''}>
+          <b>${brl(+v.valor||0)}</b>
+          <span style="color:var(--soft)">${esc(v.descricao||'')}</span>
+        </div>
+        <div style="display:flex;gap:4px;align-items:center">
+          ${v.recebido
+            ?`<span class="badge" style="background:var(--greenL);color:var(--green)">recebido ${esc(v.recebido_em||'')}</span>`
+            :`<button class="btn sm" onclick="receberPrevisao(${vi})" style="font-size:10px;padding:3px 8px;background:var(--green)">Recebido</button>`}
+          <button onclick="removePrevisao(${vi})" style="background:none;border:none;color:var(--soft);cursor:pointer;font-size:14px;padding:2px 6px;opacity:.5">&times;</button>
+        </div>
+      </div>`;
+    });
+  } else {
+    html+=`<div style="font-size:12px;color:var(--soft)">Nenhuma previsão. Adicione as datas em que espera receber (entrada, saldo na entrega...). É daqui que sai o fluxo de caixa.</div>`;
+  }
+  html+=`</div>`;
+
   // Notas
   html+=`<div style="margin-top:18px"><label style="font-size:12px;color:var(--soft)">Notas internas</label><textarea id="d-notas" style="width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:13px;min-height:60px;resize:vertical;margin-top:4px">${esc(p.notas||'')}</textarea></div>`;
+
+  // Gestão do conselho (se for conselho ou consultoria)
+  const isConselho = (p.proposta_modo==='conselho'||p.proposta_modo==='consultoria'||(p.proposta_titulo||'').toLowerCase().includes('conselho')||(p.proposta_titulo||'').toLowerCase().includes('consultoria'));
+  if(isConselho){
+    html+=`<div style="margin-top:18px;padding-top:16px;border-top:2px solid var(--v)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <b style="font-size:12px;color:var(--v);text-transform:uppercase;letter-spacing:.04em">Gestão do Conselho</b>
+        <a href="/conselho.html#${esc(p.codigo)}" target="_blank" style="font-size:11px;color:var(--v)">Ver como cliente →</a>
+      </div>`;
+
+    // Botões de ação rápida
+    html+=`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
+      <button class="btn sm" onclick="agendarReuniao()">+ Agendar reunião</button>
+      <button class="btn sm sec" onclick="gerarParcelas()">Gerar parcelas</button>
+      <button class="btn sm sec" onclick="addDiretriz()">+ Diretriz</button>
+      <button class="btn sm" onclick="addTarefa()">+ Tarefa</button>
+    </div>`;
+
+    // Próximas reuniões agendadas
+    const cd = CURRENT.conselho_data || {};
+    const reunioes = (cd.reunioes||[]).sort((a,b)=>a.data>b.data?1:-1);
+    const agendadas = reunioes.filter(r=>r.status==='agendada');
+    if(agendadas.length){
+      html+=`<div style="margin-bottom:12px"><b style="font-size:11px;color:var(--soft)">PRÓXIMAS REUNIÕES</b>`;
+      agendadas.forEach(r=>{
+        html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:8px;margin-top:6px;font-size:13px">
+          <span>${esc(r.data)} às ${esc(r.hora||'10:00')}${r.pauta?' · '+esc(r.pauta):''}</span>
+          <div style="display:flex;gap:4px">
+            <button class="btn sm" onclick="realizarReuniao(${r.id})" style="font-size:11px;padding:4px 8px">Realizada</button>
+            <button class="btn sm sec" onclick="cancelarReuniao(${r.id})" style="font-size:11px;padding:4px 8px">Cancelar</button>
+          </div>
+        </div>`;
+      });
+      html+=`</div>`;
+    }
+
+    // Últimas reuniões realizadas
+    const realizadas = reunioes.filter(r=>r.status==='realizada').slice(-3).reverse();
+    if(realizadas.length){
+      html+=`<div style="margin-bottom:12px"><b style="font-size:11px;color:var(--soft)">ÚLTIMAS REUNIÕES</b>`;
+      realizadas.forEach(r=>{
+        html+=`<div style="padding:10px;border:1px solid var(--line);border-radius:8px;margin-top:6px;font-size:12px">
+          <div style="display:flex;justify-content:space-between"><b>${esc(r.data)} às ${esc(r.hora||'')}</b><span class="badge realizada">realizada</span></div>
+          ${r.resumo?'<div style="margin-top:4px;color:var(--soft)">'+esc(r.resumo)+'</div>':''}
+          ${r.decisoes&&r.decisoes.length?'<div style="margin-top:4px">'+r.decisoes.map(d=>'<div style="padding:2px 0;color:var(--v)">→ '+esc(d)+'</div>').join('')+'</div>':''}
+        </div>`;
+      });
+      html+=`</div>`;
+    }
+
+    // Tarefas
+    const tarefas = cd.tarefas || [];
+    const pendentes = tarefas.filter(t=>t.status!=='concluida');
+    const concluidas = tarefas.filter(t=>t.status==='concluida');
+    html+=`<div style="margin-bottom:12px"><b style="font-size:11px;color:var(--soft)">TAREFAS (${pendentes.length} pendentes, ${concluidas.length} concluídas)</b></div>`;
+    if(tarefas.length){
+      pendentes.forEach(t=>{
+        const totalCk=t.checklist?t.checklist.length:0;
+        const feitosCk=t.checklist?t.checklist.filter(c=>c.feito).length:0;
+        const prioColors={alta:'#9C3B2E',normal:'var(--v)',baixa:'var(--soft)'};
+        html+=`<div style="border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:6px;font-size:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <b>${esc(t.titulo)}</b>
+            <div style="display:flex;gap:4px">
+              <span class="badge" style="background:${prioColors[t.prioridade]||'var(--v)'};color:#fff;font-size:10px">${t.prioridade||'normal'}</span>
+              <button class="btn sm" onclick="concluirTarefa(${t.id})" style="font-size:10px;padding:2px 8px;background:var(--green)">Concluir</button>
+              <button onclick="removeTarefa(${t.id})" style="background:none;border:none;color:var(--soft);cursor:pointer;font-size:14px">&times;</button>
+            </div>
+          </div>
+          ${t.descricao?'<div style="color:var(--soft);margin-top:3px">'+esc(t.descricao)+'</div>':''}
+          <div style="display:flex;gap:10px;margin-top:4px;color:var(--soft);font-size:11px">
+            ${t.responsavel?'<span>'+esc(t.responsavel)+'</span>':''}
+            ${t.prazo?'<span>Prazo: '+esc(t.prazo)+'</span>':''}
+            ${totalCk?'<span>'+feitosCk+'/'+totalCk+'</span>':''}
+          </div>`;
+        if(t.checklist&&t.checklist.length){
+          html+='<div style="margin-top:6px;border-top:1px solid var(--line);padding-top:4px">';
+          t.checklist.forEach((c,ci)=>{
+            html+=`<div style="display:flex;align-items:center;gap:6px;padding:2px 0"><input type="checkbox" ${c.feito?'checked':''} onchange="toggleTarefaCheck(${t.id},${ci},this.checked)" style="accent-color:var(--v)"><span style="${c.feito?'text-decoration:line-through;color:var(--soft)':''}">${esc(c.item)}</span></div>`;
+          });
+          html+=`<button onclick="addTarefaCheckItem(${t.id})" style="background:none;border:none;color:var(--v);cursor:pointer;font-size:11px;padding:2px 0;margin-top:2px">+ item</button>`;
+          html+='</div>';
+        }
+        html+='</div>';
+      });
+      if(concluidas.length){
+        html+=`<details style="margin-top:4px"><summary style="font-size:11px;color:var(--soft);cursor:pointer;padding:4px 0">${concluidas.length} concluída${concluidas.length>1?'s':''}</summary>`;
+        concluidas.forEach(t=>{
+          html+=`<div style="border:1px solid var(--green);border-radius:8px;padding:6px 10px;margin-top:4px;font-size:11px;opacity:.6"><span style="text-decoration:line-through">${esc(t.titulo)}</span> · ${esc(t.concluida_em||'')}</div>`;
+        });
+        html+='</details>';
+      }
+    }
+
+    // Parcelas
+    const parcelas = cd.parcelas || [];
+    if(parcelas.length){
+      const pagas=parcelas.filter(p=>p.status==='paga').length;
+      html+=`<div style="margin-bottom:12px"><b style="font-size:11px;color:var(--soft)">PARCELAS (${pagas}/${parcelas.length} pagas)</b>`;
+      parcelas.forEach(p=>{
+        const hoje=new Date().toISOString().slice(0,10);
+        const atrasada=p.status==='pendente'&&p.vencimento<hoje;
+        html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;border:1px solid ${atrasada?'var(--red)':p.status==='paga'?'var(--green)':'var(--line)'};border-radius:8px;margin-top:4px;font-size:12px">
+          <span>Parcela ${p.numero} · ${esc(p.vencimento)} · ${brl(p.valor)}</span>
+          ${p.status==='paga'?'<span class="badge" style="background:var(--greenL);color:var(--green)">paga</span>':'<button class="btn sm" onclick="marcarPaga('+p.numero+')" style="font-size:10px;padding:3px 8px">Marcar paga</button>'}
+        </div>`;
+      });
+      html+=`</div>`;
+    }
+    html+=`</div>`;
+  }
 
   html+=`<div style="margin-top:16px;display:flex;gap:8px"><button class="btn green" onclick="salvarTudo()">Salvar tudo</button><button class="btn sec" onclick="fecharModal()">Fechar</button></div>`;
 
   document.getElementById('m-body').innerHTML=html;
+}
+
+// Funções do conselho
+async function agendarReuniao(){
+  const data=prompt('Data da reunião (AAAA-MM-DD):');
+  if(!data)return;
+  const hora=prompt('Horário (ex: 10:00):','10:00');
+  const pauta=prompt('Pauta (opcional):','');
+  await fetch(`/api/conselho?acao=add_reuniao&codigo=${CURRENT.codigo}&senha=${SENHA}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data,hora,pauta})});
+  // Recarregar
+  const r=await(await fetch(`/api/conselho?acao=admin_ver&codigo=${CURRENT.codigo}&senha=${SENHA}`)).json();
+  if(r.conselho)CURRENT.conselho_data=r.conselho;
+  renderDetalhe();
+}
+async function realizarReuniao(id){
+  const resumo=prompt('Resumo da reunião:');
+  const decisoesStr=prompt('Decisões tomadas (separe por ; ):','');
+  const decisoes=decisoesStr?decisoesStr.split(';').map(d=>d.trim()).filter(d=>d):[];
+  await fetch(`/api/conselho?acao=update_reuniao&codigo=${CURRENT.codigo}&senha=${SENHA}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,status:'realizada',resumo,decisoes})});
+  const r=await(await fetch(`/api/conselho?acao=admin_ver&codigo=${CURRENT.codigo}&senha=${SENHA}`)).json();
+  if(r.conselho)CURRENT.conselho_data=r.conselho;
+  renderDetalhe();
+}
+async function cancelarReuniao(id){
+  if(!confirm('Cancelar esta reunião?'))return;
+  await fetch(`/api/conselho?acao=update_reuniao&codigo=${CURRENT.codigo}&senha=${SENHA}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,status:'cancelada'})});
+  const r=await(await fetch(`/api/conselho?acao=admin_ver&codigo=${CURRENT.codigo}&senha=${SENHA}`)).json();
+  if(r.conselho)CURRENT.conselho_data=r.conselho;
+  renderDetalhe();
+}
+async function gerarParcelas(){
+  const meses=+prompt('Quantos meses?','12');
+  const valor=+prompt('Valor mensal (R$):','2824');
+  const dia=+prompt('Dia do vencimento:','10');
+  if(!meses||!valor)return;
+  await fetch(`/api/conselho?acao=gerar_parcelas&codigo=${CURRENT.codigo}&senha=${SENHA}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({meses,valor_mensal:valor,dia_vencimento:dia})});
+  const r=await(await fetch(`/api/conselho?acao=admin_ver&codigo=${CURRENT.codigo}&senha=${SENHA}`)).json();
+  if(r.conselho)CURRENT.conselho_data=r.conselho;
+  renderDetalhe();
+}
+async function marcarPaga(numero){
+  await fetch(`/api/conselho?acao=registrar_pagamento&codigo=${CURRENT.codigo}&senha=${SENHA}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({numero})});
+  const r=await(await fetch(`/api/conselho?acao=admin_ver&codigo=${CURRENT.codigo}&senha=${SENHA}`)).json();
+  if(r.conselho)CURRENT.conselho_data=r.conselho;
+  renderDetalhe();
+}
+async function addDiretriz(){
+  const titulo=prompt('Título da diretriz:');
+  if(!titulo)return;
+  const descricao=prompt('Descrição (opcional):','');
+  await fetch(`/api/conselho?acao=add_documento&codigo=${CURRENT.codigo}&senha=${SENHA}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({titulo,descricao,tipo:'diretriz'})});
+  const r=await(await fetch(`/api/conselho?acao=admin_ver&codigo=${CURRENT.codigo}&senha=${SENHA}`)).json();
+  if(r.conselho)CURRENT.conselho_data=r.conselho;
+  renderDetalhe();
+}
+async function addTarefa(){
+  const titulo=prompt('Título da tarefa:');
+  if(!titulo)return;
+  const descricao=prompt('Descrição (opcional):','');
+  const prioridade=prompt('Prioridade (alta, normal, baixa):','normal');
+  const responsavel=prompt('Responsável (isabella ou nome do cliente):','isabella');
+  const prazo=prompt('Prazo (AAAA-MM-DD, ou vazio):','');
+  const checklistStr=prompt('Checklist (separe itens por ; ou vazio):','');
+  const checklist=checklistStr?checklistStr.split(';').map(s=>s.trim()).filter(s=>s):[];
+  await fetch(`/api/conselho?acao=add_tarefa&codigo=${CURRENT.codigo}&senha=${SENHA}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({titulo,descricao,prioridade,responsavel,prazo,checklist})});
+  const r=await(await fetch(`/api/conselho?acao=admin_ver&codigo=${CURRENT.codigo}&senha=${SENHA}`)).json();
+  if(r.conselho)CURRENT.conselho_data=r.conselho;
+  renderDetalhe();
+}
+async function concluirTarefa(id){
+  await fetch(`/api/conselho?acao=update_tarefa&codigo=${CURRENT.codigo}&senha=${SENHA}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,status:'concluida'})});
+  const r=await(await fetch(`/api/conselho?acao=admin_ver&codigo=${CURRENT.codigo}&senha=${SENHA}`)).json();
+  if(r.conselho)CURRENT.conselho_data=r.conselho;
+  renderDetalhe();
+}
+async function removeTarefa(id){
+  if(!confirm('Remover esta tarefa?'))return;
+  await fetch(`/api/conselho?acao=remove_tarefa&codigo=${CURRENT.codigo}&senha=${SENHA}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});
+  const r=await(await fetch(`/api/conselho?acao=admin_ver&codigo=${CURRENT.codigo}&senha=${SENHA}`)).json();
+  if(r.conselho)CURRENT.conselho_data=r.conselho;
+  renderDetalhe();
+}
+async function toggleTarefaCheck(tarefaId,ci,val){
+  const cd=CURRENT.conselho_data||{};
+  const tarefa=(cd.tarefas||[]).find(t=>t.id===tarefaId);
+  if(!tarefa)return;
+  tarefa.checklist[ci].feito=val;
+  await fetch(`/api/conselho?acao=update_tarefa&codigo=${CURRENT.codigo}&senha=${SENHA}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:tarefaId,checklist:tarefa.checklist})});
+  renderDetalhe();
+}
+async function addTarefaCheckItem(tarefaId){
+  const item=prompt('Novo item do checklist:');
+  if(!item)return;
+  const cd=CURRENT.conselho_data||{};
+  const tarefa=(cd.tarefas||[]).find(t=>t.id===tarefaId);
+  if(!tarefa)return;
+  tarefa.checklist=tarefa.checklist||[];
+  tarefa.checklist.push({item,feito:false});
+  await fetch(`/api/conselho?acao=update_tarefa&codigo=${CURRENT.codigo}&senha=${SENHA}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:tarefaId,checklist:tarefa.checklist})});
+  renderDetalhe();
 }
 
 function toggleCheck(ei,ci,val){CURRENT.etapas[ei].checklist[ci].feito=val;renderDetalhe();}
@@ -414,6 +764,53 @@ function removeDocItem(di){CURRENT.docs_cliente.splice(di,1);renderDetalhe();}
 function setEtapaPago(ei,val){CURRENT.etapas[ei].pago=val;renderDetalhe();}
 function setEtapaValor(ei,val){CURRENT.etapas[ei].v=val;}
 
+// Pagamentos identificados
+function addPagamento(){
+  const valor=prompt('Valor recebido (só números, ex: 2824):');
+  if(!valor||isNaN(+valor))return;
+  const data=prompt('Data do pagamento (AAAA-MM-DD):',new Date().toISOString().slice(0,10));
+  if(!data)return;
+  const forma=prompt('Forma (PIX, transferência, boleto...):','PIX');
+  const obs=prompt('Referência (opcional, ex: entrada, parcela 2):','');
+  CURRENT.pagamentos=CURRENT.pagamentos||[];
+  CURRENT.pagamentos.push({data,valor:+valor,forma:forma||'',obs:obs||''});
+  renderDetalhe();
+  salvarTudo();
+}
+function removePagamento(gi){
+  if(!confirm('Remover este pagamento?'))return;
+  CURRENT.pagamentos.splice(gi,1);
+  renderDetalhe();
+  salvarTudo();
+}
+
+// Previsão de recebimentos
+function addPrevisao(){
+  const valor=prompt('Valor previsto (só números, ex: 12100):');
+  if(!valor||isNaN(+valor))return;
+  const data=prompt('Data prevista (AAAA-MM-DD):','');
+  const descricao=prompt('Descrição (ex: Entrada 50%, Saldo na entrega):','');
+  CURRENT.previsoes=CURRENT.previsoes||[];
+  CURRENT.previsoes.push({data:data||'',valor:+valor,descricao:descricao||'',recebido:false});
+  renderDetalhe();
+  salvarTudo();
+}
+function setPrevisaoData(vi,val){CURRENT.previsoes[vi].data=val;salvarTudo();}
+function receberPrevisao(vi){
+  const v=CURRENT.previsoes[vi];
+  const quando=prompt('Data em que o valor caiu (AAAA-MM-DD):',new Date().toISOString().slice(0,10));
+  if(!quando)return;
+  v.recebido=true;v.recebido_em=quando;
+  renderDetalhe();
+  salvarTudo();
+}
+function removePrevisao(vi){
+  if(!confirm('Remover esta previsão?'))return;
+  CURRENT.previsoes.splice(vi,1);
+  renderDetalhe();
+  salvarTudo();
+}
+
 function aplicarTemplate(){
   const tipo=prompt('Tipo do projeto:\n1 = Empreendimento\n2 = Consultoria de incorporação\n3 = Conselho estratégico\n4 = Uma casa\n5 = Consultoria por vídeo');
   const map={'1':'empreendimento','2':'consultoria','3':'conselho','4':'casa','5':'consultoria_video'};
@@ -432,7 +829,13 @@ async function salvarTudo(){
     notas:document.getElementById('d-notas').value,
     etapas:CURRENT.etapas,
     docs_cliente:CURRENT.docs_cliente,
+    pagamentos:CURRENT.pagamentos||[],
+    previsoes:CURRENT.previsoes||[],
   };
+  const nomeEl=document.getElementById('d-nome');
+  const tituloEl=document.getElementById('d-titulo');
+  if(nomeEl&&nomeEl.value.trim()){body.cliente_nome=nomeEl.value.trim();CURRENT.cliente_nome=body.cliente_nome;}
+  if(tituloEl&&tituloEl.value.trim()){body.proposta_titulo=tituloEl.value.trim();CURRENT.proposta_titulo=body.proposta_titulo;}
   // Calcular etapa atual (primeira não entregue)
   if(CURRENT.etapas&&CURRENT.etapas.length){
     const atual=CURRENT.etapas.find(e=>e.status!=='entregue');
