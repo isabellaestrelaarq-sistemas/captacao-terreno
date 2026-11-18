@@ -24,9 +24,16 @@
 .card h2{font-family:"Fraunces",serif;font-size:18px;font-weight:300;color:var(--v);margin-bottom:12px}
 .card h3{font-size:13px;color:var(--soft);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:10px;margin-bottom:18px}
-.scard{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;text-align:center}
+.scard{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;text-align:center;transition:all .18s ease}
+.scard.clk{cursor:pointer}
+.scard.clk:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(106,35,38,.1);border-color:var(--v)}
 .scard .n{font-family:"Fraunces",serif;font-size:22px;color:var(--v)}
 .scard .l{font-size:10px;color:var(--soft);margin-top:2px}
+.proj-card{padding:14px;border:1px solid var(--line);border-radius:12px;margin-bottom:8px;cursor:pointer;transition:all .18s ease;background:var(--card)}
+.proj-card:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(106,35,38,.1);border-color:var(--v)}
+.mini-item{padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin-bottom:6px;cursor:pointer;transition:all .15s ease;background:var(--card)}
+.mini-item:hover{border-color:var(--v);background:rgba(106,35,38,.02)}
+.chip{display:inline-block;font-size:10px;color:var(--soft);background:rgba(209,176,160,.15);border-radius:10px;padding:2px 8px}
 .next-meeting{background:var(--dk);border-radius:14px;padding:22px;margin-bottom:18px;color:#fff}
 .next-meeting .label{font-size:11px;color:rgba(240,214,170,.5);text-transform:uppercase;letter-spacing:.06em}
 .next-meeting .data{font-family:"Fraunces",serif;font-size:24px;color:var(--ch);margin:6px 0 4px}
@@ -186,11 +193,11 @@ function mostrarLista(){
     h+=`</div>`;
   }
 
-  // Resumo geral
+  // Resumo geral (cards clicáveis que levam à seção)
   h+='<div class="stats">';
-  h+=`<div class="scard"><div class="n">${lista.length}</div><div class="l">Projetos</div></div>`;
-  h+=`<div class="scard"><div class="n">${tarefasPend}</div><div class="l">Tarefas pendentes</div></div>`;
-  h+=`<div class="scard"><div class="n" style="${docsPend?'color:var(--red)':''}">${docsPend}</div><div class="l">Docs a enviar</div></div>`;
+  h+=`<div class="scard clk" onclick="document.getElementById('dash-projetos').scrollIntoView({behavior:'smooth'})"><div class="n">${lista.length}</div><div class="l">Projetos</div></div>`;
+  h+=`<div class="scard clk" onclick="document.getElementById('dash-tarefas').scrollIntoView({behavior:'smooth'})"><div class="n">${tarefasPend}</div><div class="l">Tarefas pendentes</div></div>`;
+  h+=`<div class="scard clk" onclick="document.getElementById('dash-docs').scrollIntoView({behavior:'smooth'})"><div class="n" style="${docsPend?'color:var(--red)':''}">${docsPend}</div><div class="l">Docs a enviar</div></div>`;
   if(atrasadas)h+=`<div class="scard"><div class="n" style="color:var(--red)">${atrasadas}</div><div class="l">Parcela atrasada</div></div>`;
   h+='</div>';
 
@@ -198,18 +205,56 @@ function mostrarLista(){
   if(avisos.length){
     h+=`<div class="card" style="border-color:rgba(156,59,46,.35)"><h3 style="color:var(--red)">Precisamos de você</h3>`;
     avisos.slice(0,6).forEach(a=>{
-      h+=`<div style="padding:7px 0;border-bottom:1px solid var(--line);font-size:13px;cursor:pointer" onclick="abrirProposta(${a.proj})"><b style="font-size:11px;color:var(--soft)">${esc(a.titulo)}</b><br>${esc(a.texto)}</div>`;
+      h+=`<div class="mini-item" onclick="abrirProposta(${a.proj},'documentos')"><span class="chip">${esc(a.titulo)}</span><div style="font-size:13px;margin-top:4px">${esc(a.texto)}</div></div>`;
+    });
+    h+=`</div>`;
+  }
+
+  // Suas tarefas (as reais, clicáveis)
+  const todasTarefas=[];
+  lista.forEach((p,i)=>{((p.conselho_data||{}).tarefas||[]).forEach(t=>{if(t.status!=='concluida')todasTarefas.push({t,proj:i,titulo:p.proposta_titulo});});});
+  if(todasTarefas.length){
+    h+=`<div class="card" id="dash-tarefas"><h3>Suas tarefas</h3>`;
+    todasTarefas.forEach(x=>{
+      const ckT=x.t.checklist?x.t.checklist.length:0;
+      const ckF=x.t.checklist?x.t.checklist.filter(c=>c.feito).length:0;
+      const pct=ckT?Math.round(ckF/ckT*100):0;
+      h+=`<div class="mini-item" onclick="abrirProposta(${x.proj},'tarefas')">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+          <b style="font-size:13px">${esc(x.t.titulo||'Tarefa')}</b>
+          ${x.t.prazo?`<small style="color:var(--soft);white-space:nowrap">até ${fmtData(x.t.prazo)}</small>`:''}
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+          <span class="chip">${esc(x.titulo)}</span>
+          ${ckT?`<div style="flex:1;height:4px;background:var(--line);border-radius:2px;overflow:hidden"><div style="width:${pct}%;height:100%;background:var(--v)"></div></div><small style="color:var(--soft)">${ckF}/${ckT}</small>`:''}
+        </div>
+      </div>`;
+    });
+    h+=`</div>`;
+  }
+
+  // Documentos a enviar (por projeto, com os nomes)
+  const docsPorProj=lista.map((p,i)=>({i,titulo:p.proposta_titulo,itens:(p.docs_cliente||[]).filter(d=>!d.feito)})).filter(x=>x.itens.length);
+  if(docsPorProj.length){
+    h+=`<div class="card" id="dash-docs"><h3>Documentos a enviar</h3>`;
+    docsPorProj.forEach(x=>{
+      const mostra=x.itens.slice(0,4);
+      h+=`<div class="mini-item" onclick="abrirProposta(${x.i},'documentos')">
+        <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:13px">${esc(x.titulo)}</b><span class="chip">${x.itens.length} pendente${x.itens.length>1?'s':''}</span></div>
+        <div style="font-size:12px;color:var(--soft);margin-top:5px">${mostra.map(d=>esc(d.item)).join(' · ')}${x.itens.length>4?' · e mais '+(x.itens.length-4)+'…':''}</div>
+        <div style="font-size:11px;color:var(--v);margin-top:5px">Enviar agora &rarr;</div>
+      </div>`;
     });
     h+=`</div>`;
   }
 
   // Próximo vencimento
   if(proxParcela){
-    h+=`<div class="card"><h3>Próximo vencimento</h3><div class="info-row"><span class="lbl">Parcela ${proxParcela.numero} · ${fmtData(proxParcela.vencimento)}</span><span class="val" style="font-family:Fraunces;color:var(--v)">${brl(proxParcela.valor)}</span></div></div>`;
+    h+=`<div class="card" style="cursor:pointer" onclick="abrirProposta(${lista.findIndex(p=>((p.conselho_data||{}).parcelas||[]).length)},'financeiro')"><h3>Próximo vencimento</h3><div class="info-row"><span class="lbl">Parcela ${proxParcela.numero} · ${fmtData(proxParcela.vencimento)}</span><span class="val" style="font-family:Fraunces;color:var(--v)">${brl(proxParcela.valor)}</span></div></div>`;
   }
 
   // Projetos
-  h+='<div class="card"><h2>Seus projetos</h2>'+lista.map((p,i)=>{
+  h+='<div class="card" id="dash-projetos"><h2>Seus projetos</h2>'+lista.map((p,i)=>{
     const pct=progressoProj(p);
     const c=p.conselho_data||{};
     const tp=(c.tarefas||[]).filter(t=>t.status!=='concluida').length;
@@ -217,13 +262,14 @@ function mostrarLista(){
     const pend=[];
     if(tp)pend.push(tp+' tarefa'+(tp>1?'s':''));
     if(dp)pend.push(dp+' doc'+(dp>1?'s':''));
-    return `<div style="padding:14px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;cursor:pointer" onclick="abrirProposta(${i})">
+    return `<div class="proj-card" onclick="abrirProposta(${i})">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b>${esc(p.proposta_titulo||'Proposta')}</b><span class="badge ${esc(p.status||'aceita')}">${esc(p.status||'aceita')}</span></div>
       <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
-        <div style="flex:1;height:6px;background:var(--line);border-radius:3px;overflow:hidden"><div style="width:${pct}%;height:100%;background:${pct===100?'var(--green)':'var(--v)'}"></div></div>
+        <div style="flex:1;height:6px;background:var(--line);border-radius:3px;overflow:hidden"><div style="width:${pct}%;height:100%;background:${pct===100?'var(--green)':'var(--v)'};transition:width .4s ease"></div></div>
         <small style="color:var(--soft)">${pct}%</small>
       </div>
       ${pend.length?`<small style="color:var(--soft);display:block;margin-top:6px">Pendente: ${pend.join(' · ')}</small>`:''}
+      <div style="font-size:11px;color:var(--v);margin-top:6px">Abrir projeto &rarr;</div>
     </div>`;
   }).join('')+'</div><a class="voltar" onclick="location.reload()">Sair</a>';
   if(window._LOGIN_CPF&&lista[0]&&lista[0].cliente_doc){
@@ -231,8 +277,8 @@ function mostrarLista(){
   }
   document.getElementById('portal').innerHTML=h;
 }
-function abrirProposta(i){abrirDireto(window._LISTA[i]);}
-function abrirDireto(prop){
+function abrirProposta(i,aba){abrirDireto(window._LISTA[i],aba);}
+function abrirDireto(prop,aba){
   PROP=prop;CODIGO=prop.codigo;
   const conselho=prop.conselho_data||null;
   document.getElementById('err').textContent='';
@@ -240,6 +286,8 @@ function abrirDireto(prop){
   document.getElementById('h-sub').textContent=prop.cliente_nome||'';
   document.getElementById('portal').style.display='block';
   render(prop, conselho);
+  if(aba)setTimeout(()=>{try{switchTab(aba);}catch(e){}},50);
+  window.scrollTo(0,0);
 }
 
 function render(p, c){
