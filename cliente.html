@@ -88,11 +88,12 @@
   <div class="portal" id="portal"></div>
 </div>
 <script>
-const API_P='/api/painel';
-const API_C='/api/conselho';
+const SB='https://mooghvkrendiiwhxynkd.supabase.co';
+const SBK='sb_publishable_eRt9feUOHeFOSZjIbfDrJw_ieFaA6Dx';
+const SBH={apikey:SBK,Authorization:'Bearer '+SBK};
 const brl=v=>v?'R$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:0}):'-';
-const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-let CODIGO='';
+const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+let CODIGO='',PROP=null;
 
 const hash=location.hash.slice(1);
 if(hash){document.getElementById('codigo').value=hash;setTimeout(buscar,300);}
@@ -111,29 +112,37 @@ async function buscar(){
   if(!input){document.getElementById('err').textContent='Digite o código ou CPF';return;}
   document.getElementById('err').textContent='Consultando...';
   const isCpf=input.replace(/\D/g,'').length>=11;
-  const param=isCpf?'cpf='+input.replace(/\D/g,''):'codigo='+input;
+  const filtro=isCpf?'cliente_doc=eq.'+input.replace(/\D/g,''):'codigo=eq.'+encodeURIComponent(input.toUpperCase());
   try{
-    // Buscar proposta
-    const r=await fetch(`${API_P}?acao=cliente&${param}`);
-    const j=await r.json();
-    if(!j.ok||!j.propostas||!j.propostas.length){document.getElementById('err').textContent='Nenhuma proposta encontrada.';return;}
+    // Buscar direto no banco
+    const sel='codigo,cliente_nome,proposta_titulo,proposta_resumo,total_fixo,pagamento_tipo,status,aceito_em,etapas,docs_cliente,conselho_data,arquivos';
+    const r=await fetch(`${SB}/rest/v1/propostas?${filtro}&select=${sel}&order=aceito_em.desc`,{headers:SBH});
+    const lista=await r.json();
+    if(!Array.isArray(lista)||!lista.length){document.getElementById('err').textContent='Nenhuma proposta encontrada.';return;}
 
-    // Buscar dados do conselho (tarefas, reuniões, parcelas)
-    const prop=j.propostas[0];
-    CODIGO=prop.codigo;
-    let conselho=null;
-    try{
-      const cr=await fetch(`${API_C}?acao=ver&codigo=${CODIGO}`);
-      const cj=await cr.json();
-      if(cj.ok)conselho=cj;
-    }catch(e){}
-
-    document.getElementById('err').textContent='';
-    document.getElementById('login-box').style.display='none';
-    document.getElementById('h-sub').textContent=conselho?.cliente||'';
-    document.getElementById('portal').style.display='block';
-    render(prop, conselho);
+    // Se CPF com mais de uma proposta, mostrar seletor
+    if(lista.length>1){
+      document.getElementById('err').textContent='';
+      document.getElementById('login-box').style.display='none';
+      document.getElementById('portal').style.display='block';
+      document.getElementById('portal').innerHTML='<div class="card"><h2>Seus projetos</h2>'+lista.map((p,i)=>
+        `<div style="padding:12px 14px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;cursor:pointer" onclick="abrirProposta(${i})"><b>${esc(p.proposta_titulo||'Proposta')}</b><br><small style="color:var(--soft)">${esc(p.codigo)} · ${brl(p.total_fixo)}</small></div>`
+      ).join('')+'</div><a class="voltar" onclick="location.reload()">Voltar</a>';
+      window._LISTA=lista;
+      return;
+    }
+    abrirDireto(lista[0]);
   }catch(e){document.getElementById('err').textContent='Erro de conexão.';}
+}
+function abrirProposta(i){abrirDireto(window._LISTA[i]);}
+function abrirDireto(prop){
+  PROP=prop;CODIGO=prop.codigo;
+  const conselho=prop.conselho_data||null;
+  document.getElementById('err').textContent='';
+  document.getElementById('login-box').style.display='none';
+  document.getElementById('h-sub').textContent=prop.cliente_nome||'';
+  document.getElementById('portal').style.display='block';
+  render(prop, conselho);
 }
 
 function render(p, c){
