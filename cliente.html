@@ -118,6 +118,14 @@ const hash=location.hash.slice(1);
 if(hash){document.getElementById('codigo').value=hash;setTimeout(buscar,300);}
 document.getElementById('codigo').addEventListener('keydown',e=>{if(e.key==='Enter')buscar();});
 
+function pautaTopicos(pauta){return String(pauta||'').split(/;|\n/).map(s=>s.trim()).filter(s=>s);}
+function pautaHtml(pauta,escuro){
+  const tops=pautaTopicos(pauta);
+  if(!tops.length)return'';
+  const cor=escuro?'rgba(240,214,170,.75)':'var(--soft)';
+  const marca=escuro?'var(--ch)':'var(--v)';
+  return `<div style="margin-top:10px;font-size:12px;text-align:left"><b style="font-size:10px;color:${cor};text-transform:uppercase;letter-spacing:.05em">Pauta</b>${tops.map(t=>`<div style="display:flex;gap:7px;padding:2px 0;color:${escuro?'#fff':'var(--dk)'}"><span style="color:${marca}">&#9656;</span><span>${t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span></div>`).join('')}</div>`;
+}
 function fmtData(d){
   if(!d)return'-';
   const dt=new Date(d.length<=10?d+'T12:00:00':d);
@@ -216,7 +224,7 @@ function mostrarLista(){
   if(proxReuniao){
     h+=`<div class="next-meeting"><div class="label">Próxima reunião · ${esc(proxReuniaoProj)}</div><div class="data">${fmtData(proxReuniao.data)}</div><div class="hora">às ${esc(proxReuniao.hora||'10:00')}${proxReuniao.local?' · '+esc(proxReuniao.local):''}</div>`;
     if(proxReuniao.link)h+=`<a href="${esc(proxReuniao.link)}" target="_blank" style="display:inline-block;margin-top:12px;padding:10px 22px;border-radius:24px;background:var(--ch);color:var(--dk);font-weight:600;font-size:13px;text-decoration:none">Entrar na reunião</a>`;
-    if(proxReuniao.pauta)h+=`<div style="margin-top:10px;font-size:12px;color:rgba(240,214,170,.7)"><b>Pauta:</b> ${esc(proxReuniao.pauta)}</div>`;
+    if(proxReuniao.pauta)h+=pautaHtml(proxReuniao.pauta,true);
     h+=`</div>`;
   }
 
@@ -343,7 +351,7 @@ function render(p, c){
     const proxR=(c.reunioes||[]).filter(r=>r.status==='agendada').sort((a,b)=>a.data>b.data?1:-1)[0]||{};
     html+=`<div class="next-meeting"><div class="label">Próxima reunião</div><div class="data">${fmtData(c.proxima_reuniao.data)}</div><div class="hora">às ${c.proxima_reuniao.hora||'10:00'}${proxR.local?' · '+esc(proxR.local):''}</div>`;
     if(proxR.link)html+=`<a href="${esc(proxR.link)}" target="_blank" style="display:inline-block;margin-top:12px;padding:10px 22px;border-radius:24px;background:var(--ch);color:var(--dk);font-weight:600;font-size:13px;text-decoration:none">Entrar na reunião</a>`;
-    if(proxR.pauta)html+=`<div style="margin-top:10px;font-size:12px;color:rgba(240,214,170,.7)"><b>Pauta:</b> ${esc(proxR.pauta)}</div>`;
+    if(proxR.pauta)html+=pautaHtml(proxR.pauta,true);
     html+=`</div>`;
   }
 
@@ -561,7 +569,7 @@ function renderReunioes(reunioes){
   const sorted=[...reunioes].sort((a,b)=>b.data>a.data?1:-1);
   el.innerHTML=sorted.map(r=>{
     let h=`<div class="reuniao"><div class="topo"><span class="dt">${fmtData(r.data)} às ${r.hora||''}</span><span class="badge ${r.status}">${r.status}</span></div>`;
-    if(r.pauta)h+=`<div style="font-size:13px;color:var(--soft)"><b>Pauta:</b> ${esc(r.pauta)}</div>`;
+    if(r.pauta)h+=pautaHtml(r.pauta,false);
     if(r.status==='agendada'&&r.link)h+=`<div style="margin-top:6px"><a href="${esc(r.link)}" target="_blank" style="color:var(--v);font-size:13px;font-weight:600">Entrar na reunião &rarr;</a></div>`;
     if(r.resumo)h+=`<div class="resumo"><b>Resumo:</b> ${esc(r.resumo)}</div>`;
     if(r.decisoes&&r.decisoes.length){h+=`<div style="margin-top:8px"><b style="font-size:12px;color:var(--soft)">Decisões:</b>`;r.decisoes.forEach(d=>{if(d)h+=`<div class="decisao">${esc(d)}</div>`;});h+='</div>';}
