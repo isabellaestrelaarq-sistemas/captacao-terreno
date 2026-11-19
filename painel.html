@@ -695,7 +695,7 @@ function renderDetalhe(){
     html+=`</div>`;
   }
 
-  html+=`<div style="margin-top:16px;display:flex;gap:8px"><button class="btn green" onclick="salvarTudo()">Salvar tudo</button><button class="btn sec" onclick="fecharModal()">Fechar</button></div>`;
+  html+=`<div style="margin-top:16px;display:flex;gap:8px;align-items:center"><button class="btn green" onclick="salvarTudo()">Salvar tudo</button><button class="btn sec" onclick="fecharModal()">Fechar</button><span id="d-msg2" style="font-size:13px;font-weight:600;color:var(--green)"></span></div>`;
 
   document.getElementById('m-body').innerHTML=html;
 }
@@ -1039,17 +1039,25 @@ async function salvarTudo(){
     const atual=CURRENT.etapas.find(e=>e.status!=='entregue');
     if(atual)body.etapa_atual=atual.n;
   }
-  document.getElementById('d-msg').textContent='Salvando...';
+  const msgEls=[document.getElementById('d-msg'),document.getElementById('d-msg2')].filter(x=>x);
+  const botoes=Array.from(document.querySelectorAll('button[onclick="salvarTudo()"]'));
+  const setMsg=(t,erro)=>msgEls.forEach(m=>{m.textContent=t;m.style.color=erro?'#9C3B2E':'var(--green)';});
+  setMsg('Salvando...');
+  botoes.forEach(b=>{b.disabled=true;b.textContent='Salvando...';});
   try{
     const campos={status:body.status,notas:body.notas,etapas:body.etapas,docs_cliente:body.docs_cliente,pagamentos:body.pagamentos,previsoes:body.previsoes};
     if(body.etapa_atual)campos.etapa_atual=body.etapa_atual;
     if(body.cliente_nome)campos.cliente_nome=body.cliente_nome;
     if(body.proposta_titulo)campos.proposta_titulo=body.proposta_titulo;
     await sbPatch(body.codigo,campos);
-    document.getElementById('d-msg').textContent='Salvo!';
-    setTimeout(()=>{document.getElementById('d-msg').textContent='';},2000);
+    setMsg('Salvo! Pode fechar.');
+    botoes.forEach(b=>{b.disabled=false;b.textContent='Salvo ✓';});
+    setTimeout(()=>{setMsg('');botoes.forEach(b=>{b.textContent='Salvar tudo';});},2500);
     carregarTudo();
-  }catch(e){document.getElementById('d-msg').textContent='Erro ao salvar: '+e.message;}
+  }catch(e){
+    setMsg('Erro ao salvar: '+e.message,true);
+    botoes.forEach(b=>{b.disabled=false;b.textContent='Salvar tudo';});
+  }
 }
 
 // ======= NOVA PROPOSTA =======
