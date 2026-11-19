@@ -105,6 +105,7 @@ tr:last-child td{border-bottom:0}tr:hover td{background:rgba(106,35,38,.015)}
     <div class="stats" id="stats"></div>
     <div class="tabs">
       <div class="tab active" data-tab="propostas">Propostas aceitas</div>
+      <div class="tab" data-tab="clientes">Clientes</div>
       <div class="tab" data-tab="fluxo">Fluxo de caixa</div>
       <div class="tab" data-tab="rascunhos">Links enviados</div>
     </div>
@@ -112,6 +113,7 @@ tr:last-child td{border-bottom:0}tr:hover td{background:rgba(106,35,38,.015)}
       <div class="search" style="margin-bottom:14px"><input type="text" id="busca" placeholder="Buscar por nome, código, título..."></div>
       <div id="tabela-propostas"></div>
     </div>
+    <div class="section" id="sec-clientes"><div id="tabela-clientes"></div></div>
     <div class="section" id="sec-fluxo"><div id="tabela-fluxo"></div></div>
     <div class="section" id="sec-rascunhos"><div id="tabela-rascunhos"></div></div>
   </div>
@@ -258,6 +260,7 @@ async function carregarTudo(){
   }
   renderPropostas(PROPOSTAS);
   renderStatsEFluxo();
+  renderClientes();
   try{
     const r2=await fetch(SB+'/rest/v1/rascunhos?order=created_at.desc&limit=50',{headers:{apikey:SBK,Authorization:'Bearer '+SBK}});
     const l2=await r2.json();
@@ -365,6 +368,105 @@ document.getElementById('busca').addEventListener('input',function(){
   if(!q){renderPropostas(PROPOSTAS);return;}
   renderPropostas(PROPOSTAS.filter(p=>(p.cliente_nome||'').toLowerCase().includes(q)||(p.codigo||'').toLowerCase().includes(q)||(p.proposta_titulo||'').toLowerCase().includes(q)||(p.cliente_doc||'').includes(q)));
 });
+
+// ======= CARTEIRA DE CLIENTES =======
+function diasEntre(a,b){
+  try{return Math.max(0,Math.round((new Date(b)-new Date(a))/86400000));}catch(e){return 0;}
+}
+function renderClientes(){
+  const el=document.getElementById('tabela-clientes');
+  if(!el)return;
+  const hoje=new Date().toISOString();
+  // Agrupar por CPF/CNPJ (ou nome, se não tiver doc)
+  const grupos={};
+  PROPOSTAS.filter(p=>p.status!=='cancelada').forEach(p=>{
+    const key=p.cliente_doc||p.cliente_nome||p.codigo;
+    grupos[key]=grupos[key]||{doc:p.cliente_doc,whatsapp:p.cliente_whatsapp,nomes:[],projetos:[]};
+    if(p.cliente_whatsapp)grupos[key].whatsapp=p.cliente_whatsapp;
+    grupos[key].nomes.push(p.cliente_nome||'');
+    grupos[key].projetos.push(p);
+  });
+  const clientes=Object.values(grupos).map(g=>{
+    // Nome base: parte antes do " - " mais comum
+    const bases=g.nomes.map(n=>n.split(' - ')[0].trim()).filter(n=>n);
+    const nome=bases.sort((a,b)=>bases.filter(x=>x===b).length-bases.filter(x=>x===a).length)[0]||'Cliente';
+    const ativos=g.projetos.filter(p=>['aceita','paga','andamento'].includes(p.status||'aceita'));
+    const entregues=g.projetos.filter(p=>p.status==='concluida');
+    const total=g.projetos.reduce((a,p)=>a+(+p.total_fixo||0),0);
+    const projs=g.projetos.map(p=>{
+      const entregue=p.status==='concluida';
+      const fim=entregue?(p.concluida_em||hoje):hoje;
+      return{titulo:p.proposta_titulo||p.codigo,dias:diasEntre(p.aceito_em,fim),entregue,status:p.status};
+    });
+    const ultimaEntrega=entregues.length?entregues.map(p=>p.concluida_em||p.aceito_em).sort().pop():null;
+    const desde=g.projetos.map(p=>p.aceito_em).sort()[0];
+    return{nome,doc:g.doc,whatsapp:g.whatsapp,projetos:projs,nAtivos:ativos.length,nEntregues:entregues.length,total,ultimaEntrega,desde,todosEntregues:ativos.length===0&&entregues.length>0};
+  });
+  const nAtivos=clientes.filter(c=>c.nAtivos>0).length;
+  const nEntregues=clientes.filter(c=>c.todosEntregues).length;
+  const reativar=clientes.filter(c=>c.todosEntregues).sort((a,b)=>diasEntre(b.ultimaEntrega,hoje)-diasEntre(a.ultimaEntrega,hoje));
+  const maxDias=Math.max(1,...clientes.flatMap(c=>c.projetos.map(p=>p.dias)));
+
+  let h='';
+  // Tiles
+  h+=`<div class="stats" style="margin-bottom:18px">
+    <div class="stat"><div class="n">${clientes.length}</div><div class="l">Clientes</div></div>
+    <div class="stat"><div class="n">${nAtivos}</div><div class="l">Com projeto ativo</div></div>
+    <div class="stat"><div class="n" style="color:var(--green)">${nEntregues}</div><div class="l">Tudo entregue</div></div>
+    <div class="stat"><div class="n" style="color:${reativar.length?'#9C3B2E':'inherit'}">${reativar.length}</div><div class="l">Para reativar</div></div>
+  </div>`;
+
+  // Carteira
+  const inicial=n=>n.split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase();
+  h+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px">';
+  clientes.sort((a,b)=>b.nAtivos-a.nAtivos||b.total-a.total).forEach(c=>{
+    h+=`<div style="background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;transition:all .18s ease" onmouseover="this.style.boxShadow='0 6px 18px rgba(106,35,38,.1)'" onmouseout="this.style.boxShadow='none'">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+        <div style="width:44px;height:44px;min-width:44px;border-radius:50%;background:linear-gradient(135deg,#6A2326,#7B2D30);color:#F0D6AA;display:flex;align-items:center;justify-content:center;font-family:Fraunces;font-size:16px">${esc(inicial(c.nome))}</div>
+        <div style="flex:1;min-width:0">
+          <b style="font-family:Fraunces;font-size:16px;color:var(--v)">${esc(c.nome)}</b>
+          <div style="font-size:11px;color:var(--soft)">${c.projetos.length} projeto${c.projetos.length>1?'s':''} · ${brl(c.total)} · cliente desde ${dd(c.desde)}</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+        ${c.nAtivos?`<span class="badge" style="background:var(--v);color:#fff">${c.nAtivos} em andamento</span>`:''}
+        ${c.nEntregues?`<span class="badge" style="background:var(--greenL);color:var(--green)">${c.nEntregues} entregue${c.nEntregues>1?'s':''}</span>`:''}
+        ${c.todosEntregues?`<span class="badge" style="background:#9C3B2E;color:#fff">reativar</span>`:''}
+      </div>
+      <div style="border-top:1px solid var(--line);padding-top:8px">
+        <b style="font-size:9px;color:var(--soft);text-transform:uppercase;letter-spacing:.05em">Tempo de desenvolvimento</b>
+        ${c.projetos.map(p=>`
+          <div style="margin-top:6px">
+            <div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:var(--dk);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:70%">${esc(p.titulo)}</span><span style="color:${p.entregue?'var(--green)':'var(--soft)'};white-space:nowrap">${p.dias}d ${p.entregue?'✓ entregue':'· em curso'}</span></div>
+            <div style="height:5px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:3px"><div style="width:${Math.max(3,Math.round(p.dias/maxDias*100))}%;height:100%;background:${p.entregue?'var(--green)':'linear-gradient(90deg,#6A2326,#B0473A)'}"></div></div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+  });
+  h+='</div>';
+
+  // Lista de reativação
+  h+=`<div style="margin-top:24px;background:#fff;border:1px solid rgba(156,59,46,.3);border-radius:14px;padding:18px">
+    <b style="font-family:Fraunces;font-size:17px;color:#9C3B2E">Lista de reativação</b>
+    <div style="font-size:12px;color:var(--soft);margin-bottom:12px">Clientes com tudo entregue e sem projeto ativo. Quanto mais tempo parado, mais no topo.</div>`;
+  if(reativar.length){
+    reativar.forEach(c=>{
+      const dias=diasEntre(c.ultimaEntrega,hoje);
+      const wa=(c.whatsapp||'').replace(/\D/g,'');
+      h+=`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin-bottom:6px;flex-wrap:wrap">
+        <div><b>${esc(c.nome)}</b><div style="font-size:11px;color:var(--soft)">${c.nEntregues} projeto${c.nEntregues>1?'s':''} entregue${c.nEntregues>1?'s':''} · parado há <b style="color:#9C3B2E">${dias} dia${dias!==1?'s':''}</b> · ${brl(c.total)} em histórico</div></div>
+        <div style="display:flex;gap:6px">
+          ${wa?`<a href="https://wa.me/${wa.length<=11?'55'+wa:wa}" target="_blank" class="btn sm sec" style="text-decoration:none;font-size:11px">Chamar no WhatsApp</a>`:''}
+          <button class="btn sm" onclick="abrirNova()" style="font-size:11px">+ Nova proposta</button>
+        </div>
+      </div>`;
+    });
+  }else{
+    h+='<div style="font-size:12px;color:var(--soft)">Nenhum cliente parado — todos têm projeto ativo.</div>';
+  }
+  h+='</div>';
+  el.innerHTML=h;
+}
 
 // ======= DETALHE COM ETAPAS =======
 let CURRENT=null,CURRENT_IDX=-1;
@@ -1131,6 +1233,8 @@ async function salvarTudo(){
   botoes.forEach(b=>{b.disabled=true;b.textContent='Salvando...';});
   try{
     const campos={status:body.status,notas:body.notas,etapas:body.etapas,docs_cliente:body.docs_cliente,pagamentos:body.pagamentos,previsoes:body.previsoes};
+    if(body.status==='concluida'&&!CURRENT.concluida_em){campos.concluida_em=new Date().toISOString();CURRENT.concluida_em=campos.concluida_em;}
+    if(body.status!=='concluida'&&CURRENT.concluida_em){campos.concluida_em=null;CURRENT.concluida_em=null;}
     if(body.etapa_atual)campos.etapa_atual=body.etapa_atual;
     if(body.cliente_nome)campos.cliente_nome=body.cliente_nome;
     if(body.proposta_titulo)campos.proposta_titulo=body.proposta_titulo;
