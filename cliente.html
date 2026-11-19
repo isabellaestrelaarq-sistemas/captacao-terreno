@@ -209,8 +209,8 @@ function mostrarLista(){
     });
     (c.tarefas||[]).forEach(t=>{if(t.status!=='concluida')tarefasPend++;});
     (p.docs_cliente||[]).forEach(d=>{
-      if(!d.feito)docsPend++;
-      if(d.nota)avisos.push({proj:i,titulo:p.proposta_titulo,texto:d.item+': '+d.nota});
+      if(!d.feito&&d.quem!=='isabella')docsPend++;
+      if(d.nota&&d.quem!=='isabella')avisos.push({proj:i,titulo:p.proposta_titulo,texto:d.item+': '+d.nota});
     });
     (c.parcelas||[]).forEach(pc=>{
       if(pc.status==='pendente'){
@@ -271,7 +271,7 @@ function mostrarLista(){
   }
 
   // Documentos a enviar (por projeto, com os nomes)
-  const docsPorProj=lista.map((p,i)=>({i,titulo:p.proposta_titulo,itens:(p.docs_cliente||[]).filter(d=>!d.feito)})).filter(x=>x.itens.length);
+  const docsPorProj=lista.map((p,i)=>({i,titulo:p.proposta_titulo,itens:(p.docs_cliente||[]).filter(d=>!d.feito&&d.quem!=='isabella').sort((x,y)=>(y.prioridade?1:0)-(x.prioridade?1:0))})).filter(x=>x.itens.length);
   if(docsPorProj.length){
     h+=`<div class="card" id="dash-docs">`;
     h+=secHead(IC.doc,'sand','Documentos a enviar','Anexe pela aba Documentos e marque na lista');
@@ -279,7 +279,7 @@ function mostrarLista(){
       const mostra=x.itens.slice(0,4);
       h+=`<div class="mini-item" onclick="abrirProposta(${x.i},'documentos')">
         <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:13px">${esc(x.titulo)}</b><span class="chip">${x.itens.length} pendente${x.itens.length>1?'s':''}</span></div>
-        <div style="font-size:12px;color:var(--soft);margin-top:5px">${mostra.map(d=>esc(d.item)).join(' · ')}${x.itens.length>4?' · e mais '+(x.itens.length-4)+'…':''}</div>
+        <div style="font-size:12px;color:var(--soft);margin-top:5px">${mostra.map(d=>(d.prioridade?'<b style=\"color:var(--red)\">'+esc(d.item)+'</b>':esc(d.item))).join(' · ')}${x.itens.length>4?' · e mais '+(x.itens.length-4)+'…':''}</div>
         <div style="font-size:11px;color:var(--v);margin-top:5px">Enviar agora &rarr;</div>
       </div>`;
     });
@@ -298,7 +298,7 @@ function mostrarLista(){
     const pct=progressoProj(p);
     const c=p.conselho_data||{};
     const tp=(c.tarefas||[]).filter(t=>t.status!=='concluida').length;
-    const dp=(p.docs_cliente||[]).filter(d=>!d.feito).length;
+    const dp=(p.docs_cliente||[]).filter(d=>!d.feito&&d.quem!=='isabella').length;
     const pend=[];
     if(tp)pend.push(tp+' tarefa'+(tp>1?'s':''));
     if(dp)pend.push(dp+' doc'+(dp>1?'s':''));
@@ -452,16 +452,34 @@ function renderDocumentos(){
   // Checklist de documentos necessários
   const docs=PROP.docs_cliente||[];
   if(docs.length){
-    const feitos=docs.filter(d=>d.feito).length;
-    h+=`<div class="card"><h3>Documentos necessários (${feitos}/${docs.length})</h3>
-    <div style="font-size:11px;color:var(--soft);margin-bottom:8px">Marque cada documento conforme for enviando.</div>`;
-    docs.forEach((d,di)=>{
-      h+=`<label style="display:flex;align-items:flex-start;gap:8px;padding:5px 0;font-size:13px;cursor:pointer;${d.feito?'color:var(--green)':''}">
+    const linhaDoc=(d,di)=>`<label style="display:flex;align-items:flex-start;gap:8px;padding:5px 0;font-size:13px;cursor:pointer;${d.feito?'color:var(--green)':''}">
         <input type="checkbox" ${d.feito?'checked':''} onchange="cliToggleDoc(${di},this.checked)" style="accent-color:var(--v);width:16px;height:16px;margin-top:1px">
         <span style="flex:1"><span style="${d.feito?'text-decoration:line-through':''}">${esc(d.item)}</span>
         ${d.nota?`<span style="display:block;font-size:12px;color:var(--red);margin-top:2px;background:rgba(156,59,46,.06);border-radius:6px;padding:4px 8px">Observação da Isabella: ${esc(d.nota)}</span>`:''}</span>
       </label>`;
-    });
+    const doCliente=[],daIsa=[];
+    docs.forEach((d,di)=>{(d.quem==='isabella'?daIsa:doCliente).push([d,di]);});
+    const prios=doCliente.filter(([d])=>d.prioridade&&!d.feito);
+    const outros=doCliente.filter(([d])=>!(d.prioridade&&!d.feito));
+    const feitos=doCliente.filter(([d])=>d.feito).length;
+    h+=`<div class="card"><h3>Documentos necessários (${feitos}/${doCliente.length})</h3>
+    <div style="font-size:11px;color:var(--soft);margin-bottom:8px">Marque cada documento conforme for enviando.</div>`;
+    if(prios.length){
+      h+=`<div style="border:1px solid rgba(156,59,46,.35);background:rgba(156,59,46,.04);border-radius:10px;padding:10px 12px;margin-bottom:10px">
+        <b style="font-size:10px;color:var(--red);text-transform:uppercase;letter-spacing:.05em">Prioridade agora</b>`;
+      prios.forEach(([d,di])=>{h+=linhaDoc(d,di);});
+      h+=`</div>`;
+    }
+    outros.forEach(([d,di])=>{h+=linhaDoc(d,di);});
+    if(daIsa.length){
+      const prontos=daIsa.filter(([d])=>d.feito).length;
+      h+=`<div style="margin-top:14px;padding-top:10px;border-top:1px solid var(--line)">
+        <b style="font-size:10px;color:var(--soft);text-transform:uppercase;letter-spacing:.05em">Em produção com a Isabella (${prontos}/${daIsa.length})</b>`;
+      daIsa.forEach(([d])=>{
+        h+=`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:13px;color:${d.feito?'var(--green)':'var(--soft)'}"><span>${d.feito?'&#10003;':'&#9203;'}</span><span style="${d.feito?'text-decoration:line-through':''}">${esc(d.item)}</span>${d.feito?'<span class="chip" style="color:var(--green)">entregue</span>':'<span class="chip">em produção</span>'}</div>`;
+      });
+      h+=`</div>`;
+    }
     h+=`<div id="doc-msg" style="font-size:11px;color:var(--soft);margin-top:6px"></div></div>`;
   }
   // Arquivos enviados
