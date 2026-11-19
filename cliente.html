@@ -324,8 +324,21 @@ function mostrarLista(){
   }
   document.getElementById('portal').innerHTML=h;
 }
+// Voltar do navegador/celular volta ao painel em vez de sair do sistema
+window.addEventListener('popstate',e=>{
+  if(e.state&&e.state.v==='proj'&&window._LISTA&&window._LISTA.length>1){
+    // estado antigo de projeto ainda na pilha: ignora
+    return;
+  }
+  if(window._LISTA&&window._LISTA.length>1&&document.getElementById('portal').style.display!=='none'){
+    mostrarLista();
+  }
+});
 function abrirProposta(i,aba){abrirDireto(window._LISTA[i],aba);}
 function abrirDireto(prop,aba){
+  if(window._LISTA&&window._LISTA.length>1){
+    try{history.pushState({v:'proj'},'','');}catch(e){}
+  }
   PROP=prop;CODIGO=prop.codigo;
   const conselho=prop.conselho_data||null;
   document.getElementById('err').textContent='';
@@ -345,6 +358,14 @@ function render(p, c){
   const hasEtapas=p.etapas&&p.etapas.length;
 
   let html='';
+
+  // Botão de voltar ao painel, destacado no topo
+  if(window._LISTA&&window._LISTA.length>1){
+    html+=`<button onclick="mostrarLista()" style="display:flex;align-items:center;gap:8px;margin-bottom:14px;padding:10px 20px;border:1.5px solid var(--v);border-radius:24px;background:var(--card);color:var(--v);font:inherit;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(106,35,38,.08)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+      Voltar ao painel
+    </button>`;
+  }
 
   // Próxima reunião (se tiver)
   if(c&&c.proxima_reuniao){
@@ -400,7 +421,10 @@ function render(p, c){
 
   html+=`<div class="msg-box">Dúvidas sobre o seu projeto? A Isabella entrará em contato com você nos próximos passos.</div>`;
   if(window._LISTA&&window._LISTA.length>1){
-    html+=`<a class="voltar" onclick="mostrarLista()">&larr; Meus projetos</a>`;
+    html+=`<div style="text-align:center;margin-top:20px"><button onclick="mostrarLista()" style="display:inline-flex;align-items:center;gap:8px;padding:12px 28px;border:none;border-radius:26px;background:var(--v);color:var(--ch);font:inherit;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 4px 14px rgba(106,35,38,.25)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+      Voltar ao painel
+    </button></div>`;
   }else{
     html+=`<a class="voltar" onclick="document.getElementById('login-box').style.display='block';document.getElementById('portal').style.display='none';document.getElementById('h-sub').textContent='';">Sair</a>`;
   }
