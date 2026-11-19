@@ -354,7 +354,7 @@ function progresso(etapas){
 }
 function renderPropostas(lista){
   if(!lista.length){document.getElementById('tabela-propostas').innerHTML='<div class="empty">Nenhuma proposta aceita ainda.</div>';return;}
-  document.getElementById('tabela-propostas').innerHTML='<table><thead><tr><th>Cliente</th><th>Proposta</th><th>Valor</th><th>Status</th><th>Progresso</th><th>Data</th><th>Código</th></tr></thead><tbody>'+lista.map((p,i)=>'<tr style="cursor:pointer" onclick="abrirDetalhe('+i+')"><td><b>'+esc(p.cliente_nome||'-')+'</b><br><small>'+esc(p.cliente_doc||'')+'</small></td><td>'+esc(p.proposta_titulo||'-')+'<br><small>'+esc(p.proposta_resumo||'')+'</small></td><td class="valor">'+brl(p.total_fixo)+'</td><td>'+badgeStatus(p.status)+'</td><td style="display:flex;gap:6px;align-items:center">'+progresso(p.etapas)+'</td><td><small>'+dd(p.aceito_em)+'</small></td><td><small>'+esc(p.codigo||'-')+'</small></td></tr>').join('')+'</tbody></table>';
+  document.getElementById('tabela-propostas').innerHTML='<table><thead><tr><th>Cliente</th><th>Proposta</th><th>Valor</th><th>Status</th><th>Progresso</th><th>Data</th><th>Código</th></tr></thead><tbody>'+lista.map((p,i)=>'<tr style="cursor:pointer" onclick="abrirDetalhe('+i+')"><td><b>'+esc(p.cliente_nome||'-')+'</b>'+(((p.mensagens||[]).filter(m=>m.de==='cliente'&&!m.lida).length)?' <span class="badge" style="background:#9C3B2E;color:#fff;font-size:9px">&#9993; '+(p.mensagens||[]).filter(m=>m.de==='cliente'&&!m.lida).length+'</span>':'')+'<br><small>'+esc(p.cliente_doc||'')+'</small></td><td>'+esc(p.proposta_titulo||'-')+'<br><small>'+esc(p.proposta_resumo||'')+'</small></td><td class="valor">'+brl(p.total_fixo)+'</td><td>'+badgeStatus(p.status)+'</td><td style="display:flex;gap:6px;align-items:center">'+progresso(p.etapas)+'</td><td><small>'+dd(p.aceito_em)+'</small></td><td><small>'+esc(p.codigo||'-')+'</small></td></tr>').join('')+'</tbody></table>';
 }
 function renderRascunhos(lista){
   if(!lista.length){document.getElementById('tabela-rascunhos').innerHTML='<div class="empty">Nenhum link gerado.</div>';return;}
@@ -375,16 +375,19 @@ async function abrirDetalhe(i){
   if(!CURRENT.conselho_data)CURRENT.conselho_data={reunioes:[],decisoes:[],parcelas:[],documentos:[]};
   // Carregar dados frescos do conselho direto do banco
   try{
-    const r=await fetch(SB+'/rest/v1/propostas?codigo=eq.'+encodeURIComponent(CURRENT.codigo)+'&select=conselho_data,previsoes,pagamentos,arquivos',{headers:{apikey:SBK,Authorization:'Bearer '+SBK}});
+    const r=await fetch(SB+'/rest/v1/propostas?codigo=eq.'+encodeURIComponent(CURRENT.codigo)+'&select=conselho_data,previsoes,pagamentos,arquivos,mensagens',{headers:{apikey:SBK,Authorization:'Bearer '+SBK}});
     const arr=await r.json();
     if(arr&&arr[0]){
       if(arr[0].conselho_data)CURRENT.conselho_data=arr[0].conselho_data;
       if(arr[0].previsoes)CURRENT.previsoes=arr[0].previsoes;
       if(arr[0].pagamentos)CURRENT.pagamentos=arr[0].pagamentos;
+      if(arr[0].arquivos)CURRENT.arquivos=arr[0].arquivos;
+      if(arr[0].mensagens)CURRENT.mensagens=arr[0].mensagens;
     }
   }catch(e){}
   renderDetalhe();
   document.getElementById('modal-bg').classList.add('open');
+  marcarMensagensLidas();
 }
 function fecharModal(){document.getElementById('modal-bg').classList.remove('open');}
 
@@ -508,6 +511,34 @@ function renderDetalhe(){
       </div>`;
     });
   }
+
+  // Mensagens do cliente
+  const msgs=p.mensagens||[];
+  const naoLidas=msgs.filter(m=>m.de==='cliente'&&!m.lida).length;
+  html+=`<div style="margin-top:18px;padding:14px;border:1px solid ${naoLidas?'#9C3B2E':'var(--line)'};border-radius:10px;background:#FDFCFA">
+    <b style="font-size:12px;color:var(--soft);text-transform:uppercase;letter-spacing:.04em">Mensagens (${msgs.length})${naoLidas?` <span class="badge" style="background:#9C3B2E;color:#fff;font-size:9px">${naoLidas} nova${naoLidas>1?'s':''}</span>`:''}</b>
+    <div style="max-height:260px;overflow-y:auto;margin-top:8px" id="msgs-thread">`;
+  if(msgs.length){
+    msgs.forEach(m=>{
+      const dele=m.de==='cliente';
+      const dt=m.data?new Date(m.data).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+' '+new Date(m.data).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'';
+      html+=`<div style="display:flex;justify-content:${dele?'flex-start':'flex-end'};margin-bottom:6px">
+        <div style="max-width:85%;padding:8px 12px;border-radius:${dele?'12px 12px 12px 4px':'12px 12px 4px 12px'};background:${dele?'#fff':'rgba(106,35,38,.08)'};border:1px solid var(--line);font-size:12px">
+          <div style="font-size:10px;color:var(--soft);margin-bottom:2px"><b>${esc(m.nome||(dele?'Cliente':'Isabella'))}</b> · ${dt}</div>
+          <div style="white-space:pre-line">${esc(m.texto)}</div>
+        </div>
+      </div>`;
+    });
+  }else{
+    html+=`<div style="font-size:12px;color:var(--soft)">Nenhuma mensagem neste projeto.</div>`;
+  }
+  html+=`</div>
+    <div style="display:flex;gap:6px;margin-top:8px">
+      <textarea id="msg-resposta" placeholder="Responder como Isabella..." style="flex:1;min-height:40px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:12px;resize:vertical"></textarea>
+      <button class="btn sm" onclick="responderMensagem()" style="align-self:flex-end">Responder</button>
+    </div>
+    <span id="msg-resp-status" style="font-size:11px;color:var(--soft)"></span>
+  </div>`;
 
   // Extrato de recebimentos (automático: parcelas pagas + previsões recebidas + avulsos)
   const extrato=[];
@@ -964,6 +995,30 @@ async function definirSenhaCliente(){
     renderDetalhe();
     alert(senha.trim()?'Senha definida. Passe ao cliente: ele entra em isaestrela.com.br/cliente.html com o CPF/CNPJ e esta senha.':'Senha removida. O cliente entra só com o CPF/CNPJ.');
   }catch(e){alert('Erro: '+e.message);}
+}
+
+// Mensagens
+async function responderMensagem(){
+  const ta=document.getElementById('msg-resposta');
+  const st=document.getElementById('msg-resp-status');
+  const texto=(ta.value||'').trim();
+  if(!texto){st.textContent='Escreva a resposta.';return;}
+  st.textContent='Enviando...';
+  CURRENT.mensagens=CURRENT.mensagens||[];
+  // Marcar as do cliente como lidas ao responder
+  CURRENT.mensagens.forEach(m=>{if(m.de==='cliente')m.lida=true;});
+  CURRENT.mensagens.push({id:Date.now(),de:'isabella',nome:'Isabella',texto,data:new Date().toISOString(),lida:true});
+  try{
+    await sbPatch(CURRENT.codigo,{mensagens:CURRENT.mensagens});
+    renderDetalhe();
+    const el=document.getElementById('msgs-thread');if(el)el.scrollTop=el.scrollHeight;
+  }catch(e){st.textContent='Erro: '+e.message;}
+}
+async function marcarMensagensLidas(){
+  const msgs=CURRENT.mensagens||[];
+  if(!msgs.some(m=>m.de==='cliente'&&!m.lida))return;
+  msgs.forEach(m=>{if(m.de==='cliente')m.lida=true;});
+  try{await sbPatch(CURRENT.codigo,{mensagens:msgs});}catch(e){}
 }
 
 // Arquivos
