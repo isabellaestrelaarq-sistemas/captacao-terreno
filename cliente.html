@@ -148,7 +148,7 @@ async function buscar(){
   const filtro=isCpf?'cliente_doc=eq.'+input.replace(/\D/g,''):'codigo=eq.'+encodeURIComponent(codigoLimpo);
   try{
     // Buscar direto no banco
-    const sel='codigo,cliente_nome,cliente_doc,proposta_titulo,proposta_resumo,total_fixo,pagamento_tipo,status,aceito_em,etapas,docs_cliente,conselho_data,arquivos,cliente_senha';
+    const sel='codigo,cliente_nome,cliente_doc,proposta_titulo,proposta_resumo,total_fixo,pagamento_tipo,status,aceito_em,etapas,docs_cliente,conselho_data,arquivos,mensagens,cliente_senha';
     const r=await fetch(`${SB}/rest/v1/propostas?${filtro}&select=${sel}&order=aceito_em.desc`,{headers:SBH});
     const lista=await r.json();
     if(!Array.isArray(lista)||!lista.length){document.getElementById('err').textContent='Nenhuma proposta encontrada.';return;}
@@ -416,6 +416,7 @@ function render(p, c){
   if(totalParcelas)tabs.push({id:'financeiro',label:'Financeiro'});
   if(c&&c.documentos?.length)tabs.push({id:'diretrizes',label:'Diretrizes'});
   tabs.push({id:'documentos',label:'Documentos'});
+  tabs.push({id:'mensagens',label:'Mensagens'});
 
   if(tabs.length){
     html+='<div class="tabs">';
@@ -447,6 +448,63 @@ function render(p, c){
   if(totalParcelas)renderFinanceiro(c.parcelas);
   if(c&&c.documentos?.length)renderDiretrizes(c.documentos);
   renderDocumentos();
+  renderMensagens();
+}
+
+// ===== MENSAGENS: mural de recados entre cliente e Isabella =====
+function fmtDataHora(iso){
+  if(!iso)return'';
+  try{const d=new Date(iso);return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});}catch(e){return iso;}
+}
+function renderMensagens(){
+  const el=document.getElementById('sec-mensagens');
+  if(!el)return;
+  const msgs=PROP.mensagens||[];
+  let h='<div class="card"><h3>Mensagens</h3><div style="font-size:11px;color:var(--soft);margin-bottom:10px">Deixe seu recado identificado. A Isabella recebe na hora e responde por aqui.</div>';
+  if(msgs.length){
+    msgs.forEach(m=>{
+      const minha=m.de==='cliente';
+      h+=`<div style="display:flex;justify-content:${minha?'flex-end':'flex-start'};margin-bottom:8px">
+        <div style="max-width:85%;padding:10px 14px;border-radius:${minha?'14px 14px 4px 14px':'14px 14px 14px 4px'};background:${minha?'rgba(106,35,38,.07)':'var(--v)'};color:${minha?'var(--dk)':'#fff'};font-size:13px">
+          <div style="font-size:10px;opacity:.75;margin-bottom:3px"><b>${esc(m.nome||(minha?'Você':'Isabella'))}</b> · ${fmtDataHora(m.data)}</div>
+          <div style="white-space:pre-line">${esc(m.texto)}</div>
+        </div>
+      </div>`;
+    });
+  }else{
+    h+='<div style="font-size:12px;color:var(--soft);text-align:center;padding:14px 0">Nenhuma mensagem ainda. Escreva a primeira.</div>';
+  }
+  h+=`<div style="margin-top:12px;border-top:1px solid var(--line);padding-top:12px">
+    <input id="msg-nome" placeholder="Seu nome" value="${esc(localStorage.getItem('isa_msg_nome')||'')}" style="width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;font-size:13px;margin-bottom:6px;box-sizing:border-box">
+    <textarea id="msg-texto" placeholder="Escreva sua mensagem..." style="width:100%;min-height:70px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;font-size:13px;resize:vertical;box-sizing:border-box"></textarea>
+    <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
+      <button onclick="cliEnviarMensagem()" style="padding:10px 26px;border:none;border-radius:22px;background:var(--v);color:var(--ch);font:inherit;font-size:13px;font-weight:600;cursor:pointer">Enviar</button>
+      <span id="msg-status" style="font-size:12px;color:var(--soft)"></span>
+    </div>
+  </div></div>`;
+  el.innerHTML=h;
+  el.scrollTop=el.scrollHeight;
+}
+async function cliEnviarMensagem(){
+  const nome=(document.getElementById('msg-nome').value||'').trim();
+  const texto=(document.getElementById('msg-texto').value||'').trim();
+  const st=document.getElementById('msg-status');
+  if(!nome){st.textContent='Escreva seu nome.';return;}
+  if(!texto){st.textContent='Escreva a mensagem.';return;}
+  localStorage.setItem('isa_msg_nome',nome);
+  st.textContent='Enviando...';
+  PROP.mensagens=PROP.mensagens||[];
+  PROP.mensagens.push({id:Date.now(),de:'cliente',nome,texto,data:new Date().toISOString(),lida:false});
+  try{
+    const r=await fetch(SB+'/rest/v1/propostas?codigo=eq.'+encodeURIComponent(CODIGO),{method:'PATCH',headers:{apikey:SBK,Authorization:'Bearer '+SBK,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({mensagens:PROP.mensagens})});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    // Avisar a Isabella no Telegram
+    try{await fetch('https://api.telegram.org/bot7607498857:AAE0jM_cFrU7qHlXrPAz9q5rQxI3ZOQNxpI/sendMessage',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:'-4580797688',text:'NOVA MENSAGEM NO PORTAL\nDe: '+nome+'\nProjeto: '+(PROP.proposta_titulo||CODIGO)+'\n\n'+texto+'\n\nResponda pelo painel: proposta '+CODIGO})});}catch(e){}
+    renderMensagens();
+    switchTab('mensagens');
+    document.getElementById('msg-texto').value='';
+    const st2=document.getElementById('msg-status');if(st2)st2.textContent='Mensagem enviada.';
+  }catch(e){st.textContent='Erro ao enviar: '+e.message;}
 }
 
 // ===== DOCUMENTOS: checklist + envio de arquivos =====
