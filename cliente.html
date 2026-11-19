@@ -117,6 +117,11 @@ let CODIGO='',PROP=null;
 const hash=location.hash.slice(1);
 if(hash){document.getElementById('codigo').value=hash;setTimeout(buscar,300);}
 document.getElementById('codigo').addEventListener('keydown',e=>{if(e.key==='Enter')buscar();});
+// Entrada direta por link com código (ex.: /cliente.html#MO-C3D4XJ)
+(function(){
+  const hc=(location.hash||'').replace('#','').trim();
+  if(/^MO-/i.test(hc)){document.getElementById('codigo').value=hc.toUpperCase();buscar();}
+})();
 
 function pautaTopicos(pauta){return String(pauta||'').split(/;|\n/).map(s=>s.trim()).filter(s=>s);}
 function pautaHtml(pauta,escuro){
@@ -573,7 +578,9 @@ function renderTarefas(tarefas){
       </summary>
       <div style="padding:0 14px 14px">`;
     if(t.descricao)h+=`<div style="font-size:12px;color:var(--soft);white-space:pre-line;padding:10px;background:rgba(106,35,38,.03);border-radius:8px">${esc(t.descricao)}</div>`;
-    if(t.responsavel)h+=`<div style="font-size:11px;color:var(--soft);margin-top:6px">Responsável: ${esc(t.responsavel)}</div>`;
+    h+=`<div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--soft);margin-top:8px">Responsável:
+      <input value="${esc(t.responsavel||'')}" placeholder="quem vai fazer" onchange="cliSetResponsavel(${t.id},this.value)" onclick="event.stopPropagation()" style="padding:4px 8px;border:1px solid var(--line);border-radius:6px;font:inherit;font-size:11px;width:130px">
+    </div>`;
     if(t.checklist&&t.checklist.length){
       h+='<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--line)">';
       t.checklist.forEach((c,ci)=>{
@@ -652,6 +659,12 @@ async function cliTrocarSenha(){
     if(!r.ok)throw new Error('HTTP '+r.status);
     alert('Senha alterada. Use a nova senha no próximo acesso, para todos os seus projetos.');
   }catch(e){alert('Erro ao trocar a senha: '+e.message);}
+}
+async function cliSetResponsavel(tid,val){
+  const t=cliAchaTarefa(tid);
+  if(!t)return;
+  t.responsavel=val.trim();
+  await cliSalvarConselho(tid,'Atualizado.');
 }
 async function cliToggleCheck(tid,ci,val){
   const t=cliAchaTarefa(tid);
