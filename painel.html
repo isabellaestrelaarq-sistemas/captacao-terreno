@@ -594,18 +594,29 @@ function renderDetalhe(){
     if(agendadas.length){
       html+=`<div style="margin-bottom:12px"><b style="font-size:11px;color:var(--soft)">PRÓXIMAS REUNIÕES</b>`;
       agendadas.forEach(r=>{
-        html+=`<div style="padding:8px 10px;border:1px solid var(--line);border-radius:8px;margin-top:6px;font-size:13px">
+        const tops=pautaTopicos(r.pauta);
+        html+=`<div style="padding:10px 12px;border:1px solid var(--line);border-radius:8px;margin-top:6px;font-size:13px">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
             <span><b>${esc(r.data)} às ${esc(r.hora||'10:00')}</b></span>
             <div style="display:flex;gap:4px">
-              <button class="btn sm sec" onclick="editarPauta(${r.id})" style="font-size:11px;padding:4px 8px">Pauta</button>
               <button class="btn sm sec" onclick="editarLink(${r.id})" style="font-size:11px;padding:4px 8px">Link</button>
               <button class="btn sm" onclick="realizarReuniao(${r.id})" style="font-size:11px;padding:4px 8px">Realizada</button>
               <button class="btn sm sec" onclick="cancelarReuniao(${r.id})" style="font-size:11px;padding:4px 8px">Cancelar</button>
             </div>
           </div>
-          ${r.pauta?`<div style="margin-top:6px;font-size:12px"><b style="font-size:10px;color:var(--soft);text-transform:uppercase;letter-spacing:.04em">Pauta</b>${pautaTopicos(r.pauta).map(t=>`<div style="display:flex;gap:6px;padding:2px 0;color:var(--dk)"><span style="color:var(--v)">&#9656;</span><span>${esc(t)}</span></div>`).join('')}</div>`:`<div style="margin-top:4px;font-size:11px;color:var(--soft)">Sem pauta. Clique em "Pauta" e separe os tópicos por ponto e vírgula.</div>`}
-          ${r.link?`<div style="margin-top:4px"><a href="${esc(r.link)}" target="_blank" style="color:var(--v);font-size:12px">${esc(r.link)}</a></div>`:`<div style="margin-top:4px;font-size:11px;color:var(--soft)">Sem link de reunião. Clique em "Link" para adicionar (o cliente vê o botão de entrar).</div>`}
+          <div style="margin-top:8px"><b style="font-size:10px;color:var(--soft);text-transform:uppercase;letter-spacing:.04em">Pauta da reunião</b>`;
+        tops.forEach((t,ti)=>{
+          html+=`<div style="display:flex;align-items:center;gap:6px;padding:2px 0">
+            <span style="color:var(--v)">&#9656;</span>
+            <input value="${esc(t)}" onchange="editPautaTopico(${r.id},${ti},this.value)" style="flex:1;border:none;background:transparent;font:inherit;font-size:12px;padding:2px">
+            <button onclick="removePautaTopico(${r.id},${ti})" style="background:none;border:none;color:var(--soft);cursor:pointer;font-size:13px;opacity:.5">&times;</button>
+          </div>`;
+        });
+        html+=`<div style="display:flex;gap:6px;margin-top:4px">
+            <input id="novo-topico-${r.id}" placeholder="Novo tópico da pauta... (Enter adiciona)" onkeydown="if(event.key==='Enter')addPautaTopico(${r.id})" style="flex:1;padding:5px 8px;border:1px dashed var(--line);border-radius:6px;font:inherit;font-size:12px">
+            <button class="btn sm sec" onclick="addPautaTopico(${r.id})" style="font-size:11px;padding:3px 10px">+ tópico</button>
+          </div></div>
+          ${r.link?`<div style="margin-top:6px"><a href="${esc(r.link)}" target="_blank" style="color:var(--v);font-size:12px">${esc(r.link)}</a></div>`:`<div style="margin-top:6px;font-size:11px;color:var(--soft)">Sem link de reunião. Clique em "Link" para adicionar (o cliente vê o botão de entrar).</div>`}
         </div>`;
       });
       html+=`</div>`;
@@ -739,13 +750,32 @@ async function realizarReuniao(id){
   await salvarConselho();renderDetalhe();
 }
 function pautaTopicos(pauta){return String(pauta||'').split(/;|\n/).map(s=>s.trim()).filter(s=>s);}
-async function editarPauta(id){
-  const c=cd();
-  const r=c.reunioes.find(x=>x.id===id);
+function achaReuniao(id){return (cd().reunioes||[]).find(x=>x.id===id);}
+async function addPautaTopico(id){
+  const inp=document.getElementById('novo-topico-'+id);
+  if(!inp||!inp.value.trim())return;
+  const r=achaReuniao(id);
   if(!r)return;
-  const pauta=prompt('Pauta da reunião (separe tópicos por ; ):',r.pauta||'');
-  if(pauta===null)return;
-  r.pauta=pauta;
+  const tops=pautaTopicos(r.pauta);
+  tops.push(inp.value.trim());
+  r.pauta=tops.join('; ');
+  await salvarConselho();renderDetalhe();
+  setTimeout(()=>{const n=document.getElementById('novo-topico-'+id);if(n)n.focus();},100);
+}
+async function editPautaTopico(id,ti,val){
+  const r=achaReuniao(id);
+  if(!r)return;
+  const tops=pautaTopicos(r.pauta);
+  if(val.trim())tops[ti]=val.trim();else tops.splice(ti,1);
+  r.pauta=tops.join('; ');
+  await salvarConselho();
+}
+async function removePautaTopico(id,ti){
+  const r=achaReuniao(id);
+  if(!r)return;
+  const tops=pautaTopicos(r.pauta);
+  tops.splice(ti,1);
+  r.pauta=tops.join('; ');
   await salvarConselho();renderDetalhe();
 }
 async function cancelarReuniao(id){
