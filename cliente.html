@@ -650,6 +650,21 @@ function renderTarefas(tarefas){
       h+='</div>';
     }
     if(!t.descricao&&!(t.checklist&&t.checklist.length))h+=`<div style="font-size:12px;color:var(--soft)">Sem detalhes ainda.</div>`;
+    // Anexos da tarefa (enviados por você ou pela Isabella)
+    const tArqs=t.arquivos||[];
+    h+=`<div style="margin-top:10px;border-top:1px dashed var(--line);padding-top:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <b style="font-size:10px;color:var(--soft);text-transform:uppercase;letter-spacing:.05em">Anexos (${tArqs.length})</b>
+        <span onclick="event.stopPropagation()"><input type="file" id="cta-file-${t.id}" multiple style="display:none" onchange="cliUploadTarefaArq(${t.id},this.files)"><button onclick="document.getElementById('cta-file-${t.id}').click()" style="padding:5px 12px;border:1px solid var(--v);border-radius:16px;background:none;color:var(--v);font:inherit;font-size:11px;font-weight:600;cursor:pointer">+ Anexar</button></span>
+      </div>
+      <div id="cta-msg-${t.id}" style="font-size:10px;color:var(--soft)"></div>`;
+    tArqs.forEach(a=>{
+      h+=`<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;padding:4px 0;font-size:12px">
+        <a href="${esc(a.url)}" target="_blank" onclick="event.stopPropagation()" style="color:var(--v);text-decoration:none;word-break:break-all">&#128196; ${esc(a.nome)}</a>
+        <small style="color:var(--soft);white-space:nowrap">${esc(a.data||'')}${a.por?' · '+esc(a.por==='equipe'?'Isabella':a.por):''}</small>
+      </div>`;
+    });
+    h+=`</div>`;
     if(!done){
       h+=`<button onclick="cliConcluirTarefa(${t.id})" style="margin-top:10px;padding:8px 18px;border:none;border-radius:20px;background:var(--green);color:#fff;font:inherit;font-size:12px;font-weight:600;cursor:pointer">Marcar tarefa como concluída</button>`;
     }else{
@@ -717,6 +732,28 @@ async function cliTrocarSenha(){
     if(!r.ok)throw new Error('HTTP '+r.status);
     alert('Senha alterada. Use a nova senha no próximo acesso, para todos os seus projetos.');
   }catch(e){alert('Erro ao trocar a senha: '+e.message);}
+}
+async function cliUploadTarefaArq(tid,files){
+  if(!files||!files.length)return;
+  const msg=document.getElementById('cta-msg-'+tid);
+  const t=cliAchaTarefa(tid);
+  if(!t)return;
+  t.arquivos=t.arquivos||[];
+  for(const f of files){
+    if(f.size>25*1024*1024){if(msg)msg.textContent=f.name+' passa de 25 MB.';continue;}
+    if(msg)msg.textContent='Enviando '+f.name+'...';
+    const nomeLimpo=f.name.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^A-Za-z0-9._-]/g,'_');
+    const caminho=CODIGO+'/tarefa-'+tid+'/'+Date.now()+'-'+nomeLimpo;
+    try{
+      const r=await fetch(SB+'/storage/v1/object/docs/'+caminho,{method:'POST',headers:{apikey:SBK,Authorization:'Bearer '+SBK,'Content-Type':f.type||'application/octet-stream'},body:f});
+      if(!r.ok)throw new Error('HTTP '+r.status);
+      t.arquivos.push({nome:f.name,url:SB+'/storage/v1/object/public/docs/'+caminho,data:new Date().toISOString().slice(0,10),por:'cliente'});
+    }catch(e){if(msg)msg.textContent='Erro ao enviar '+f.name+': '+e.message;return;}
+  }
+  await cliSalvarConselho(tid,'');
+  // Avisar a Isabella
+  try{await fetch('https://api.telegram.org/bot7607498857:AAE0jM_cFrU7qHlXrPAz9q5rQxI3ZOQNxpI/sendMessage',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:'-4580797688',text:'ANEXO NA TAREFA\nTarefa: '+(t.titulo||'')+'\nProjeto: '+(PROP.proposta_titulo||CODIGO)+'\nArquivos: '+Array.from(files).map(f=>f.name).join(', ')})});}catch(e){}
+  renderTarefas((PROP.conselho_data||{}).tarefas||[]);
 }
 async function cliSetResponsavel(tid,val){
   const t=cliAchaTarefa(tid);
