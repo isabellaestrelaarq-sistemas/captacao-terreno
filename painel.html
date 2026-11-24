@@ -730,7 +730,11 @@ function renderDetalhe(){
         const tops=pautaTopicos(r.pauta);
         html+=`<div style="padding:10px 12px;border:1px solid var(--line);border-radius:8px;margin-top:6px;font-size:13px">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
-            <span><b>${esc(r.data)} às ${esc(r.hora||'10:00')}</b></span>
+            <span style="display:flex;align-items:center;gap:6px">
+              <input type="date" value="${esc(r.data)}" onchange="setReuniaoCampo(${r.id},'data',this.value)" style="padding:5px 8px;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:13px;font-weight:600">
+              <span style="color:var(--soft);font-size:12px">às</span>
+              <input type="time" value="${esc(r.hora||'10:00')}" onchange="setReuniaoCampo(${r.id},'hora',this.value)" style="padding:5px 8px;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:13px;font-weight:600">
+            </span>
             <div style="display:flex;gap:4px">
               <button class="btn sm sec" onclick="editarLink(${r.id})" style="font-size:11px;padding:4px 8px">Link</button>
               <button class="btn sm" onclick="realizarReuniao(${r.id})" style="font-size:11px;padding:4px 8px">Realizada</button>
@@ -808,7 +812,22 @@ function renderDetalhe(){
         html+=`<div style="display:flex;gap:6px;margin-top:4px">
             <input id="novo-item-${t.id}" placeholder="Novo item... (Enter adiciona)" onkeydown="if(event.key==='Enter')addItemInline(${t.id})" style="flex:1;padding:5px 8px;border:1px dashed var(--line);border-radius:6px;font:inherit;font-size:12px">
             <button class="btn sm sec" onclick="addItemInline(${t.id})" style="font-size:11px;padding:3px 10px">+ item</button>
+          </div>`;
+        // Anexos da tarefa
+        const tArqs=t.arquivos||[];
+        html+=`<div style="margin-top:8px;border-top:1px dashed var(--line);padding-top:6px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <b style="font-size:9px;color:var(--soft);text-transform:uppercase;letter-spacing:.05em">Anexos (${tArqs.length})</b>
+            <span><input type="file" id="ta-file-${t.id}" multiple style="display:none" onchange="uploadTarefaArq(${t.id},this.files)"><button class="btn sm sec" onclick="document.getElementById('ta-file-${t.id}').click()" style="font-size:10px;padding:2px 8px">+ Anexar</button></span>
           </div>
+          <div id="ta-msg-${t.id}" style="font-size:10px;color:var(--soft)"></div>`;
+        tArqs.forEach((a,ai)=>{
+          html+=`<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;padding:3px 0;font-size:11px">
+            <a href="${esc(a.url)}" target="_blank" style="color:var(--v);text-decoration:none;word-break:break-all">&#128196; ${esc(a.nome)}</a>
+            <span style="white-space:nowrap;display:flex;gap:4px;align-items:center"><small style="color:var(--soft)">${esc(a.data||'')}${a.por?' · '+esc(a.por):''}</small><button onclick="removeTarefaArq(${t.id},${ai})" style="background:none;border:none;color:var(--soft);cursor:pointer;font-size:13px;opacity:.5">&times;</button></span>
+          </div>`;
+        });
+        html+=`</div>
           </div>
         </div>`;
       });
@@ -860,6 +879,13 @@ async function agendarReuniao(){
   c.reunioes.push({id:Date.now(),data,hora:hora||'10:00',status:'agendada',pauta:pauta||'',resumo:'',decisoes:[],local:'Vídeo',link:(link||'').trim()});
   atualizaProxima(c);
   await salvarConselho();renderDetalhe();
+}
+async function setReuniaoCampo(id,campo,val){
+  const r=achaReuniao(id);
+  if(!r||!val)return;
+  r[campo]=val;
+  atualizaProxima(cd());
+  await salvarConselho();
 }
 async function editarLink(id){
   const c=cd();
@@ -979,6 +1005,35 @@ async function removeTarefaCheckItem(id,ci){
   const t=c.tarefas.find(x=>x.id===id);
   if(!t)return;
   t.checklist.splice(ci,1);
+  await salvarConselho();renderDetalhe();
+}
+// Anexos da tarefa (visíveis para você e para o cliente)
+async function uploadTarefaArq(tid,files){
+  if(!files||!files.length)return;
+  const msg=document.getElementById('ta-msg-'+tid);
+  const c=cd();
+  const t=c.tarefas.find(x=>x.id===tid);
+  if(!t)return;
+  t.arquivos=t.arquivos||[];
+  for(const f of files){
+    if(f.size>25*1024*1024){if(msg)msg.textContent=f.name+' passa de 25 MB.';continue;}
+    if(msg)msg.textContent='Enviando '+f.name+'...';
+    const nomeLimpo=f.name.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^A-Za-z0-9._-]/g,'_');
+    const caminho=CURRENT.codigo+'/tarefa-'+tid+'/'+Date.now()+'-'+nomeLimpo;
+    try{
+      const r=await fetch(SB+'/storage/v1/object/docs/'+caminho,{method:'POST',headers:{apikey:SBK,Authorization:'Bearer '+SBK,'Content-Type':f.type||'application/octet-stream'},body:f});
+      if(!r.ok)throw new Error('HTTP '+r.status);
+      t.arquivos.push({nome:f.name,url:SB+'/storage/v1/object/public/docs/'+caminho,data:new Date().toISOString().slice(0,10),por:'equipe'});
+    }catch(e){if(msg)msg.textContent='Erro ao enviar '+f.name+': '+e.message;return;}
+  }
+  await salvarConselho();renderDetalhe();
+}
+async function removeTarefaArq(tid,ai){
+  if(!confirm('Remover este anexo da tarefa?'))return;
+  const c=cd();
+  const t=c.tarefas.find(x=>x.id===tid);
+  if(!t)return;
+  t.arquivos.splice(ai,1);
   await salvarConselho();renderDetalhe();
 }
 async function addItemInline(id){
