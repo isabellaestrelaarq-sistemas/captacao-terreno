@@ -764,10 +764,22 @@ function renderDetalhe(){
     if(realizadas.length){
       html+=`<div style="margin-bottom:12px"><b style="font-size:11px;color:var(--soft)">ÚLTIMAS REUNIÕES</b>`;
       realizadas.forEach(r=>{
-        html+=`<div style="padding:10px;border:1px solid var(--line);border-radius:8px;margin-top:6px;font-size:12px">
+        html+=`<div style="padding:10px 12px;border:1px solid var(--line);border-radius:8px;margin-top:6px;font-size:12px">
           <div style="display:flex;justify-content:space-between"><b>${esc(r.data)} às ${esc(r.hora||'')}</b><span class="badge realizada">realizada</span></div>
-          ${r.resumo?'<div style="margin-top:4px;color:var(--soft)">'+esc(r.resumo)+'</div>':''}
-          ${r.decisoes&&r.decisoes.length?'<div style="margin-top:4px">'+r.decisoes.map(d=>'<div style="padding:2px 0;color:var(--v)">→ '+esc(d)+'</div>').join('')+'</div>':''}
+          <b style="font-size:9px;color:var(--soft);text-transform:uppercase;letter-spacing:.05em;display:block;margin-top:8px">Resumo da reunião (o cliente vê)</b>
+          <textarea placeholder="Escreva o resumo do que foi tratado..." onchange="setReuniaoCampo(${r.id},'resumo',this.value)" style="width:100%;margin-top:4px;padding:8px;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:12px;min-height:54px;resize:vertical;box-sizing:border-box;color:var(--dk)">${esc(r.resumo||'')}</textarea>
+          <b style="font-size:9px;color:var(--soft);text-transform:uppercase;letter-spacing:.05em;display:block;margin-top:8px">Decisões</b>`;
+        (r.decisoes||[]).forEach((d,di)=>{
+          html+=`<div style="display:flex;align-items:center;gap:6px;padding:2px 0">
+            <span style="color:var(--v)">&rarr;</span>
+            <input value="${esc(d)}" onchange="editDecisaoReuniao(${r.id},${di},this.value)" style="flex:1;border:none;background:transparent;font:inherit;font-size:12px;color:var(--v);padding:2px">
+            <button onclick="removeDecisaoReuniao(${r.id},${di})" style="background:none;border:none;color:var(--soft);cursor:pointer;font-size:13px;opacity:.5">&times;</button>
+          </div>`;
+        });
+        html+=`<div style="display:flex;gap:6px;margin-top:4px">
+            <input id="nova-decisao-${r.id}" placeholder="Nova decisão... (Enter adiciona)" onkeydown="if(event.key==='Enter')addDecisaoReuniao(${r.id})" style="flex:1;padding:5px 8px;border:1px dashed var(--line);border-radius:6px;font:inherit;font-size:12px">
+            <button class="btn sm sec" onclick="addDecisaoReuniao(${r.id})" style="font-size:11px;padding:3px 10px">+ decisão</button>
+          </div>
         </div>`;
       });
       html+=`</div>`;
@@ -886,6 +898,40 @@ async function setReuniaoCampo(id,campo,val){
   r[campo]=val;
   atualizaProxima(cd());
   await salvarConselho();
+}
+// Decisões de uma reunião realizada (sincroniza com o registro geral)
+async function addDecisaoReuniao(id){
+  const inp=document.getElementById('nova-decisao-'+id);
+  if(!inp||!inp.value.trim())return;
+  const c=cd();
+  const r=achaReuniao(id);
+  if(!r)return;
+  const texto=inp.value.trim();
+  r.decisoes=r.decisoes||[];
+  r.decisoes.push(texto);
+  c.decisoes.push({texto,data:r.data,reuniao_id:id,created:new Date().toISOString()});
+  await salvarConselho();renderDetalhe();
+  setTimeout(()=>{const n=document.getElementById('nova-decisao-'+id);if(n)n.focus();},100);
+}
+async function editDecisaoReuniao(id,di,val){
+  const c=cd();
+  const r=achaReuniao(id);
+  if(!r||!r.decisoes)return;
+  const antiga=r.decisoes[di];
+  if(val.trim()){r.decisoes[di]=val.trim();}else{r.decisoes.splice(di,1);}
+  const g=c.decisoes.find(d=>d.reuniao_id===id&&d.texto===antiga);
+  if(g){if(val.trim())g.texto=val.trim();else c.decisoes=c.decisoes.filter(d=>d!==g);}
+  await salvarConselho();
+}
+async function removeDecisaoReuniao(id,di){
+  const c=cd();
+  const r=achaReuniao(id);
+  if(!r||!r.decisoes)return;
+  const antiga=r.decisoes[di];
+  r.decisoes.splice(di,1);
+  const g=c.decisoes.find(d=>d.reuniao_id===id&&d.texto===antiga);
+  if(g)c.decisoes=c.decisoes.filter(d=>d!==g);
+  await salvarConselho();renderDetalhe();
 }
 async function editarLink(id){
   const c=cd();
